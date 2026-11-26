@@ -285,9 +285,45 @@ test('PUR04 native: approved PO revision preserves commercial snapshot and rejec
     // must approve the NEW submitted revision. Reuse the already source-backed
     // PUR04 fixture but make one genuinely NEW business assertion; do not
     // rerun historical separate PUR01/PM02/Mac/Chrome suites.
-    const submittedRevision=await orders.submit(
-      {auth:jai.auth},revised.id,poFlow.workflowCode,
-    );
+    // Hold a PATCH immediately after it read the Draft; submit through the
+    // independent normal service, then let the stale PATCH attempt its write.
+    let readDraft!:()=>void, resumePatch!:()=>void;
+    const read=new Promise<void>(resolve=>{readDraft=resolve;});
+    const resume=new Promise<void>(resolve=>{resumePatch=resolve;});
+    const delayedScope=Object.create(scope) as ProjectAccessService;
+    delayedScope.assertAccess=async (...args:Parameters<ProjectAccessService['assertAccess']>)=>{
+      await scope.assertAccess(...args);
+      readDraft();
+      await resume;
+    };
+    const delayedOrders=new PurchaseOrderService(prisma,delayedScope,audit,approval,numbers);
+    const stalePatch=delayedOrders.updateOrder({auth:jai.auth},revised.id,{
+      discountAmount:D('999'),paymentTerms:'Unapproved concurrent change',
+      supplierQuoteExceptionReason:'Unapproved comparison bypass',
+    });
+    const rejected=assert.rejects(stalePatch,(e:unknown)=>e instanceof ConflictException &&
+      (e.getResponse() as {code?:string}).code==='PO_NOT_DRAFT');
+    await Promise.race([read,stalePatch.then(()=>{throw Error('PATCH did not wait');})]);
+    let submittedRevision:Awaited<ReturnType<PurchaseOrderService['submit']>>;
+    try {
+      submittedRevision=await orders.submit({auth:jai.auth},revised.id,poFlow.workflowCode);
+    } finally { resumePatch(); }
+    await rejected;
+    const unchanged=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:revised.id}});
+    assert.equal(unchanged.discountAmount?.toString(),'100.25');
+    assert.equal(unchanged.paymentTerms,fields.paymentTerms);
+    assert.equal(unchanged.supplierQuoteExceptionReason,null);
+    // Direct database writes must also fail for EVERY new commercial field.
+    for(const patch of [
+      {deliveryLocation:'bad'}, {deliveryContact:'bad'}, {deliveryTerms:'bad'},
+      {paymentTerms:'bad'}, {creditTerms:'bad'}, {discountAmount:D('1')},
+      {freightAmount:D('1')},{additionalChargeAmount:D('1')},{vatRatePercent:D('1')},
+      {supplierQuoteExceptionReason:'bad'},
+    ]) await assert.rejects(prisma.purchaseOrder.update({where:{id:revised.id},data:patch}),
+      /PO_COMMERCIAL_HISTORY_IMMUTABLE/);
+    assert.equal(await prisma.auditLog.count({where:{companyId:company.id,entityType:'PURCHASE_ORDER',
+      entityId:revised.id,action:'UPDATE_DRAFT'}}),1,'Stale PATCH must append no audit');
+    console.log('M4_PO_COMMERCIAL_CONCURRENT_SUBMIT_AND_DB_IMMUTABILITY_PASS');
     assert.equal(submittedRevision.lifecycleState,'SUBMITTED');
     assert.ok(submittedRevision.approvalInstanceId);
     assert.notEqual(submittedRevision.approvalInstanceId,approvedOriginal.approvalInstanceId,

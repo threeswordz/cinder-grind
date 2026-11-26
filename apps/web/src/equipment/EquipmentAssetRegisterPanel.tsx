@@ -11,22 +11,22 @@ const blank={purchaseDate:'',acquisitionValueTHB:'',evidenceReference:'',recorde
 export function EquipmentAssetRegisterPanel({equipmentId}:{equipmentId:string}){
  const client=useQueryClient(),path='/equipment/register/'+equipmentId+'/asset';
  const query=useQuery({queryKey:['equipment','asset',equipmentId],queryFn:()=>apiRequest<{data:Readback}>(path),retry:false});
- const result=query.data?.data;
+ const result=query.isSuccess&&!query.isPlaceholderData?query.data?.data:undefined;
  const [form,setForm]=useState(blank);
  const [base,setBase]=useState<{id:string;versionId:string|null}|null>(null);
  useEffect(()=>{
-  if(!result)return;
+  if(!result||!result.canEdit){setBase(null);setForm(blank);return;}
   const v=result.current;
   setBase({id:equipmentId,versionId:v?.id??null});
   setForm({purchaseDate:v?.purchaseDate?.slice(0,10)??'',acquisitionValueTHB:v?.acquisitionValueTHB??'',
     evidenceReference:v?.evidenceReference??'',recordedBaseLocation:v?.recordedBaseLocation??'',reason:''});
- },[equipmentId,result?.current?.id,result!==undefined]);
+ },[equipmentId,result?.current?.id,result!==undefined,result?.canEdit]);
  const save=useMutation({mutationFn:()=>{
-  if(!base||base.id!==equipmentId||base.versionId!==(result?.current?.id??null))throw Error('Refresh before recording a new version');
+  if(!result?.canEdit||!base||base.id!==equipmentId||base.versionId!==(result.current?.id??null))throw Error('Refresh before recording a new version');
   return apiRequest(path,{method:'POST',body:JSON.stringify({expectedVersionId:base.versionId,
    purchaseDate:form.purchaseDate||null,acquisitionValueTHB:form.acquisitionValueTHB||null,
    evidenceReference:form.evidenceReference.trim(),recordedBaseLocation:form.recordedBaseLocation.trim()||null,reason:form.reason.trim()})});
- },onSuccess:()=>client.invalidateQueries({queryKey:['equipment','asset',equipmentId]})});
+ },onSuccess:()=>client.invalidateQueries({queryKey:['equipment','asset',equipmentId]}),onError:()=>{void query.refetch();}});
  const field=(key:keyof typeof blank,label:string,type='text')=><TextField label={label} type={type} value={form[key]} fullWidth
    onChange={e=>setForm(x=>({...x,[key]:e.target.value}))} slotProps={type==='date'?{inputLabel:{shrink:true}}:undefined}/>;
  return <Card variant="outlined"><CardContent><Stack spacing={1.5}>
@@ -34,6 +34,7 @@ export function EquipmentAssetRegisterPanel({equipmentId}:{equipmentId:string}){
   <Alert severity="info">Operator-recorded acquisition facts (THB); unknown date/value stays blank, never assumed zero. Existing assignment and custody are the location sources. No depreciation, invoice verification, journal or payment.</Alert>
   {query.isPending&&<Typography>Loading asset register…</Typography>}
   {query.isError&&<Alert severity="warning">Asset details unavailable in your current scope. No acquisition values displayed.</Alert>}
+  <Button disabled={query.isFetching} onClick={()=>void query.refetch()}>Refresh register</Button>
   {result&&<>
    <Typography>Current site assignment: {result.currentProject?result.currentProject.projectCode+' — '+result.currentProject.projectName:'No effective site assignment'}</Typography>
    <Typography>Recorded base location: {result.current?.recordedBaseLocation??'Not recorded'}</Typography>
@@ -49,7 +50,7 @@ export function EquipmentAssetRegisterPanel({equipmentId}:{equipmentId:string}){
       onClick={()=>save.mutate()}>Record acquisition version</Button>
    </Stack>}
    {save.isError&&<Alert severity="error">{save.error instanceof Error?save.error.message:'Save failed'}</Alert>}
-   <Button onClick={()=>void query.refetch()}>Refresh register</Button>
+
    <Typography variant="subtitle2">Preserved acquisition history</Typography>
    {result.history.map(v=><Typography key={v.id} variant="body2">Version {v.version} · {v.purchaseDate?.slice(0,10)??'Unknown date'} · {v.acquisitionValueTHB??'Unknown value'} THB · {v.evidenceReference} · {v.recordedBaseLocation??'No base location'} · {v.reason}</Typography>)}
   </>}

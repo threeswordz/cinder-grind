@@ -1,6 +1,6 @@
 import { Alert, Button, Card, CardContent, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { equipmentApi } from '../api/equipment';
 
@@ -47,8 +47,18 @@ export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:str
     mutationFn:(id:string)=>equipmentApi.custodyReturn(id,returnedOn,conditionIn),
     onSuccess:async()=>{setConditionIn('');await refresh();},
   });
+  const visibleProjects=projects.isSuccess?projects.data.data:[];
+  const validProject=visibleProjects.some(p=>p.id===projectId);
+  const visibleLoans=validProject&&loans.isSuccess?loans.data.data:[];
+  const visibleBorrowers=validProject&&mayManage&&borrowers.isSuccess?borrowers.data.data:[];
+  useEffect(()=>{
+    if(projects.isError||loans.isError||borrowers.isError||!validProject){
+      setBorrowerEmployeeId('');setSiteLabel('');setConditionOut('');setConditionIn('');
+      if(projects.isError||(projects.isSuccess&&!validProject))setProjectId('');
+    }
+  },[projects.isError,loans.isError,borrowers.isError,validProject,projects.isSuccess,equipmentId]);
   if(!permissions.includes('equipment.custody.view')) return null;
-  const open=(loans.data?.data??[]).find(loan=>!loan.returnedOn);
+  const open=visibleLoans.find(loan=>!loan.returnedOn);
   const error=checkout.error??returnLoan.error??loans.error??borrowers.error??projects.error;
   return <Card variant="outlined"><CardContent><Stack spacing={2}>
     <Typography variant="subtitle1">SS11 — Person-level Equipment Custody (CG#####)</Typography>
@@ -57,12 +67,12 @@ export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:str
     <TextField select label="Project / site scope" value={projectId}
       onChange={e=>{setProjectId(e.target.value);setBorrowerEmployeeId('');}} fullWidth>
       <MenuItem value="">Select Project</MenuItem>
-      {(projects.data?.data??[]).map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
+      {visibleProjects.map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
     </TextField>
     {projectId&&open?<Alert severity="warning">
       Checked out to {open.borrowerName} at {open.siteLabel}. Due {open.dueOn.slice(0,10)}.
     </Alert>:null}
-    {(loans.data?.data??[]).map(loan=><Stack key={loan.id} spacing={0.5}>
+    {visibleLoans.map(loan=><Stack key={loan.id} spacing={0.5}>
       <Typography variant="body2">
         {loan.borrowerName} · {loan.siteLabel} · issued {loan.issuedOn.slice(0,10)}
         {' · due '+loan.dueOn.slice(0,10)}
@@ -78,12 +88,12 @@ export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:str
           onClick={()=>returnLoan.mutate(loan.id)}>Record Return</Button>
       </Stack>:null}
     </Stack>)}
-    {mayManage&&projectId&&!open?<Stack spacing={1}>
+    {mayManage&&validProject&&loans.isSuccess&&borrowers.isSuccess&&!open?<Stack spacing={1}>
       <Typography variant="subtitle2">Check out this Equipment to an active Project employee</Typography>
       <TextField select label="Named borrower" value={borrowerEmployeeId} fullWidth
         onChange={e=>setBorrowerEmployeeId(e.target.value)}>
         <MenuItem value="">Select borrower</MenuItem>
-        {(borrowers.data?.data??[]).map(b=><MenuItem key={b.id} value={b.id}>
+        {visibleBorrowers.map(b=><MenuItem key={b.id} value={b.id}>
           {b.employeeCode} — {b.employeeName}
         </MenuItem>)}
       </TextField>

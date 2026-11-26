@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert, Box, Button, Card, CardContent, CircularProgress, Divider,
   MenuItem, Stack, TextField, Typography,
@@ -75,7 +75,11 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
     queryFn: () => purchaseOrdersApi.dispatchEvents(orderId),
     enabled: canJai && Boolean(orderId),
   });
-  const caseData = current.data?.data;
+  const caseData = current.isSuccess&&!current.isPlaceholderData?current.data?.data:undefined;
+  useEffect(()=>{
+    if(current.isError||!allowedReader){setDocumentId('');setAckId('');setNote('');setReceiptId('');setReceiptItemId('');setOriginalLineId('');setSupplierSignatory('');setReturnQuantity('');setSupplierSignatureConfirmed(false);setDate('');}
+    if(external.isError)setAckId('');
+  },[current.isError,external.isError,allowedReader,orderId]);
   const stage = caseData?.case?.stage ?? null;
   const choices: Array<{value:Action;label:string}> = [];
   if (canJai) {
@@ -99,7 +103,10 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
     choices.push({value:'PM_REVIEW_DISCREPANCY',label:'Khaimook: independently review discrepancy'});
   const selected = choices.some(x=>x.value===action) ? action : choices[0]?.value;
   const save = useMutation({
-    mutationFn: (choice: Action) => apiRequest<Data<unknown>>(url(orderId)+'/events',{
+    mutationFn: (choice: Action) => {
+      if(!caseData?.approvedLatest||!canDocument||!choices.some(c=>c.value===choice))throw Error('Refresh current authorized supplier case before recording evidence');
+      if(choice==='ACKNOWLEDGE'&&(!external.isSuccess||!external.data.data.some(e=>e.id===ackId&&e.kind==='ACKNOWLEDGMENT')))throw Error('Refresh authorized acknowledgment');
+      return apiRequest<Data<unknown>>(url(orderId)+'/events',{
       method:'POST', body:JSON.stringify({
         action:choice, expectedVersion:caseData?.case?.version??0,
         expectedPreviousEventId:caseData?.expectedPreviousEventId??null,
@@ -120,7 +127,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
           originalReceivingDeliveryLineId:originalLineId.trim(),
         }:{}),
       }),
-    }),
+    });},
     onSuccess:()=>{
       setNote('');setDocumentId('');setAckId('');setReceiptId('');setReceiptItemId('');setOriginalLineId('');setDate('');
       setReturnQuantity('');setSupplierSignatory('');setSupplierSignatureConfirmed(false);
@@ -208,7 +215,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               {selected==='ACKNOWLEDGE'?(
                 <TextField select label="Existing PUR07 external acknowledgment" value={ackId}
                   onChange={e=>setAckId(e.target.value)} required>
-                  {(external.data?.data??[]).filter(e=>e.kind==='ACKNOWLEDGMENT').map(e=>(
+                  {(external.isSuccess?external.data.data:[]).filter(e=>e.kind==='ACKNOWLEDGMENT').map(e=>(
                     <MenuItem key={e.id} value={e.id}>{e.channel} · {e.recipient} · {new Date(e.recordedAt).toLocaleString()}</MenuItem>
                   ))}
                 </TextField>

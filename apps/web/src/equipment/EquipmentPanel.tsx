@@ -103,9 +103,9 @@ export function EquipmentPanel({
 
   const selected = useMemo(
     () =>
-      (equipment.data?.data ?? []).find((row) => row.id === selectedId) ??
+      (equipment.isSuccess?equipment.data.data:[]).find((row) => row.id === selectedId) ??
       null,
-    [equipment.data?.data, selectedId],
+    [equipment.isSuccess,equipment.data?.data, selectedId],
   );
 
   useEffect(() => {
@@ -117,6 +117,17 @@ export function EquipmentPanel({
     setOperationalStatus(selected.operationalStatus);
     setIsActive(selected.isActive);
   }, [selected, newMode]);
+
+  useEffect(()=>{
+    if(equipment.isError||(equipment.isSuccess&&selectedId&&!selected)){
+      setSelectedId('');setNewMode(false);setEquipmentTypeId('');setEquipmentCode('');setEquipmentName('');setDescription('');
+      setAssignmentProjectId('');setAssignmentRemarks('');
+    }
+    if(usage.isError||equipment.isError||(equipment.isSuccess&&selectedId&&!selected)){
+      setEditingUsageId('');setUsageProjectId('');setOperatingHours('');setUsageActivityId('');setUsageWbsId('');setUsageRemarks('');
+    }
+    if(assignments.isError||projects.isError){setAssignmentProjectId('');setAssignmentRemarks('');}
+  },[equipment.isError,equipment.isSuccess,selectedId,selected,usage.isError,assignments.isError,projects.isError]);
 
   const refresh = async () => {
     await Promise.all([
@@ -283,7 +294,7 @@ export function EquipmentPanel({
           <Stack spacing={2}>
             <Typography variant="subtitle1">Equipment Types</Typography>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              {(types.data?.data ?? []).map((type) => (
+              {(types.isSuccess?types.data.data:[]).map((type) => (
                 <Chip
                   key={type.id}
                   label={
@@ -364,7 +375,7 @@ export function EquipmentPanel({
               ) : null}
             </Stack>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              {(equipment.data?.data ?? []).map((row) => (
+              {(equipment.isSuccess?equipment.data.data:[]).map((row) => (
                 <Button
                   key={row.id}
                   variant={selectedId === row.id ? 'contained' : 'outlined'}
@@ -398,7 +409,7 @@ export function EquipmentPanel({
                     }
                     sx={{ minWidth: 220 }}
                   >
-                    {(types.data?.data ?? [])
+                    {(types.isSuccess?types.data.data:[])
                       .filter(
                         (type) =>
                           type.isActive || type.id === equipmentTypeId,
@@ -504,7 +515,7 @@ export function EquipmentPanel({
               <Typography variant="subtitle1">
                 Project Assignment History
               </Typography>
-              {(assignments.data?.data ?? []).map((assignment) => (
+              {(assignments.isSuccess?assignments.data.data:[]).map((assignment) => (
                 <Stack
                   key={assignment.id}
                   direction={{ xs: 'column', sm: 'row' }}
@@ -528,7 +539,7 @@ export function EquipmentPanel({
                   ) : null}
                 </Stack>
               ))}
-              {canAssignmentManage ? (
+              {canAssignmentManage && assignments.isSuccess && projects.isSuccess ? (
                 <>
                   <Divider />
                   <Stack
@@ -544,7 +555,7 @@ export function EquipmentPanel({
                       }
                       sx={{ minWidth: 260 }}
                     >
-                      {(projects.data?.data ?? []).map((project) => (
+                      {(projects.isSuccess?projects.data.data:[]).map((project) => (
                         <MenuItem key={project.id} value={project.id}>
                           {project.projectCode} — {project.projectName}
                         </MenuItem>
@@ -611,7 +622,7 @@ export function EquipmentPanel({
                 ) : null}
               </Stack>
 
-              {(usage.data?.data ?? []).map((row) => (
+              {(usage.isSuccess?usage.data.data:[]).map((row) => (
                 <Stack
                   key={row.id}
                   direction={{ xs: 'column', sm: 'row' }}
@@ -638,7 +649,7 @@ export function EquipmentPanel({
                 </Stack>
               ))}
 
-              {(canUsageCreate || (editingUsageId && canUsageEdit)) ? (
+              {usage.isSuccess && projects.isSuccess && (canUsageCreate || (editingUsageId && canUsageEdit)) ? (
                 <>
                   <Divider />
                   <Typography variant="subtitle2">
@@ -661,7 +672,7 @@ export function EquipmentPanel({
                       }}
                       sx={{ minWidth: 260 }}
                     >
-                      {(projects.data?.data ?? []).map((project) => (
+                      {(projects.isSuccess?projects.data.data:[]).map((project) => (
                         <MenuItem key={project.id} value={project.id}>
                           {project.projectCode} — {project.projectName}
                         </MenuItem>
@@ -697,7 +708,7 @@ export function EquipmentPanel({
                       sx={{ flex: 2 }}
                     >
                       <MenuItem value="">None</MenuItem>
-                      {(usageOptions.data?.data.activities ?? []).map(
+                      {(usageOptions.isSuccess?usageOptions.data.data.activities:[]).map(
                         (activity) => (
                           <MenuItem key={activity.id} value={activity.id}>
                             {activity.activityCode} —{' '}
@@ -716,7 +727,7 @@ export function EquipmentPanel({
                       sx={{ flex: 2 }}
                     >
                       <MenuItem value="">None</MenuItem>
-                      {(usageOptions.data?.data.wbs ?? []).map((wbs) => (
+                      {(usageOptions.isSuccess?usageOptions.data.data.wbs:[]).map((wbs) => (
                         <MenuItem key={wbs.id} value={wbs.id}>
                           {wbs.wbsCode} — {wbs.wbsName}
                         </MenuItem>
