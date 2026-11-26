@@ -1,6 +1,7 @@
 // Read-only native admission; never establishes a new historical baseline or permits writes.
 import {constants} from 'node:fs';
 import {requireNoLiveSessions} from './m6-read-only-sessions.mjs';
+import {observeStage,safeFailure} from './m6-native-diagnostics.mjs';
 import {lstat,open,realpath,readdir} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {homedir} from 'node:os';
@@ -96,17 +97,19 @@ async function main(){
       const {readHistoricalRowEvidence,inspectCompiledRebuild}=await import('./m6-integrated-evidence.mjs');
       const before=await readAdmissionDatabase(db);
       verifyMigrationChecksums(plan,before,await migrationSources(application));
-      const rows=await readHistoricalRowEvidence({db,baseline,oldMigrationNames:plan.oldLedger.map(r=>r.migration_name),requireNoLiveSessions});
+      const historicalRows=await observeStage('M6_HISTORICAL_ROWS',()=>readHistoricalRowEvidence({db,baseline,oldMigrationNames:plan.oldLedger.map(r=>r.migration_name),requireNoLiveSessions}));
       const lanes=[];
-      for(const observe of [(await import('./m6-lane-a-observe.mjs')).observeLane,(await import('./m6-lane-b-observe.mjs')).observeLane,(await import('./m6-lane-c-observe.mjs')).observeLane,(await import('./m6-lane-d-observe.mjs')).observeLane]){
-        lanes.push(await observe(db));
+      for(const [key,observe] of [['A',(await import('./m6-lane-a-observe.mjs')).observeLane],['B',(await import('./m6-lane-b-observe.mjs')).observeLane],['C',(await import('./m6-lane-c-observe.mjs')).observeLane],['D',(await import('./m6-lane-d-observe.mjs')).observeLane]]){
+        lanes.push(await observeStage('M6_LANE_'+key,()=>observe(db)));
       }
       const artifacts=process.argv[2]==='--inspect-integrated'
-        ?await inspectCompiledRebuild({application,rebuild:process.argv[4],root,readCheckout:readCheckoutIdentity,readInventory:inventory})
-        :{exactSourceRebuildCompared:false,compiledRebuildBytesVerified:false,historicalCompiledArtifactBytesVerified:false};
+        ?await observeStage('M6_COMPILED_REBUILD',()=>inspectCompiledRebuild({application,rebuild:process.argv[4],root,readCheckout:readCheckoutIdentity,readInventory:inventory}))
+        :{stage:'M6_COMPILED_REBUILD',status:'NOT_RUN'};
       need(same(before,await readAdmissionDatabase(db)),'M6_HISTORICAL_MIGRATION_OBSERVATION_DRIFT');
       verifyRuntime(await observeRuntime());
-      return {status:'M6_HISTORICAL_ROW_AND_ARTIFACT_OBSERVATIONS_COMPLETE',...rows,...artifacts,lanes,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
+      const blocked=[historicalRows,...lanes,artifacts].some(x=>x.status==='BLOCKED');
+      if(blocked)process.exitCode=1;
+      return {status:blocked?'M6_HISTORICAL_OBSERVATIONS_PARTIAL':'M6_HISTORICAL_ROW_AND_ARTIFACT_OBSERVATIONS_COMPLETE',historicalRows,artifacts,lanes,historicalDatabaseRowsVerified:historicalRows.result?.historicalDatabaseRowsVerified===true,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
     }
     if(process.argv[2]==='--inspect-preservation'){
       const {verifyMigrationChecksums,migrationSources,verifyProtectedBackup}=await import('./m6-historical-backup.mjs');
@@ -126,5 +129,5 @@ async function main(){
   }finally{await db.$disconnect();}
 }
 if(process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null)===await realpath(new URL(import.meta.url))){
-  try{console.log(JSON.stringify(await main()));}catch(e){console.log(JSON.stringify({status:'M6_NATIVE_INSPECTION_BLOCKED',safeCode:/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'M6_NATIVE_PRIVATE_FAILURE',historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false}));process.exitCode=1;}
+  try{console.log(JSON.stringify(await main()));}catch(e){console.log(JSON.stringify({status:'M6_NATIVE_INSPECTION_BLOCKED',...safeFailure(e),historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false}));process.exitCode=1;}
 }
