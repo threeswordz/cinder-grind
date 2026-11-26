@@ -5043,6 +5043,28 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-08-148",
+      "date": "2026-11-27",
+      "packageId": "M4-08",
+      "kind": "M4_FULL_MAIN_MAC_CUTOVER_EIGHT_SYNTHETIC_ROLES_PASS_RECONCILIATION",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198067417",
+        "https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198231627",
+        "https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198315784",
+        "https://github.com/threeswordz/cinder-grind/blob/795bf9a4373feff961ad32fe418aa27b3bce55fd/docs/M4-2026-11-26-RETAINED-UAT-EXECUTION-REGISTER.csv"
+      ],
+      "basis": "Full-main run45857511934 attempt1 validate 46/46 PASS with terminal exact source marker. Owner Mac outputs: backup, separate populated restore and forward migration, controlled cutover and healthy owned runtime PASS; 168 historical table projections and files preserved, 177 migration checksums. Bounded synthetic readback 8/8, PORN SITE_B expected via preserved transfer assignment and audited provenance; all sessions closed. First readback stopped before final business fingerprint; continuation fingerprint PASS. Register parsed 112 unique IDs: 70 bounded, 42 future, all formal NO. Reconciled headline 10.5h = 8h latest eight package balances + 2.5h separately priced PUR08_PUR14_INTEGRATION; no discrepancy or missing hours. Remaining estimates include acceptance/requirement-specific evidence, not established coding defects or actual labor. No separately allocated reduction claimed. DEC-042 human UAT deferred, no self approval or Production.",
+      "blocker": "Technical package exit crosswalk against exact integrated evidence, separate unresolved technical witnesses from deferred human UAT/GL scope, Owner technical closure decision where applicable. Do not repeat CI, backup, migration or bounded login tests. Actual MKE/TCJ and requirement-specific human acceptance not established.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5054,8 +5076,8 @@
       ],
       "hours": 2.5,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "NEW_BOUNDED_LINEAGE_NATIVE_AND_REAL_CHROME_SIGNED_CUSTODY_REPLACEMENT_REVERSAL_PASS;FINANCE_CREDIT_SEPARATE",
-      "remaining": "2.5h provisional remaining supplier workflow and assurance: exact integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, final CI/merge/Production authorization. Actual latest-revision browser/API and SHORT/WRONG_ITEM/EXCESS claim-only and DOCUMENT_ONLY terminal native checks PASS; no retained acceptance. Separately authorized canonical posted-stock return/reversal and Finance credit outside case; quantitative non-damaged attribution policy remains a preserved future boundary, not implicitly approved.",
+      "sourceStatus": "BOUNDED_SUPPLIER_IMPLEMENTATION_INTEGRATED_REVIEWED_FULL_MAIN_PASS;MAC_SYNTHETIC_DEPLOYMENT_AND_BOUNDED_ROLE_READBACK_PASS;REQUIREMENT_SPECIFIC_RETENTION_AND_HUMAN_UAT_NOT_ESTABLISHED",
+      "remaining": "2.5h prior provisional allowance retained pending scoped technical/acceptance reconciliation; exact independent review, CI and merge already passed, do not repeat. Retained named-role supplier-specific evidence and final prototype human UAT not demonstrated. Production authorization and separate posted-stock return/AP credit/quantitative attribution are distinct gates, not claimed complete.",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
@@ -5066,5 +5088,5 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1732.5,
-  "currentRollingTotalSemantics": "1732.5h = 1733h less 0.5h verified provisional preflight correction rework; M4 10.5h, M6 112h, combined prototype237.5h. No formal acceptance or measured actual labor; independent review and full release gates remain."
+  "currentRollingTotalSemantics": "1732.5h = 1730h sum of latest package balances plus separately priced PUR08_PUR14_INTEGRATION 2.5h. M4 10.5h = eight M4 packages 8h + supplier allowance 2.5h; M6 112h, combined prototype237.5h. Exact M4 full-main, retained synthetic upgrade and bounded 8-role checks PASS; final technical package exit reconciliation and deferred acceptance remain distinct. No actual labor measured or formal acceptance claimed."
 }
