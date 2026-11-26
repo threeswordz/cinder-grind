@@ -3,11 +3,7 @@
 <!-- current-work-m4 -->
 **M4 10.5h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
 
-Post-Ready review found two PUR07 PDF defects on82df55d after its full46/46 PASS. [Corrected candidate5af60607](https://github.com/threeswordz/cinder-grind/commit/5af60607d31bc6d7f53ba55a4b483a4e1904cfbb) preserves approved document identity while deriving bounded safe filenames, and routes supplementary characters through Unicode rendering. [Scoped PG17.11/Chromium validation](https://github.com/threeswordz/cinder-grind/actions/runs/45744426884/job/139656925359) passed all regression, real PDF and dispatch tests. [Focused branch](https://github.com/threeswordz/cinder-grind/actions/runs/45744325492/job/139656600238) passed18/18. [Independent re-review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7181165380) is clean on5af60607, and both P2 threads are resolved. [Corrected-source full attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45744331901/attempts/2) passed46/46, including all historical upgrades, browser paths, paired recovery and final source/base identity. Corrected-source Ready/post-Ready review, protected integration and retained technical readback remain. PR455 is Draft during correction.
-
-Post-Ready review of5af60607 found [a Unicode normalization readiness defect](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703622481). The merge condition was unsatisfied. [Draft correction709b9d8e](https://github.com/threeswordz/cinder-grind/commit/709b9d8e6be5d1341a4d26410846eda4ba29bf5e) uses the existing NFC cleaner for expected readiness text and adds real decomposed-name PDF regressions. [Focused renderer run45750532867](https://github.com/threeswordz/cinder-grind/actions/runs/45750532867) is pending. Full46/46 remains recorded for5af60607.
-
-The decomposed-name regression passed in real Chromium. An existing renderer test then failed at owned profile cleanup with ENOTEMPTY. [Successor9482cd57](https://github.com/threeswordz/cinder-grind/commit/9482cd57d5eacf4f8708859f84d6fb94d9c7fd02) adds bounded removal retries. [Focused renderer45750861241](https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698) passed all3 real Unicode PDF regressions. [Independent re-review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182014808) is pending on9482cd57.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) at `9482cd57d5eacf4f8708859f84d6fb94d9c7fd02` corrects the post-Ready NFC readiness defect and bounded profile cleanup. [Real Chromium regression](https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698) passed3/3. [Independent re-review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182040132) is clean and all findings are resolved. Full46/46 remains recorded for prior5af60607. The current draft full45750831129 stopped at admission. Current-source full/Ready/post-Ready review/guarded integration authorization and retained technical readback remain.
 
 | Forecast reconciliation | Hours |
 |---|---:|
@@ -16,7 +12,7 @@ The decomposed-name regression passed in real Chromium. An existing renderer tes
 | Verified remaining-effort reduction | −0 |
 | Revised remaining ERP forecast | **1,733** |
 
-Prototype4/8 · Go-live3/10 · M4 formal packages0/8. All112 IDs and six approved boundaries preserved. Full validation for the corrected candidate, governed integration and retained technical readback remain.
+Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved.
 <!-- /current-work-m4 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

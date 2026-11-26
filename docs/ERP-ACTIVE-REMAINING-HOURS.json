@@ -4612,6 +4612,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-127",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_NFC_RENDERER_FIXES_INDEPENDENT_REREVIEW_CLEAN",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9482cd57d5eacf4f8708859f84d6fb94d9c7fd02",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182040132",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750831129"
+      ],
+      "basis": "Independent Codex re-review clean on9482cd57. NFC readiness P2 resolved after linking actual Chromium regression evidence. Draft PR head/base checked; first full attempt45750831129 blocked before expensive execution at draft admission. Exact-source full run, Ready/post-Ready clean evidence and guarded integration require applicable authorization. No package acceptance or forecast credit.",
+      "blocker": "Specific current-source release-sequence authority and its verified full/review/integration outcomes; retained technical readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
