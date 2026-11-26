@@ -5586,6 +5586,27 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-170",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_MIGRATION_CHECKSUM_GATE_AND_BACKUP_RECEIPT_CORRECTION",
+      "beforeHours": 19.5,
+      "afterHours": 19,
+      "sourceSha": "13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200152088",
+        "https://github.com/threeswordz/cinder-grind/commit/0e2b419a73e4811506a66ebfff83c8fbff00a95b",
+        "https://github.com/threeswordz/cinder-grind/commit/13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4"
+      ],
+      "basis": "Owner exact-head Mac 0e2b419a73e4811506a66ebfff83c8fbff00a95b: schema discovery found database-baseline-private.json (array table/rows/sha256), file-baseline-private.json (documents/hrkeys/uploads); preservation inspection stopped M6_HISTORICAL_BACKUP_RECEIPT_INVALID. Source execution order proves prior live migration name/checksum comparison with 177 planned and SQL-source entries and 166 predecessor entries passed (11 addition count only). No archive or file comparison reached. Recovered prior original capture contract: backup isolatedRestoreVerified=false at capture, separate rehearsal isolatedRestoreVerified=true; previous helper incorrectly expected both in one receipt. 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4 requires both independent pinned receipts, retains capture receipt unchanged, normalizes original historical [path,file,size,sha256] manifest and compares retained AND live inventories against historical manifest. Actual local Linux Node22.16.0 15/15 new receipt/manifest tests PASS (136.794962ms), exact Git blobs e22652a34cbb1267ed16f546e9c8e8799b644798 and 675c5642d69003f0505d46c432add9feb37a540f match. Three integration files also changed; updated integration tests/native readback pending. No new Actions runs. 0.5h provisional credit for separately observed native migration checksum milestone, zero credit for correcting own receipt assumption. No additional rework allowance; no measured labor, formal acceptance or historical row proof.",
+      "blocker": "Run exact-head focused backup integration tests and native preservation; historical row projection and compiled artifact provenance remain outstanding.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5615,8 +5636,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1722,
-  "currentRollingTotalSemantics": "1722h = previous1723h minus 0.5h provisional native admission evidence and 0.5h newly tested historical backup helper. M6 112h, M7 50h, M8 65h, combined227h. Actual labor unknown, no formal acceptance change, all112 requirements retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1721.5,
+  "currentRollingTotalSemantics": "1721.5h = previous1722h minus 0.5h provisional native migration checksum verification. M6 111.5h, M7 50h, M8 65h, combined226.5h. No credit for rework, no measured labor or formal acceptance change; all112 requirements retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",

@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 227h → 0h · Full ERP 1,722h → 0h.**
+**M4 CLOSED 0h · M6 111.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 226.5h → 0h · Full ERP 1,721.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -31,6 +31,8 @@
 **Session diagnostic/correction (event168):** [Owner counts and local implementation proof](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7199966418); 1 unrevoked, 0 active, 1 expired. [Corrected candidate](https://github.com/threeswordz/cinder-grind/commit/3a7a2801301efdda4fbea72f0203f63c7cd980d1) differentiates expired from live sessions only for read-only inspectors; strict mutating admission untouched. Actual 9/9 helper tests PASS, published helper/test hashes match. Exact-head integration tests and native readback pending. No additional forecast credit or new CI. M6-01 20.5h, M6 113h.
 
 **M6-01 20.5→19.5h (event169):** [Owner native evidence and new helper](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200101472). Exact [3a7a2801](https://github.com/threeswordz/cinder-grind/commit/3a7a2801301efdda4fbea72f0203f63c7cd980d1) Mac42/42 PASS; native admission PASS with zero active sessions, 177 migration rows and stable current file/artifact inventories; historical baseline false. [New candidate](https://github.com/threeswordz/cinder-grind/commit/0e2b419a73e4811506a66ebfff83c8fbff00a95b) 11/11 local helper tests PASS; published source/test hashes match actual local files. Adds historical migration checksum and retained archive/protected copy verification; native CLI integration and reconstructed backup receipt/paths pending actual Mac validation. No new CI, formal acceptance or parallel lane closure. Previous1,723h −1h provisional verified allowance =1,722h; M6 112h.
+
+**M6-01 19.5→19h (event170):** [Native evidence and correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200152088). Native migration name/checksum comparison passed by execution order; capture receipt guard stopped before archive/files. New helper requires separate capture and restore receipts and original manifest comparison; actual 15/15 local tests PASS, exact blob match; integration tests/native proof pending. 0.5h credit only for native migration evidence; no credit for correction. M6 111.5h, full ERP1,721.5h. No new CI.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

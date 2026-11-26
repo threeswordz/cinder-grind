@@ -4,12 +4,12 @@
 
 | Package | Estimate | First execution objective |
 |---|---:|---|
-| M6-01 | 19.5 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
+| M6-01 | 19 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
 | M6-02 | 24.5 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
 | M6-03 | 31.5 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
 | M6-04 | 18.5 | Physical acceptance/certification history |
 | M6-05 | 18 | HR private file/history and keys |
-| Total | 112 | Low confidence estimates, no actual labor |
+| Total | 111.5 | Low confidence estimates, no actual labor |
 
 Earlier exact M6 local helper regressions preserved; integration against current M4 runtime not assumed. First reconcile candidate branch and guard against duplicate old journeys/receipt identity. Use focused validation, independent review for changed candidate and specific #384 release authority; no full CI until appropriate. DEC-042 human UAT at frozen prototype, GL04/05 carryover as approved. Existing synthetic login checks are not comprehensive role acceptance.
 
@@ -51,3 +51,9 @@ Source 0d927eb2e11fb6ef445585238be8735992af4c88. Actual local Linux Node22.16.0 
 Owner Mac exact candidate 3a7a2801301efdda4fbea72f0203f63c7cd980d1: 42/42 focused tests PASS, zero failures/skips, duration 101.612ms; M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS, processChecksPassed true, zeroActiveSessionsObserved true, migrationRowsObserved177, currentInventoryStableAcrossTwoCaptures true, historicalBaselineVerified false, milestone6Accepted false, mayMutate false. Session issue resolved without mutation. New candidate 0e2b419a73e4811506a66ebfff83c8fbff00a95b: historical migration old/new/live/SQL file name/checksum comparison, retained archive receipt SHA-256 and protected copy versus current inventory comparison, expanded baseline filename discovery and executable --inspect-preservation mode. Actual local Linux Node22.16.0 11/11 helper tests PASS, actual temporary archive bytes plus fixture inventories and migration ledgers; exact tested blobs 22811b9f57a03b0427255d7a233a3b5e2b1bf9b8 and 2e9a32d22abbfee9f8a77d32dc144890043bc7f6 match GitHub. CLI integration and actual migration plan/backup receipt and directory assumptions await Mac validation. Historical database rows and compiled artifact provenance remain unverified. No new Actions runs. Estimate credit 0.5h for native admission evidence plus 0.5h for newly implemented/tested backup helper, not measured human hours or formal acceptance. No replay, runtime mutation or lane completion.
 
 M6-01 20.5→19.5h; M6 112h. [Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200101472).
+
+## Two-receipt correction (event170)
+
+Owner exact-head Mac 0e2b419a73e4811506a66ebfff83c8fbff00a95b: schema discovery found database-baseline-private.json (array table/rows/sha256), file-baseline-private.json (documents/hrkeys/uploads); preservation inspection stopped M6_HISTORICAL_BACKUP_RECEIPT_INVALID. Source execution order proves prior live migration name/checksum comparison with 177 planned and SQL-source entries and 166 predecessor entries passed (11 addition count only). No archive or file comparison reached. Recovered prior original capture contract: backup isolatedRestoreVerified=false at capture, separate rehearsal isolatedRestoreVerified=true; previous helper incorrectly expected both in one receipt. 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4 requires both independent pinned receipts, retains capture receipt unchanged, normalizes original historical [path,file,size,sha256] manifest and compares retained AND live inventories against historical manifest. Actual local Linux Node22.16.0 15/15 new receipt/manifest tests PASS (136.794962ms), exact Git blobs e22652a34cbb1267ed16f546e9c8e8799b644798 and 675c5642d69003f0505d46c432add9feb37a540f match. Three integration files also changed; updated integration tests/native readback pending. No new Actions runs. 0.5h provisional credit for separately observed native migration checksum milestone, zero credit for correcting own receipt assumption. No additional rework allowance; no measured labor, formal acceptance or historical row proof.
+
+M6-01 19.5→19h; M6 111.5h. [Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200152088).
