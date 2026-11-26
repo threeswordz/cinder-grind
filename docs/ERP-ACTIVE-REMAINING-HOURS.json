@@ -5023,6 +5023,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-147",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_MAIN_INTEGRATION_VERIFIED_REUSED_FULL_PR",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45850563692/job/140015664026",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45850563692/artifacts/15133646887"
+      ],
+      "basis": "Actual successful main run45850563692 attempt1, integration-plan and integration-check PASS, full validate job skipped. Both terminal/recheck log receipts MAIN_INTEGRATION_VERIFIED_REUSED_FULL_PR bind main9417f07c, exact tree bfcab1977, tested head20dc687a, base040395bc, PR455 full run45836902629 attempt2 and independent reaction 15:28:15Z. Fresh frozenBuild, security audit, migration status, owned API ready all PASS; migration inventory d979aa43ad9c1d4c3102b594fce0f9d706c0985dbdf137e1d5bd870559a19abc. Artifact15133646887 nonexpired. Full suite not executed on main; no redundant full CI. No retained deployment yet; package closure still pending, no separate priced integration credit or invented reduction.",
+      "blocker": "Identify retained non-Production target and actual running source; establish authorized upgrade path and exact consumer requirements (DEC-053 reuse is development integration, not full main release/freeze proof). Obtain target-specific authorization if required, execute retained-data verification and reconcile requirements/packages. No Production.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
