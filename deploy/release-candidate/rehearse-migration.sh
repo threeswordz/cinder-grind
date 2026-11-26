@@ -267,6 +267,11 @@ done
 mapfile -t new_migrations < <(printf '%s\n' "${new_migrations[@]}" | sort -u)
 (( ${#new_migrations[@]} > 0 )) || fail "no new forward migrations detected"
 migration_list="$(IFS=,; printf '%s' "${new_migrations[*]}")"
+# The commercial-history guard is separate from the three equipment migrations.
+# Pin its exact forward-only SQL before the populated rehearsal starts.
+if [[ ",$migration_list," == *",20261126210000_po_commercial_history_guard,"* ]]; then
+  [[ "$(git hash-object apps/api/prisma/migrations/20261126210000_po_commercial_history_guard/migration.sql)" == eded26ceeb8e65086e353956b02f1fb6a7d39a36 ]] || fail "PO commercial history guard migration differs"
+fi
 equipment_schema=false
 equipment_migrations=(
   20261124023000_ss11_equipment_custody
