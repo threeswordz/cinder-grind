@@ -187,7 +187,7 @@ export function InventoryWorkspace({
         <WarehousesPanel permissions={permissions} />
       ) : active === 'receipts' ? (
         <GoodsReceiptsPanel
-          permissions={permissions}
+          permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId}
           initialProjectId={receivingGr?.projectId ?? initialProjectId}
           initialReceiptId={receivingGr?.id ?? initialReceiptId}
           appliedProjectSourceLink={appliedReceiptProjectSourceLink}
@@ -203,11 +203,11 @@ export function InventoryWorkspace({
       ) : active === 'reservations' ? (
         <MaterialReservationsPanel permissions={permissions} />
       ) : active === 'issues' ? (
-        <MaterialIssuesPanel permissions={permissions} />
+        <MaterialIssuesPanel permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId} />
       ) : active === 'returns' ? (
-        <MaterialReturnsPanel permissions={permissions} />
+        <MaterialReturnsPanel permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId} />
       ) : active === 'transfers' ? (
-        <StockTransfersPanel permissions={permissions} />
+        <StockTransfersPanel permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId} />
       ) : (
         <InventoryReportsPanel />
       )}

@@ -1,3 +1,4 @@
+import { MovementCorrectionPanel } from './MovementCorrectionPanel';
 import { useContext } from 'react';
 import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 import { transferCustodyLabels } from './transfer-custody-labels';
@@ -18,7 +19,7 @@ import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 
-export function StockTransfersPanel({ permissions }: { permissions: string[] }) {
+export function StockTransfersPanel({ permissions, roleCodes = [], userId = '', companyId = '' }: { permissions: string[]; roleCodes?: string[]; userId?: string; companyId?: string }) {
   const queryClient = useQueryClient();
   const t = transferCustodyLabels[useContext(MonetaryLocaleContext)];
   const [employeeId, setEmployeeId] = useState('');
@@ -30,7 +31,6 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
   const canEdit = permissions.includes('inventory.transfer.edit');
   const canSubmit = permissions.includes('inventory.transfer.submit');
   const canApprove = permissions.includes('inventory.transfer.approve');
-  const canReverse = permissions.includes('inventory.transfer.reverse');
 
   const [sourceProjectId, setSourceProjectId] = useState('');
   const [destinationProjectId, setDestinationProjectId] = useState('');
@@ -49,7 +49,6 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
   const [draftQuantities, setDraftQuantities] = useState<Record<string, string>>({});
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
-  const [reversalKeys] = useState(() => new Map<string, string>());
 
   const projects = useQuery({
     queryKey: ['transfer-projects'],
@@ -459,8 +458,8 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
 
               {current.custody ? <Alert severity="info">{t.scope}</Alert> : <Alert severity="info">{t.legacy}</Alert>}
               {custodyCommand.isError ? <Alert severity="error">{t.uncertain}<Button disabled={custodyCommand.isPending} onClick={()=>custodyIntent&&custodyCommand.mutate(custodyIntent)}>{t.retry}</Button><Button disabled={custodyCommand.isPending} onClick={()=>{setCustodyIntent(null);custodyCommand.reset();void refresh();}}>{t.clear}</Button></Alert>:null}
-              {current.custody && current.approvalInstance?.approvalState==='APPROVED' && !current.postedAt && permissions.includes('inventory.transfer.dispatch') ? <Stack spacing={1}><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/><Button disabled={Boolean(custodyIntent)||!reason.trim()} onClick={()=>sendCustody(transferRoot+'/transfers/'+current.id+'/dispatch',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason})}>{t.dispatch}</Button></Stack>:null}
-              {current.custody && !current.reversedAt && current.approvalInstance?.approvalState!=='CANCELLED' && permissions.includes('inventory.transfer.assign_receiver') ? <Stack spacing={1}><TextField select label="Destination Project" value={assignmentProjectId} onChange={e=>{setAssignmentProject(e.target.value);setEmployeeId('');}} disabled={Boolean(custodyIntent)}>{[...new Set((current.items??[]).map(i=>i.destinationProjectId))].map(projectId=><MenuItem key={projectId} value={projectId}>{current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectName??projectId}</MenuItem>)}</TextField><TextField select label={t.employee} value={!receivers.isError&&receivers.data?.data.some(e=>e.id===employeeId)?employeeId:''} onChange={e=>setEmployeeId(e.target.value)} disabled={Boolean(custodyIntent)||receivers.isError}><MenuItem value="">{t.select}</MenuItem>{!receivers.isError?receivers.data?.data.map(e=><MenuItem key={e.id} value={e.id}>{e.employeeCode} · {e.employeeName}</MenuItem>):null}</TextField><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/>{[assignmentProjectId].map(projectId=><Button key={projectId} disabled={Boolean(custodyIntent)||!reason.trim()||!receivers.data?.data.some(e=>e.id===employeeId)||receivers.isError} onClick={()=>sendCustody(transferDestinationPath(projectId,current.id)+'/assign',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason,employeeId})}>{t.assign} · {current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectCode}</Button>)}</Stack>:null}
+              {current.custody && !current.custody.cancelled && current.approvalInstance?.approvalState==='APPROVED' && !current.postedAt && permissions.includes('inventory.transfer.dispatch') ? <Stack spacing={1}><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/><Button disabled={Boolean(custodyIntent)||!reason.trim()} onClick={()=>sendCustody(transferRoot+'/transfers/'+current.id+'/dispatch',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason})}>{t.dispatch}</Button></Stack>:null}
+              {current.custody && !current.custody.cancelled && !current.reversedAt && current.approvalInstance?.approvalState!=='CANCELLED' && permissions.includes('inventory.transfer.assign_receiver') ? <Stack spacing={1}><TextField select label="Destination Project" value={assignmentProjectId} onChange={e=>{setAssignmentProject(e.target.value);setEmployeeId('');}} disabled={Boolean(custodyIntent)}>{[...new Set((current.items??[]).map(i=>i.destinationProjectId))].map(projectId=><MenuItem key={projectId} value={projectId}>{current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectName??projectId}</MenuItem>)}</TextField><TextField select label={t.employee} value={!receivers.isError&&receivers.data?.data.some(e=>e.id===employeeId)?employeeId:''} onChange={e=>setEmployeeId(e.target.value)} disabled={Boolean(custodyIntent)||receivers.isError}><MenuItem value="">{t.select}</MenuItem>{!receivers.isError?receivers.data?.data.map(e=><MenuItem key={e.id} value={e.id}>{e.employeeCode} · {e.employeeName}</MenuItem>):null}</TextField><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/>{[assignmentProjectId].map(projectId=><Button key={projectId} disabled={Boolean(custodyIntent)||!reason.trim()||!receivers.data?.data.some(e=>e.id===employeeId)||receivers.isError} onClick={()=>sendCustody(transferDestinationPath(projectId,current.id)+'/assign',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason,employeeId})}>{t.assign} · {current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectCode}</Button>)}</Stack>:null}
               {current.submittedAt && !current.postedAt && current.approvalInstance?.approvalState==='SUBMITTED' && canApprove ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button
@@ -495,35 +494,10 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                 </Stack>
               ) : null}
 
-              {current.postedAt && !current.reversedAt && (!current.custody || current.custody.receiptComplete) && canReverse ? (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <TextField
-                    label="Reversal reason"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    sx={{ flexGrow: 1 }}
-                  />
-                  <Button
-                    disabled={!reason.trim() || mutation.isPending}
-                    onClick={() => {
-                      let key = reversalKeys.get(current.id);
-                      if (!key) {
-                        key = crypto.randomUUID();
-                        reversalKeys.set(current.id, key);
-                      }
-                      perform(() =>
-                        inventoryApi.reverseStockTransfer(
-                          current.id,
-                          key!,
-                          reason.trim(),
-                        ),
-                      );
-                    }}
-                  >
-                    Reverse
-                  </Button>
-                </Stack>
-              ) : null}
+              <MovementCorrectionPanel key={companyId+':'+userId+':'+current.id} kind="STOCK_TRANSFER" sourceId={current.id}
+                permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId}
+                reverseEligible={Boolean(current.postedAt && !current.reversedAt && (!current.custody || current.custody.receiptComplete))} cancelEligible={Boolean(current.submittedAt && !current.postedAt && !current.custody?.cancelled && (current.approvalInstance?.approvalState==='SUBMITTED' || (current.custody && current.approvalInstance?.approvalState==='APPROVED')))}
+                onChanged={refresh} />
             </Stack>
           </CardContent>
         </Card>

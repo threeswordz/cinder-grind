@@ -1,3 +1,4 @@
+import { MovementCorrectionPanel } from './MovementCorrectionPanel';
 import {
   Alert, Button, Card, CardContent, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
@@ -16,6 +17,7 @@ import {
 
 export function GoodsReceiptsPanel({
   permissions,
+  roleCodes = [], userId = '', companyId = '',
   initialProjectId,
   initialReceiptId,
   appliedProjectSourceLink,
@@ -23,6 +25,7 @@ export function GoodsReceiptsPanel({
   onOpenSource,
 }: {
   permissions: string[];
+  roleCodes?: string[]; userId?: string; companyId?: string;
   initialProjectId?: string | undefined;
   initialReceiptId?: string | undefined;
   appliedProjectSourceLink: { current: string };
@@ -34,7 +37,6 @@ export function GoodsReceiptsPanel({
   const canSubmit = permissions.includes('inventory.receipt.submit');
   const canEdit = permissions.includes('inventory.receipt.edit');
   const canApprove = permissions.includes('inventory.receipt.approve');
-  const canReverse = permissions.includes('inventory.receipt.reverse');
   const [projectId, setProjectId] = useState('');
   const [purchaseOrderId, setPurchaseOrderId] = useState('');
   const [lineQuantities, setLineQuantities] = useState<Record<string, string>>({});
@@ -42,12 +44,10 @@ export function GoodsReceiptsPanel({
 
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
-  const [reason, setReason] = useState('');
   const [draftQuantities, setDraftQuantities] = useState<Record<string, string>>({});
   const [draftRemarks, setDraftRemarks] = useState('');
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
-  const [reversalKeys] = useState(() => new Map<string, string>());
 
   const projects = useQuery({
     queryKey: ['receipt-projects'],
@@ -357,20 +357,10 @@ export function GoodsReceiptsPanel({
                   </Button>
                 </Stack>
               ) : null}
-              {canReverse && current.postedAt && !current.reversedAt ? (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <TextField label="Reversal reason" value={reason}
-                    onChange={(event) => setReason(event.target.value)} sx={{ flexGrow: 1 }} />
-                  <Button disabled={!reason.trim() || mutation.isPending}
-                    onClick={() => {
-                      let key = reversalKeys.get(current.id);
-                      if (!key) { key = crypto.randomUUID(); reversalKeys.set(current.id, key); }
-                      perform(() => inventoryApi.reverseGoodsReceipt(current.id, key, reason.trim()));
-                    }}>
-                    Reverse receipt
-                  </Button>
-                </Stack>
-              ) : null}
+              <MovementCorrectionPanel key={companyId+':'+userId+':'+current.id} kind="GOODS_RECEIPT" sourceId={current.id}
+                permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId}
+                reverseEligible={Boolean(current.postedAt && !current.reversedAt)} cancelEligible={Boolean(current.submittedAt && !current.postedAt && current.approvalInstance?.approvalState==='SUBMITTED')}
+                onChanged={refresh} />
             </Stack>
           </CardContent>
         </Card>

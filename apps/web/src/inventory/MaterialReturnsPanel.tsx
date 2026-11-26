@@ -1,3 +1,4 @@
+import { MovementCorrectionPanel } from './MovementCorrectionPanel';
 import {
   Alert,
   Button,
@@ -14,12 +15,11 @@ import { useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 
-export function MaterialReturnsPanel({ permissions }: { permissions: string[] }) {
+export function MaterialReturnsPanel({ permissions, roleCodes = [], userId = '', companyId = '' }: { permissions: string[]; roleCodes?: string[]; userId?: string; companyId?: string }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.return.create');
   const canSubmit = permissions.includes('inventory.return.submit');
   const canApprove = permissions.includes('inventory.return.approve');
-  const canReverse = permissions.includes('inventory.return.reverse');
   const [projectId, setProjectId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [sourceId, setSourceId] = useState('');
@@ -28,10 +28,8 @@ export function MaterialReturnsPanel({ permissions }: { permissions: string[] })
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
-  const [reason, setReason] = useState('');
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
-  const [reversalKeys] = useState(() => new Map<string, string>());
 
   const projects = useQuery({
     queryKey: ['return-projects'],
@@ -334,35 +332,10 @@ export function MaterialReturnsPanel({ permissions }: { permissions: string[] })
                   </Button>
                 </Stack>
               ) : null}
-              {canReverse && current.postedAt && !current.reversedAt ? (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <TextField
-                    label="Reversal reason"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    sx={{ flexGrow: 1 }}
-                  />
-                  <Button
-                    disabled={!reason.trim() || mutation.isPending}
-                    onClick={() => {
-                      let key = reversalKeys.get(current.id);
-                      if (!key) {
-                        key = crypto.randomUUID();
-                        reversalKeys.set(current.id, key);
-                      }
-                      perform(() =>
-                        inventoryApi.reverseMaterialReturn(
-                          current.id,
-                          key!,
-                          reason.trim(),
-                        ),
-                      );
-                    }}
-                  >
-                    Reverse Return
-                  </Button>
-                </Stack>
-              ) : null}
+              <MovementCorrectionPanel key={companyId+':'+userId+':'+current.id} kind="MATERIAL_RETURN" sourceId={current.id}
+                permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId}
+                reverseEligible={Boolean(current.postedAt && !current.reversedAt)} cancelEligible={Boolean(current.submittedAt && !current.postedAt && current.approvalInstance?.approvalState==='SUBMITTED')}
+                onChanged={refresh} />
             </Stack>
           </CardContent>
         </Card>

@@ -185,7 +185,7 @@ export type TransferStockChoice = MaterialStockChoice & {
 };
 
 export type StockTransfer = {
-  custody?: { receiptComplete?: boolean; transferId: string; version: number; dispatch: { recordedAt: string } | null } | null;
+  custody?: { cancelled?: boolean; receiptComplete?: boolean; transferId: string; version: number; dispatch: { recordedAt: string } | null } | null;
   id: string;
   transferNumber: string;
   sourceWarehouseId: string;
