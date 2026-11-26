@@ -3,6 +3,10 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import { Prisma } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
+import { DocumentsService } from '../documents/documents.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import type { AuthenticatedUserContext } from '../auth/auth.types';
@@ -138,7 +142,9 @@ test('PUR08/PUR14 native: scoped live actors, real PUR07 source, append-only cas
     const scope=new ProjectAccessService(
       db,new ProjectScopeService(new AuthorizationService()),
     );
-    const service=new SupplierDeliveryCaseService(db,scope);
+    const documents=new DocumentsService(db,scope,new AuditService(db),
+      new LocalDocumentStorage(),new DocumentPolicyService());
+    const service=new SupplierDeliveryCaseService(db,scope,documents);
     const ctx=(auth:AuthenticatedUserContext)=>({auth});
     const input=(action:string,version:number,previous:string|null,opts:Record<string,unknown>={})=>({
       action,expectedVersion:version,expectedPreviousEventId:previous,
