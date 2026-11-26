@@ -1,9 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
+**M4 11h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) now exact `73386f4bab1e76228f055728c87a26c71559c52a`; [targeted native PASS4/4](https://github.com/threeswordz/cinder-grind/actions/runs/45783466686/job/139784315444), [original full46/46](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2) applies only to predecessor0bcc355c. Draft-before-forward update verified. [Independent review requested](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7187121989); P2 remains open. M4-08 1→0.5h, verified provisional rework reduction0.5h. No new expensive full CI authorized; retained target/readback pending.
+[Ready PR455](https://github.com/threeswordz/cinder-grind/pull/455) frozen at `73386f4bab1e76228f055728c87a26c71559c52a`; [full46/46](https://github.com/threeswordz/cinder-grind/actions/runs/45786823770/attempts/2) passed but fresh [P2 linked-source authorization](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4708335212) blocks merge. [Isolated correction](https://github.com/threeswordz/cinder-grind/commit/024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2) staged, [targeted native validation](https://github.com/threeswordz/cinder-grind/actions/runs/45820461137) queued. +0.5h provisional rework; no verified credit, no new full CI. Retained target/readback pending.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 
