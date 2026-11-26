@@ -4487,6 +4487,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-121",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_PUR07_BATCHED_P2_FIXES_INDEPENDENT_REREVIEW_CLEAN",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7181165380",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45744426884/job/139656925359",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45744325492/job/139656600238"
+      ],
+      "basis": "Independent Codex re-review found no major issues on exact corrected source5af60607. Both post-Ready P2 review threads resolved after linking real focused regression/runtime evidence. Existing exact full run45744331901 attempt1 stopped at draft admission. Next full attempt requires specific Owner authority; prior full pass belongs to82df55d. Remaining integration/retained gates preserve original forecast.",
+      "blocker": "Owner authorization for one failed-jobs rerun of45744331901 at head5af60607/base040395bc, terminal exact full proof, then applicable Ready/integration and retained technical readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
