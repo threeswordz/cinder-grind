@@ -15,6 +15,8 @@
 | Revised ERP forecast | **1,725** |
 
 **M6 active:** [execution baseline](M6-2026-11-27-POST-M4-EXECUTION-BASELINE.md); reconcile staged candidate against actual M4 main and Mac identity. Existing M6 local helper evidence preserved, no previous runtime journey replay. Actual human labor unmeasured. GL04/05 unchanged; specific carryovers tracked once. No new CI.
+
+**M6 candidate started:** [`b99f5b7b`](https://github.com/threeswordz/cinder-grind/commit/b99f5b7b1f2fc5190f1b61d181c78dbe00809b18), branch `work-m6-post-m4-preservation-baseline-20261127`. Exact parent M4 main; 19/19 standalone preservation/test blobs recovered from prior M6 branch, only 19 added files, no workflow/app/schema/legacy operator changes. Zero Actions runs observed; previous test evidence retained, no fresh test claim or forecast credit. Next adapt successor operator to actual M4 custody, avoid historical M6 business replay.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

@@ -5422,6 +5422,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-162",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_POST_M4_EXACT_HELPER_BASELINE_STAGED",
+      "beforeHours": 22.5,
+      "afterHours": 22.5,
+      "sourceSha": "b99f5b7b1f2fc5190f1b61d181c78dbe00809b18",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/b99f5b7b1f2fc5190f1b61d181c78dbe00809b18",
+        "https://github.com/threeswordz/cinder-grind/compare/9417f07c609dbc091b5bbe2e09071c5e2c316459...b99f5b7b1f2fc5190f1b61d181c78dbe00809b18"
+      ],
+      "basis": "Old isolated M6 head0d796843 diverged 137 ahead/1 behind protected main after M4 squash; do not merge or replay. Created new branch work-m6-post-m4-preservation-baseline-20261127 exact parent9417f07c; only 19 new standalone M6 helper/test files. Complete trees not truncated, 19/19 exact old blobs match, ahead1 behind0, zero Actions runs observed. Imports limited to Node builtins and same added helpers. Legacy M6 operator and five changed runner files intentionally excluded until adapted to actual post-M4 custody; no application/migration/workflow changes. Earlier test evidence retained, no fresh execution or double-counted reduction.",
+      "blocker": "Adapt successor operator to M4 actual runtime identity and prior completed M6 business journeys, focused tests and review; no old deployment replay.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
