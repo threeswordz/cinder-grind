@@ -5484,6 +5484,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-165",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_M4_PROCESS_RECEIPT_NATIVE_OBSERVATION_ADAPTER_LOCAL_PASS",
+      "beforeHours": 21.5,
+      "afterHours": 21,
+      "sourceSha": "54c358273736d36d09aa01b01a00e4c265994239",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/54c358273736d36d09aa01b01a00e4c265994239",
+        "https://github.com/threeswordz/cinder-grind/blob/54c358273736d36d09aa01b01a00e4c265994239/deploy/uat/m6-mac-observation.mjs",
+        "https://github.com/threeswordz/cinder-grind/blob/54c358273736d36d09aa01b01a00e4c265994239/deploy/uat/m6-mac-observation.test.mjs"
+      ],
+      "basis": "Implemented read-only M4 cutover process receipt normalization pinned to 9417f07c and proto_a_01, owned private receipt reads, strict lsof PID/descriptor/address parsing, bounded ps/Podman inspect/loopback health observation with injectable existing container validator and exact Mac environment gate. Actual Node22.16.0 Linux 19/19 tests passed (117ms test runner); real temporary receipt files and mocked native commands/validator/health. Exact locally tested git hash-object values ffdc46cc740b3998f9194e20ab91f358336f3529 and d283231a39ed252dadf2178e1ab0567343d5b23c match published GitHub blobs. Main unchanged; zero Actions runs observed at new head. Retire 0.5h provisional local implementation allowance, no measured labor or actual native Mac proof.",
+      "blocker": "Connect actual post-M4 private DB and protected-byte/artifact baseline formats, wire existing canonical container validator and runtime config, DB client and evidence core into the executable successor; validate native command output on Mac. Process receipt fields reconstructed from prior cutover script context, not independent current private receipt inspection. No actual Mac/Podman/PostgreSQL execution or independent review. No parallel worker launched.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5513,8 +5534,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1724,
-  "currentRollingTotalSemantics": "1724h = previous 1724.5h minus 0.5h provisional verified M6-01 local evidence-core implementation. M4 0h, M6 114h, M7 50h, M8 65h, combined229h. Actual labor unknown, no formal acceptance change, all112 requirements preserved. No live runtime proof.",
+  "currentRollingTotalAfterPricedGapsHours": 1723.5,
+  "currentRollingTotalSemantics": "1723.5h = previous 1724h minus 0.5h provisional verified M6-01 local observation adapter implementation. M4 0h, M6 113.5h, M7 50h, M8 65h, combined228.5h. Actual labor unknown, no formal acceptance change, all112 requirements preserved. No live runtime proof.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
