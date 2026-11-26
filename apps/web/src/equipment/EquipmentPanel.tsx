@@ -101,11 +101,13 @@ export function EquipmentPanel({
     enabled: Boolean(usageProjectId),
   });
 
+  const visibleEquipment=equipment.isSuccess?equipment.data.data:[];
+  const visibleProjects=projects.isSuccess?projects.data.data:[];
   const selected = useMemo(
     () =>
-      (equipment.data?.data ?? []).find((row) => row.id === selectedId) ??
+      visibleEquipment.find((row) => row.id === selectedId) ??
       null,
-    [equipment.data?.data, selectedId],
+    [visibleEquipment, selectedId],
   );
 
   useEffect(() => {
@@ -245,7 +247,15 @@ export function EquipmentPanel({
     setUsageRemarks(row.remarks ?? '');
   };
 
+  useEffect(()=>{
+    if(equipment.isError || (equipment.isSuccess && selectedId && !selected)){
+      setSelectedId('');setNewMode(false);setEquipmentTypeId('');setEquipmentCode('');setEquipmentName('');setDescription('');
+    }
+    if(assignments.isError||projects.isError|| (projects.isSuccess&&assignmentProjectId&&!visibleProjects.some(x=>x.id===assignmentProjectId))){setAssignmentProjectId('');setAssignmentRemarks('');}
+    if(usage.isError||projects.isError||usageOptions.isError|| (projects.isSuccess&&usageProjectId&&!visibleProjects.some(x=>x.id===usageProjectId)))clearUsageForm();
+  },[equipment.isError,equipment.isSuccess,selectedId,selected,assignments.isError,projects.isError,projects.isSuccess,projects.data,usage.isError,usageOptions.isError,assignmentProjectId,usageProjectId]);
   const error =
+    equipment.error ?? assignments.error ?? usage.error ?? projects.error ?? usageOptions.error ??
     typeMutation.error ??
     toggleTypeMutation.error ??
     equipmentMutation.error ??
@@ -364,7 +374,7 @@ export function EquipmentPanel({
               ) : null}
             </Stack>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-              {(equipment.data?.data ?? []).map((row) => (
+              {visibleEquipment.map((row) => (
                 <Button
                   key={row.id}
                   variant={selectedId === row.id ? 'contained' : 'outlined'}
@@ -504,7 +514,7 @@ export function EquipmentPanel({
               <Typography variant="subtitle1">
                 Project Assignment History
               </Typography>
-              {(assignments.data?.data ?? []).map((assignment) => (
+              {(assignments.isSuccess?assignments.data.data:[]).map((assignment) => (
                 <Stack
                   key={assignment.id}
                   direction={{ xs: 'column', sm: 'row' }}
@@ -528,7 +538,7 @@ export function EquipmentPanel({
                   ) : null}
                 </Stack>
               ))}
-              {canAssignmentManage ? (
+              {canAssignmentManage && assignments.isSuccess && projects.isSuccess ? (
                 <>
                   <Divider />
                   <Stack
@@ -544,7 +554,7 @@ export function EquipmentPanel({
                       }
                       sx={{ minWidth: 260 }}
                     >
-                      {(projects.data?.data ?? []).map((project) => (
+                      {visibleProjects.map((project) => (
                         <MenuItem key={project.id} value={project.id}>
                           {project.projectCode} — {project.projectName}
                         </MenuItem>
@@ -611,7 +621,7 @@ export function EquipmentPanel({
                 ) : null}
               </Stack>
 
-              {(usage.data?.data ?? []).map((row) => (
+              {(usage.isSuccess?usage.data.data:[]).map((row) => (
                 <Stack
                   key={row.id}
                   direction={{ xs: 'column', sm: 'row' }}
@@ -638,7 +648,7 @@ export function EquipmentPanel({
                 </Stack>
               ))}
 
-              {(canUsageCreate || (editingUsageId && canUsageEdit)) ? (
+              {usage.isSuccess && projects.isSuccess && (canUsageCreate || (editingUsageId && canUsageEdit)) ? (
                 <>
                   <Divider />
                   <Typography variant="subtitle2">
@@ -661,7 +671,7 @@ export function EquipmentPanel({
                       }}
                       sx={{ minWidth: 260 }}
                     >
-                      {(projects.data?.data ?? []).map((project) => (
+                      {visibleProjects.map((project) => (
                         <MenuItem key={project.id} value={project.id}>
                           {project.projectCode} — {project.projectName}
                         </MenuItem>
@@ -697,7 +707,7 @@ export function EquipmentPanel({
                       sx={{ flex: 2 }}
                     >
                       <MenuItem value="">None</MenuItem>
-                      {(usageOptions.data?.data.activities ?? []).map(
+                      {(usageOptions.isSuccess?usageOptions.data.data.activities:[]).map(
                         (activity) => (
                           <MenuItem key={activity.id} value={activity.id}>
                             {activity.activityCode} —{' '}
@@ -716,7 +726,7 @@ export function EquipmentPanel({
                       sx={{ flex: 2 }}
                     >
                       <MenuItem value="">None</MenuItem>
-                      {(usageOptions.data?.data.wbs ?? []).map((wbs) => (
+                      {(usageOptions.isSuccess?usageOptions.data.data.wbs:[]).map((wbs) => (
                         <MenuItem key={wbs.id} value={wbs.id}>
                           {wbs.wbsCode} — {wbs.wbsName}
                         </MenuItem>

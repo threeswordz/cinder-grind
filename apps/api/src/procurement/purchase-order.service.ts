@@ -721,10 +721,16 @@ export class PurchaseOrderService {
           });
         }
       }
-      const updated = await tx.purchaseOrder.update({
-        where: { id: current.id },
+      // Recheck Draft predicates in the actual UPDATE, not just the earlier
+      // read. PostgreSQL re-evaluates them after a concurrent submit commits.
+      const changed = await tx.purchaseOrder.updateMany({
+        where: { id: current.id, companyId: current.companyId, projectId: current.projectId,
+          approvalInstanceId: null, submittedAt: null, cancelledAt: null },
         data,
       });
+      if (changed.count !== 1) throw new ConflictException({ code: 'PO_NOT_DRAFT',
+        detail: 'Only a Draft Purchase Order revision is directly editable.' });
+      const updated = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: current.id } });
       await this.audit.record(
         {
           ...context,

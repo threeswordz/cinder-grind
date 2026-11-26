@@ -1,6 +1,6 @@
 import { Alert, Button, Card, CardContent, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect,useState } from 'react';
 
 import { equipmentApi } from '../api/equipment';
 
@@ -36,33 +36,45 @@ export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:str
     queryFn:()=>equipmentApi.custodyLoans(projectId,equipmentId),
     enabled:Boolean(projectId),
   });
+  const visibleProjects=projects.isSuccess?projects.data.data:[];
+  const scopeCurrent=visibleProjects.some(p=>p.id===projectId);
+  const visibleLoans=scopeCurrent&&loans.isSuccess?loans.data.data:[];
+  const visibleBorrowers=scopeCurrent&&borrowers.isSuccess?borrowers.data.data:[];
+  const scopeDenied=projects.isError||loans.isError||borrowers.isError||
+    Boolean(projectId&&projects.isSuccess&&!scopeCurrent);
+  useEffect(()=>{if(scopeDenied){setBorrowerEmployeeId('');setSiteLabel('');setConditionOut('');setConditionIn('');}},[scopeDenied]);
   const refresh=()=>client.invalidateQueries({queryKey:['equipment-custody']});
   const checkout=useMutation({
-    mutationFn:()=>equipmentApi.custodyCheckout({
-      equipmentId,projectId,borrowerEmployeeId,siteLabel,issuedOn,dueOn,conditionOut,
-    }),
+    mutationFn:()=>{
+      if(scopeDenied||!scopeCurrent||!loans.isSuccess||!visibleBorrowers.some(b=>b.id===borrowerEmployeeId))throw Error('Refresh current custody scope');
+      return equipmentApi.custodyCheckout({equipmentId,projectId,borrowerEmployeeId,siteLabel,issuedOn,dueOn,conditionOut});
+    },
     onSuccess:async()=>{setConditionOut('');setSiteLabel('');await refresh();},
   });
   const returnLoan=useMutation({
-    mutationFn:(id:string)=>equipmentApi.custodyReturn(id,returnedOn,conditionIn),
+    mutationFn:(id:string)=>{
+      if(scopeDenied||!visibleLoans.some(l=>l.id===id&&!l.returnedOn))throw Error('Refresh current custody scope');
+      return equipmentApi.custodyReturn(id,returnedOn,conditionIn);
+    },
     onSuccess:async()=>{setConditionIn('');await refresh();},
   });
   if(!permissions.includes('equipment.custody.view')) return null;
-  const open=(loans.data?.data??[]).find(loan=>!loan.returnedOn);
+  const open=visibleLoans.find(loan=>!loan.returnedOn);
   const error=checkout.error??returnLoan.error??loans.error??borrowers.error??projects.error;
   return <Card variant="outlined"><CardContent><Stack spacing={2}>
     <Typography variant="subtitle1">SS11 — Person-level Equipment Custody (CG#####)</Typography>
     <Typography variant="body2">A loan is separate from Project Equipment assignment and never posts stock or depreciation.</Typography>
+    <Button onClick={()=>void refresh()}>Refresh custody</Button>
     {error?<Alert severity="error">{error instanceof Error?error.message:'Custody request failed'}</Alert>:null}
     <TextField select label="Project / site scope" value={projectId}
       onChange={e=>{setProjectId(e.target.value);setBorrowerEmployeeId('');}} fullWidth>
       <MenuItem value="">Select Project</MenuItem>
-      {(projects.data?.data??[]).map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
+      {visibleProjects.map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
     </TextField>
-    {projectId&&open?<Alert severity="warning">
+    {!scopeDenied&&projectId&&open?<Alert severity="warning">
       Checked out to {open.borrowerName} at {open.siteLabel}. Due {open.dueOn.slice(0,10)}.
     </Alert>:null}
-    {(loans.data?.data??[]).map(loan=><Stack key={loan.id} spacing={0.5}>
+    {(scopeDenied?[]:visibleLoans).map(loan=><Stack key={loan.id} spacing={0.5}>
       <Typography variant="body2">
         {loan.borrowerName} · {loan.siteLabel} · issued {loan.issuedOn.slice(0,10)}
         {' · due '+loan.dueOn.slice(0,10)}
@@ -78,12 +90,12 @@ export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:str
           onClick={()=>returnLoan.mutate(loan.id)}>Record Return</Button>
       </Stack>:null}
     </Stack>)}
-    {mayManage&&projectId&&!open?<Stack spacing={1}>
+    {mayManage&&scopeCurrent&&loans.isSuccess&&borrowers.isSuccess&&!scopeDenied&&!open?<Stack spacing={1}>
       <Typography variant="subtitle2">Check out this Equipment to an active Project employee</Typography>
       <TextField select label="Named borrower" value={borrowerEmployeeId} fullWidth
         onChange={e=>setBorrowerEmployeeId(e.target.value)}>
         <MenuItem value="">Select borrower</MenuItem>
-        {(borrowers.data?.data??[]).map(b=><MenuItem key={b.id} value={b.id}>
+        {visibleBorrowers.map(b=><MenuItem key={b.id} value={b.id}>
           {b.employeeCode} — {b.employeeName}
         </MenuItem>)}
       </TextField>

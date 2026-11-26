@@ -184,9 +184,35 @@ test('PUR04 native: approved PO revision preserves commercial snapshot and rejec
       vatRatePercent:D('7.00'),
     };
     await orders.updateOrder({auth:jai.auth},original.id,fields);
-    await orders.submit({auth:jai.auth},original.id,poFlow.workflowCode);
+    // Force the stale PATCH to read the Draft before another transaction
+    // submits it, then release its write only after submit commits.
+    let entered!:()=>void, resume!:()=>void;
+    const readDraft=new Promise<void>(resolve=>{entered=resolve;});
+    const release=new Promise<void>(resolve=>{resume=resolve;});
+    const delayedScope=new ProjectAccessService(prisma,new ProjectScopeService(new AuthorizationService()));
+    const normalAssert=delayedScope.assertAccess.bind(delayedScope);
+    delayedScope.assertAccess=async (...args:Parameters<typeof normalAssert>)=>{
+      await normalAssert(...args);entered();await release;
+    };
+    const delayedOrders=new PurchaseOrderService(prisma,delayedScope,audit,approval,numbers);
+    const auditBefore=await prisma.auditLog.count({where:{companyId:company.id,entityId:original.id,action:'UPDATE_DRAFT'}});
+    const delayed=delayedOrders.updateOrder({auth:jai.auth},original.id,{freightAmount:D('999')});
+    const rejected=assert.rejects(delayed,(e:unknown)=>e instanceof ConflictException &&
+      (e.getResponse() as {code?:string}).code==='PO_NOT_DRAFT');
+    try { await readDraft; await orders.submit({auth:jai.auth},original.id,poFlow.workflowCode); }
+    finally { resume(); }
+    await rejected;
+    assert.equal(await prisma.auditLog.count({where:{companyId:company.id,entityId:original.id,action:'UPDATE_DRAFT'}}),auditBefore);
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({where:{id:original.id}})).freightAmount?.toString(),'20.5');
+    const changes=[{deliveryLocation:'forged'},{deliveryContact:'forged'},{deliveryTerms:'forged'},
+      {paymentTerms:'forged'},{creditTerms:'forged'},{discountAmount:D('1')},
+      {freightAmount:D('1')},{additionalChargeAmount:null},{vatRatePercent:D('0')},
+      {supplierQuoteExceptionReason:'forged exception'}];
+    for(const data of changes)await assert.rejects(prisma.purchaseOrder.update({where:{id:original.id},data}),/PO_COMMERCIAL_HISTORY_IMMUTABLE/);
+    console.log('M4_PUR04_CONCURRENT_SUBMIT_STALE_PATCH_AND_DIRECT_DB_GUARD_PASS');
     const approved=await orders.approve({auth:ben.auth},original.id,'Commercial offer reviewed');
     assert.equal(approved.lifecycleState,'APPROVED');
+    for(const data of changes)await assert.rejects(prisma.purchaseOrder.update({where:{id:original.id},data}),/PO_COMMERCIAL_HISTORY_IMMUTABLE/);
     const approvedOriginal=await prisma.purchaseOrder.findUniqueOrThrow({
       where:{id:original.id},include:{lines:true},
     });

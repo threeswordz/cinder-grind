@@ -11,18 +11,20 @@ const blank={purchaseDate:'',acquisitionValueTHB:'',evidenceReference:'',recorde
 export function EquipmentAssetRegisterPanel({equipmentId}:{equipmentId:string}){
  const client=useQueryClient(),path='/equipment/register/'+equipmentId+'/asset';
  const query=useQuery({queryKey:['equipment','asset',equipmentId],queryFn:()=>apiRequest<{data:Readback}>(path),retry:false});
- const result=query.data?.data;
+ // React Query retains successful cached data on a failed refetch. A
+ // current error must override it before rendering any protected values.
+ const result=query.isSuccess?query.data?.data:undefined;
  const [form,setForm]=useState(blank);
  const [base,setBase]=useState<{id:string;versionId:string|null}|null>(null);
  useEffect(()=>{
-  if(!result)return;
+  if(!result){setBase(null);setForm(blank);return;}
   const v=result.current;
   setBase({id:equipmentId,versionId:v?.id??null});
   setForm({purchaseDate:v?.purchaseDate?.slice(0,10)??'',acquisitionValueTHB:v?.acquisitionValueTHB??'',
     evidenceReference:v?.evidenceReference??'',recordedBaseLocation:v?.recordedBaseLocation??'',reason:''});
  },[equipmentId,result?.current?.id,result!==undefined]);
  const save=useMutation({mutationFn:()=>{
-  if(!base||base.id!==equipmentId||base.versionId!==(result?.current?.id??null))throw Error('Refresh before recording a new version');
+  if(!result?.canEdit||!base||base.id!==equipmentId||base.versionId!==(result?.current?.id??null))throw Error('Refresh before recording a new version');
   return apiRequest(path,{method:'POST',body:JSON.stringify({expectedVersionId:base.versionId,
    purchaseDate:form.purchaseDate||null,acquisitionValueTHB:form.acquisitionValueTHB||null,
    evidenceReference:form.evidenceReference.trim(),recordedBaseLocation:form.recordedBaseLocation.trim()||null,reason:form.reason.trim()})});
@@ -49,9 +51,9 @@ export function EquipmentAssetRegisterPanel({equipmentId}:{equipmentId:string}){
       onClick={()=>save.mutate()}>Record acquisition version</Button>
    </Stack>}
    {save.isError&&<Alert severity="error">{save.error instanceof Error?save.error.message:'Save failed'}</Alert>}
-   <Button onClick={()=>void query.refetch()}>Refresh register</Button>
    <Typography variant="subtitle2">Preserved acquisition history</Typography>
    {result.history.map(v=><Typography key={v.id} variant="body2">Version {v.version} · {v.purchaseDate?.slice(0,10)??'Unknown date'} · {v.acquisitionValueTHB??'Unknown value'} THB · {v.evidenceReference} · {v.recordedBaseLocation??'No base location'} · {v.reason}</Typography>)}
   </>}
+  <Button onClick={()=>void query.refetch()} disabled={query.isFetching}>Refresh register</Button>
  </Stack></CardContent></Card>;
 }
