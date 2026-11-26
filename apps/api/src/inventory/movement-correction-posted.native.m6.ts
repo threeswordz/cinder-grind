@@ -13,6 +13,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from './goods-receipt.service';
 import { MovementCorrectionService } from './movement-correction.service';
 import { receivingFixture } from './receiving-test-fixture';
+import { transferCustodyFixture } from './transfer-custody-test-fixture';
+import { DocumentTargetsService } from '../documents/document-targets.service';
+import { StockTransferService } from './stock-transfer.service';
 
 test('SS16 draft: immutable correction request, configured PM decision and atomic canonical GR reversal', async () => {
   const expected = process.env.M6_SS16_DISPOSABLE_DB;
@@ -186,6 +189,113 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:staleRequest.approvalInstanceId}})).approvalState,'SUBMITTED');
     await corrections.decide({auth:pm},staleRequest.id,'REJECT','Source already posted; correction must be a separate reversal');
     assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:staleDraft.id}}),1);
+    // Separate synthetic Company: controlled receiving has its own original
+    // physical delivery, evidence and deadline, all preserved by GR cancellation.
+    const rc = await receivingFixture(db);
+    const prepareActors = async (fixture: Awaited<ReturnType<typeof receivingFixture>>, permissionCode: string) => {
+      await db.role.update({where:{id:fixture.store.role.id},data:{roleCode:'STOREKEEPER'}});
+      await db.role.update({where:{id:fixture.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
+      const permission = await db.permission.findUniqueOrThrow({where:{permissionCode}});
+      await db.rolePermission.createMany({data:[{roleId:fixture.pm.role.id,permissionId:permission.id}],skipDuplicates:true});
+      await db.approvalWorkflow.create({data:{companyId:fixture.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',
+        entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic correction review',
+        steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:fixture.pm.role.id}]}}]}}});
+    };
+    await prepareActors(rc,'inventory.receipt.reverse');
+    const rcStore = await rc.sessions.resolve(rc.store.session.sessionToken);
+    const rcPm = await rc.sessions.resolve(rc.pm.session.sessionToken);
+    assert.ok(rcStore && rcPm);
+    const okPost = async (path: string, actor: typeof rc.store, body: unknown) => {
+      const response = await post(path,actor.session,body);
+      const raw = await response.text();
+      assert.equal(response.status,201,path+' '+raw);
+      return JSON.parse(raw).data;
+    };
+    const root = 'receiving/deliveries';
+    await okPost('receiving/projects/'+rc.project.id+'/enable',rc.config,{requestKey:randomUUID(),reason:'Disposable controlled receiving'});
+    const delivery = await okPost(root,rc.store,rc.input());
+    const readDelivery = async () => {
+      const response = await get(root+'/'+delivery.id,rc.store.session);
+      assert.equal(response.status,200);
+      return (await response.json()).data;
+    };
+    const command = async (extra: Record<string,unknown> = {}) => ({requestKey:randomUUID(),
+      expectedVersion:(await readDelivery()).version,reason:'Synthetic source evidence action',...extra});
+    const captured = await readDelivery();
+    await okPost(root+'/'+delivery.id+'/link-po',rc.store,await command({purchaseOrderId:rc.po.id,
+      lines:[{id:captured.lines[0].id,purchaseOrderLineId:rc.po.lines[0]!.id}]}));
+    const targets = app.get(DocumentTargetsService);
+    for (const purpose of ['DELIVERY_NOTE','RECEIVER_SIGNATURE','CONDITION_PHOTO']) {
+      const bytes = Buffer.from('%PDF-1.4\\nSynthetic SS16 '+purpose+'\\n');
+      const doc = await targets.upload({auth:rcStore},rc.project.id,'RECEIVING_DELIVERY',delivery.id,rc.documentType.id,
+        {originalname:purpose+'.pdf',mimetype:'application/pdf',size:bytes.length,buffer:bytes});
+      await okPost(root+'/'+delivery.id+'/evidence',rc.store,await command({documentId:doc.id,purpose,signedEvidenceConfirmed:purpose==='RECEIVER_SIGNATURE'}));
+    }
+    await okPost(root+'/'+delivery.id+'/check',rc.jai,await command({decision:'ACCEPT'}));
+    const checked = await readDelivery();
+    const linked = await goods.create({auth:rcStore},{projectId:rc.project.id,purchaseOrderId:rc.po.id,
+      warehouseId:rc.warehouse.id,deliveryId:delivery.id,requestKey:randomUUID(),expectedDeliveryVersion:checked.version,
+      lines:[{purchaseOrderLineId:rc.po.lines[0]!.id,quantity:new Prisma.Decimal('3')}]});
+    await goods.submit({auth:rcStore},linked.id,rc.receiptWorkflow.workflowCode);
+    const physicalBefore = await db.receivingDelivery.findUniqueOrThrow({where:{id:delivery.id}});
+    const physicalEvents = await db.receivingDeliveryEvent.count({where:{deliveryId:delivery.id}});
+    const physicalEvidence = await db.receivingDeliveryEvidence.count({where:{deliveryId:delivery.id}});
+    const voidIntent = await command();
+    assert.equal((await post(root+'/'+delivery.id+'/void',rc.store.session,voidIntent)).status,409);
+    const rcCancel = await corrections.request({auth:rcStore},'GOODS_RECEIPT',linked.id,randomUUID(),'Incorrect submitted GR','CANCEL_UNPOSTED');
+    assert.equal((await post(root+'/'+delivery.id+'/void',rc.store.session,voidIntent)).status,409);
+    await corrections.decide({auth:rcPm},rcCancel.id,'APPROVE','Independent GR cancellation');
+    assert.deepEqual(await db.receivingDelivery.findUniqueOrThrow({where:{id:delivery.id}}),physicalBefore);
+    assert.equal(await db.receivingDeliveryEvent.count({where:{deliveryId:delivery.id}}),physicalEvents);
+    assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:linked.id}}),0);
+    await assert.rejects(goods.approve({auth:rcPm},linked.id,randomUUID()));
+    await okPost(root+'/'+delivery.id+'/void',rc.store,voidIntent);
+    const voided = await readDelivery();
+    assert.equal(voided.status,'VOID');
+    assert.equal(voided.receivedAt,checked.receivedAt);
+    assert.equal(voided.poLinkDueAt,checked.poLinkDueAt);
+    assert.equal(await db.receivingDeliveryEvidence.count({where:{deliveryId:delivery.id}}),physicalEvidence);
+    assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:linked.id}}),0);
+    const replacement = await okPost(root,rc.store,rc.input({supersedesId:delivery.id,receivedAt:checked.receivedAt}));
+    const replacementRow = await db.receivingDelivery.findUniqueOrThrow({where:{id:replacement.id}});
+    assert.equal(replacementRow.receivedAt.toISOString(),checked.receivedAt);
+    assert.equal(replacementRow.poLinkDueAt.toISOString(),checked.poLinkDueAt);
+
+    // Separate synthetic transfer custody with real canonical source stock.
+    const tf = await transferCustodyFixture(db,app);
+    await prepareActors(tf,'inventory.transfer.reverse');
+    const tStore = await tf.sessions.resolve(tf.store.session.sessionToken);
+    const tPm = await tf.sessions.resolve(tf.pm.session.sessionToken);
+    assert.ok(tStore && tPm);
+    await okPost('transfer-custody/projects/'+tf.project.id+'/enable',tf.pm,{requestKey:randomUUID(),reason:'Disposable transfer policy'});
+    const transfer = await okPost('stock-transfers',tf.store,tf.transferInput);
+    await okPost('stock-transfers/'+transfer.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
+    const custodyBefore = await db.transferCustody.findUniqueOrThrow({where:{transferId:transfer.id}});
+    const transferHeader = await db.stockTransfer.findUniqueOrThrow({where:{id:transfer.id}});
+    assert.ok(transferHeader.approvalInstanceId);
+    const transferCorrection = await corrections.request({auth:tStore},'STOCK_TRANSFER',transfer.id,randomUUID(),'Wrong destination','CANCEL_UNPOSTED');
+    await db.projectMember.deleteMany({where:{projectId:tf.unassigned.id,employeeId:tf.pm.employee.id}});
+    try { await assert.rejects(corrections.decide({auth:tPm},transferCorrection.id,'APPROVE','Missing destination scope')); }
+    finally { await db.projectMember.create({data:{projectId:tf.unassigned.id,employeeId:tf.pm.employee.id,projectRole:'Synthetic destination'}}); }
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:transferHeader.approvalInstanceId!}})).approvalState,'SUBMITTED');
+    const custodyResult = await corrections.decide({auth:tPm},transferCorrection.id,'APPROVE','Independent transfer cancellation');
+    assert.equal(custodyResult.approvalInstance.approvalState,'APPROVED');
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:transferHeader.approvalInstanceId!}})).approvalState,'CANCELLED');
+    assert.deepEqual(await db.stockTransfer.findUniqueOrThrow({where:{id:transfer.id}}),transferHeader);
+    const custodyAfter = await db.transferCustody.findUniqueOrThrow({where:{transferId:transfer.id}});
+    assert.equal(custodyAfter.version,custodyBefore.version+1);
+    const cancelledEvent = await db.transferCustodyEvent.findFirstOrThrow({where:{transferId:transfer.id,action:'CANCEL'}});
+    assert.equal(cancelledEvent.reason,'Wrong destination');
+    assert.equal(cancelledEvent.actorUserId,tPm.userId);
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:transfer.id}}),0);
+    assert.equal(await db.transferDispatch.count({where:{transferId:transfer.id}}),0);
+    await assert.rejects(app.get(StockTransferService).approve({auth:tPm},transfer.id,randomUUID()));
+    assert.equal((await post('transfer-custody/transfers/'+transfer.id+'/dispatch',tf.store.session,
+      {requestKey:randomUUID(),expectedVersion:custodyAfter.version,reason:'Cancelled source cannot dispatch'})).status,409);
+    assert.equal((await post('stock-transfers/'+transfer.id+'/reverse',tf.pm.session,{reversalKey:randomUUID(),reason:'No reversal'})).status,409);
+    await assert.rejects(corrections.decide({auth:tPm},transferCorrection.id,'APPROVE','Replay'));
+    assert.equal(await db.transferCustodyEvent.count({where:{transferId:transfer.id,action:'CANCEL'}}),1);
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:transfer.id}}),0);
   } finally {
     try { await app?.close(); } finally {
       await db.$disconnect();
