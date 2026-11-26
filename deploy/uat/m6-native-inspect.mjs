@@ -59,7 +59,7 @@ export async function inspectAdmission({observeRuntime,verifyRuntime,db,readInve
   return {status:'M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS',processChecksPassed:true,zeroActiveSessionsObserved:true,migrationRowsObserved:177,currentInventoryStableAcrossTwoCaptures:true,historicalBaselineVerified:false,milestone6Accepted:false,mayMutate:false,productionAuthorized:false};
 }
 async function main(){
-  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
+  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history','--inspect-rate-history'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_/.test(k)),'M6_NATIVE_EXACT_MAC_REQUIRED');
   const {readCheckoutIdentity,inspectPostM4}=await import('./m6-post-m4-inspect.mjs');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),identity=await readCheckoutIdentity(source);
@@ -81,10 +81,12 @@ async function main(){
   const url='postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/proto_a_01?schema=public';
   const db=new PrismaClient({datasources:{db:{url}},log:[]});
   try{
-    if(process.argv[2]==='--inspect-auth-history'){
+    if(['--inspect-auth-history','--inspect-rate-history'].includes(process.argv[2])){
       const {execFile}=await import('node:child_process');
       const {promisify}=await import('node:util');
-      const {snapshotSql,compareAuthHistory}=await import('./m6-auth-history.mjs');
+      const rateOnly=process.argv[2]==='--inspect-rate-history';
+      const {snapshotSql,compareAuthHistory}=rateOnly?{snapshotSql:(await import('./m6-rate-bucket-history.mjs')).rateSnapshotSql,compareAuthHistory:(await import('./m6-rate-bucket-history.mjs')).compareHistoricalRateBuckets}:await import('./m6-auth-history.mjs');
+      const before=rateOnly?await readAdmissionDatabase(db):null;
       const {verifyBackupReceipts}=await import('./m6-backup-receipts.mjs');
       const stage=join(root,'m4-upgrade-9417f07c');
       const baseline=await readPrivate(join(stage,'database-baseline-private.json'),33554432);
@@ -105,6 +107,7 @@ async function main(){
         return JSON.parse(rows[0].payload);
       },{isolationLevel:'RepeatableRead',timeout:30000});
       const result=compareAuthHistory({baseline,original,current,capturedAt:receipt.createdAt});
+      if(rateOnly){need(same(before,await readAdmissionDatabase(db)),'M6_RATE_MIGRATION_DRIFT');if(!result.lifecycleConsistent)process.exitCode=1;}
       verifyRuntime(await observeRuntime());
       return {...result,historicalBaselineVerified:false,productionAuthorized:false,inspectorSha:identity.sha};
     }
