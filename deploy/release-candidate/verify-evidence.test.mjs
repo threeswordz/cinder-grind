@@ -186,8 +186,18 @@ test('FM03 evidence requires exact migration, version13 and executed upgrade/HTT
 
 test('FM03 wrapper before historical predecessor checks remains mandatory in consolidated CI', async () => {
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
-  const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
-  assert.ok(evidenceStep, 'Consolidated evidence step must exist');
+  const purchasingEvidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
+  const purchasingWrapper=/\(await import\('\.\/deploy\/release-candidate\/purchasing-release-mode\.mjs'\)\)\.purchasingMode\(data\.releaseMode\)\.prior/g;
+  assert.equal((purchasingEvidenceStep.match(purchasingWrapper)??[]).length,6);
+  assert.match(purchasingEvidenceStep,/assertPurchasingEvidence\(data\.rehearsal\)/);
+  const rawEvidenceStep=purchasingEvidenceStep.replace(purchasingWrapper,'data.releaseMode').replace('pm02Mode(purchasing.prior)','pm02Mode(data.releaseMode)').replace('data.version!==(purchasing.version??21)','data.version!==21');
+  assert.ok(rawEvidenceStep, 'Consolidated evidence step must exist');
+  const pm02Wrapper=/\(await import\('\.\/deploy\/release-candidate\/pm02-schema-preparation\.mjs'\)\)\.pm02Mode\(data\.releaseMode\)\.prior/g;
+  assert.equal((rawEvidenceStep.match(pm02Wrapper)??[]).length,6,'Six historical consumers must unwrap PM02');
+  assert.match(rawEvidenceStep,/const pm02=pm02Mode\(data\.releaseMode\)/);
+  assert.match(rawEvidenceStep,/pm02\.present&&\(data\.version!==21/);
+  assert.match(rawEvidenceStep,/pm02ExternalHrKeyAndDocumentRecovery!=='PASS'/);
+  const evidenceStep=rawEvidenceStep.replace(pm02Wrapper,'data.releaseMode').replace('fm02Mode(pm02.prior)','fm02Mode(data.releaseMode)');
   // FM02 is the outermost v20 wrapper; strip ONLY its six inline nested
   // occurrences before proving the older Stage C -> FM03 chain is intact.
   // The seventh FM02 occurrence is the separately bound first-line gate.
@@ -267,4 +277,66 @@ test('DEC-050 C evidence requires exact five migrations, version19 and executed 
  }
  for(const name of stageCMigrations)assert.notEqual(verify({...data,migrationNames:stageCMigrations.filter(n=>n!==name)}).status,0,name);
  assert.notEqual(verify({...data,version:18}).status,0);
+});
+
+test('PM02 v21 requires both exact migrations and all executed preservation and paired recovery proofs',async()=>{
+ const {pm02Mode,pm02Migrations}=await import('./pm02-schema-preparation.mjs');
+ assert.deepEqual(pm02Mode('migration-aware-pm02-schema'),{present:true,prior:'migration-aware-sql-only'});
+ assert.deepEqual(pm02Mode('migration-aware-pm02-fm02-schema'),{present:true,prior:'migration-aware-fm02-schema'});
+ assert.deepEqual(pm02Mode('migration-aware-sql-only'),{present:false,prior:'migration-aware-sql-only'});
+ const keys=['pm02SchemaUpgrade','pm02SourceContractTests','pm02HistoricalPreservation','pm02PairedRecovery','pm02ExternalHrKeyAndDocumentRecovery'];
+ const data={...evidence('migration-aware-pm02-schema'),version:21,migrationNames:Object.keys(pm02Migrations),...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ let result=verify(data);
+ assert.equal(result.status,0,result.stderr);
+ assert.equal(JSON.parse(result.stdout).version,21);
+ for(const key of [...keys,'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){
+  const invalid={...data};delete invalid[key];assert.notEqual(verify(invalid).status,0,key);
+ }
+ assert.notEqual(verify({...data,version:20}).status,0);
+ for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0,name);
+ const layered={...data,releaseMode:'migration-aware-pm02-fm02-schema',migrationNames:[...data.migrationNames,'20261122140000_fm02_weighted_project_progress'],fm02SchemaUpgrade:'PASS',fm02SourceContractTests:'PASS',fm02HistoricalPreservation:'PASS',fm02PairedRecovery:'PASS'};
+ result=verify(layered);assert.equal(result.status,0,result.stderr);
+ delete layered.fm02PairedRecovery;assert.notEqual(verify(layered).status,0);
+});
+
+test('purchasing v22/v23 fail closed on missing layer evidence and preserve PM02',async()=>{
+ const {purchasingEvidenceKeys}=await import('./purchasing-release-mode.mjs');
+ const {pur04Migration}=await import('./pur04-schema-preparation.mjs');
+ const {pur01Migration}=await import('./pur01-schema-preparation.mjs');
+ const {pm02Migrations}=await import('./pm02-schema-preparation.mjs');
+ const keys=layer=>purchasingEvidenceKeys.map(k=>layer+k);
+ const passes=ks=>Object.fromEntries(ks.map(k=>[k,'PASS']));
+ const four={...evidence('migration-aware-pur04-schema'),version:22,migrationNames:[pur04Migration],...passes(keys('pur04'))};
+ const one={...evidence('migration-aware-pur01-schema'),version:23,migrationNames:[pur01Migration],...passes(keys('pur01'))};
+ const layered={...one,releaseMode:'migration-aware-pur01-pur04-pm02-schema',migrationNames:[pur01Migration,pur04Migration,...Object.keys(pm02Migrations)],...passes([...keys('pur04'),...keys('pm02')])};
+ for(const data of [four,one,layered]){
+  const result=verify(data);assert.equal(result.status,0,result.stderr);
+  assert.equal(JSON.parse(result.stdout).version,data.version);
+  assert.notEqual(verify({...data,version:21}).status,0);
+  for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0);
+  for(const key of [...Object.keys(data).filter(k=>/^pur(?:01|04)|^pm02/.test(k)),'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){
+   const invalid={...data};delete invalid[key];assert.notEqual(verify(invalid).status,0,key);
+  }
+ }
+});
+
+test('PUR12 v24 and PUR07 v25 require exact migration evidence and all prior layer receipts',async()=>{
+ const {purchasingEvidenceKeys,purchasingMode}=await import('./purchasing-release-mode.mjs');
+ const {pur12Migration,pur07Migration}=await import('./purchasing-successor-schema-preparation.mjs');
+ const {pur04Migration}=await import('./pur04-schema-preparation.mjs');
+ const {pur01Migration}=await import('./pur01-schema-preparation.mjs');
+ const {pm02Migrations}=await import('./pm02-schema-preparation.mjs');
+ const passes=layers=>Object.fromEntries(layers.flatMap(layer=>purchasingEvidenceKeys.map(key=>[layer+key,'PASS'])));
+ const full={...evidence('migration-aware-pur07-pur12-pur01-pur04-pm02-schema'),version:25,migrationNames:[pur07Migration,pur12Migration,pur01Migration,pur04Migration,...Object.keys(pm02Migrations)],...passes(['pur07','pur12','pur01','pur04','pm02'])};
+ const single12={...evidence('migration-aware-pur12-schema'),version:24,migrationNames:[pur12Migration],...passes(['pur12'])};
+ const single07={...evidence('migration-aware-pur07-schema'),version:25,migrationNames:[pur07Migration],...passes(['pur07'])};
+ for(const data of [single12,single07,full]){
+  const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,data.version);
+  assert.notEqual(verify({...data,version:23}).status,0);
+  for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0,name);
+  for(const key of [...Object.keys(data).filter(k=>/^pur(?:01|04|07|12)|^pm02/.test(k)),'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){
+   const invalid={...data};delete invalid[key];assert.notEqual(verify(invalid).status,0,key);
+  }
+ }
+ assert.throws(()=>purchasingMode('migration-aware-pur12-pur07-schema'));
 });

@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -12,6 +13,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { completeSupplierCount, poQuoteBasis } from './purchase-order-quote-policy';
+import { purchaseOrderCompanyPrefix, purchaseOrderPresentation } from './purchase-order-identity';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -145,6 +148,7 @@ export class PurchaseOrderService {
         const request = award.rfqLine.purchaseRequestLine.purchaseRequest;
         return (
           !request.cancelledAt &&
+          award.rfqLine.purchaseRequestLine.reviewDecision !== 'RETURNED' &&
           request.approvalInstance?.approvalState === APPROVAL_STATE.APPROVED
         );
       })
@@ -404,12 +408,32 @@ export class PurchaseOrderService {
       });
     }
 
-    const poNumber = await this.numbers.next(
-      context.auth.companyId,
-      'PURCHASE_ORDER',
-    );
+    const company = await this.prisma.company.findUnique({
+      where: { id: context.auth.companyId },
+      select: { companyCode: true },
+    });
+    if (!company) {
+      throw new ConflictException({ code: 'PO_COMPANY_NOT_FOUND' });
+    }
+    // Keep missing-short-name refusals ahead of the legacy monthly allocator.
+    if (purchaseOrderCompanyPrefix(company.companyCode)) {
+      const candidate = await this.prisma.quotationAward.findFirst({
+        where: {
+          id: { in: uniqueAwardIds },
+          rfq: { companyId: context.auth.companyId, projectId },
+        },
+        select: { supplier: { select: { shortName: true } } },
+      });
+      if (!candidate?.supplier.shortName?.trim()) {
+        throw new UnprocessableEntityException({
+          code: 'PO_SUPPLIER_SHORT_NAME_REQUIRED',
+          detail: 'Configure the supplier short name separately from its code before preparing a new MKE/TCJ Purchase Order.',
+        });
+      }
+    }
 
-    return this.prisma.$transaction(
+    try {
+      return await this.prisma.$transaction(
       async (tx) => {
         await this.access.assertAccess(context.auth, projectId, tx);
 
@@ -430,7 +454,7 @@ export class PurchaseOrderService {
           },
           include: {
             supplier: {
-              select: { id: true, companyId: true, isActive: true },
+              select: { id: true, companyId: true, isActive: true, shortName: true },
             },
             rfq: {
               select: {
@@ -493,6 +517,7 @@ export class PurchaseOrderService {
             award.rfqLine.purchaseRequestLine.purchaseRequest;
           if (
             request.cancelledAt ||
+            award.rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
             request.approvalInstance?.approvalState !==
               APPROVAL_STATE.APPROVED
           ) {
@@ -523,12 +548,43 @@ export class PurchaseOrderService {
           });
         }
 
+        const freshSupplier = await tx.supplier.findFirst({
+          where: { id: supplierId, companyId: context.auth.companyId, isActive: true },
+          select: { shortName: true },
+        });
+        if (!freshSupplier) {
+          throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
+        }
+        // Allocate within the same transaction as the validated source,
+        // immutable display snapshot, lines and audit. A rejected draft must
+        // not consume a canonical Company sequence value.
+        const currentCompany = await tx.company.findUnique({
+          where: { id: context.auth.companyId },
+          select: { companyCode: true, isActive: true },
+        });
+        if (!currentCompany?.isActive)
+          throw new ConflictException({ code: 'PO_COMPANY_NOT_FOUND' });
+        await this.assertApprovedNumbering(context.auth.companyId, tx);
+        const poNumber = await this.numbers.next(
+          context.auth.companyId, 'PURCHASE_ORDER', new Date(), tx,
+        );
+        const identity = purchaseOrderPresentation(
+          currentCompany.companyCode, poNumber, freshSupplier.shortName,
+        );
+        if (purchaseOrderCompanyPrefix(currentCompany.companyCode) && !identity.displayNumber) {
+          throw new UnprocessableEntityException({
+            code: 'PO_SUPPLIER_SHORT_NAME_REQUIRED',
+            detail: 'The selected supplier needs a separately managed short name before a new MKE/TCJ PO.',
+          });
+        }
         const order = await tx.purchaseOrder.create({
           data: {
             companyId: context.auth.companyId,
             projectId,
             supplierId,
             poNumber,
+            displayNumber: identity.displayNumber,
+            supplierShortNameSnapshot: identity.supplierShortNameSnapshot,
             revisionNo: 0,
             remarks: remarks ?? null,
             createdByUserId: context.auth.userId,
@@ -578,6 +634,8 @@ export class PurchaseOrderService {
             action: 'CREATE_DRAFT',
             newValues: {
               poNumber,
+              displayNumber: identity.displayNumber,
+              supplierShortNameSnapshot: identity.supplierShortNameSnapshot,
               revisionNo: 0,
               projectId,
               supplierId,
@@ -594,7 +652,18 @@ export class PurchaseOrderService {
         );
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001','40P01'].includes(String(error.meta?.code))))) {
+        throw new ConflictException({
+          code: 'PO_CREATE_CONCURRENT_SOURCE_CHANGE',
+          detail: 'The Purchase Order source changed concurrently. Reload available awards before creating a new draft.',
+        });
+      }
+      throw error;
+    }
   }
 
   async updateOrder(
@@ -603,6 +672,16 @@ export class PurchaseOrderService {
     data: {
       remarks?: string | null;
       revisionReason?: string | null;
+      deliveryLocation?: string | null;
+      deliveryContact?: string | null;
+      deliveryTerms?: string | null;
+      paymentTerms?: string | null;
+      creditTerms?: string | null;
+      discountAmount?: Prisma.Decimal | null;
+      freightAmount?: Prisma.Decimal | null;
+      additionalChargeAmount?: Prisma.Decimal | null;
+      vatRatePercent?: Prisma.Decimal | null;
+      supplierQuoteExceptionReason?: string | null;
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -611,10 +690,48 @@ export class PurchaseOrderService {
         context.auth,
         orderId,
       );
-      const updated = await tx.purchaseOrder.update({
-        where: { id: current.id },
+      if (data.vatRatePercent != null &&
+          (!data.vatRatePercent.isFinite() || data.vatRatePercent.lt(0) || data.vatRatePercent.gt(100))) {
+        throw new UnprocessableEntityException({
+          code: 'PO_VAT_PERCENT_INVALID',
+          detail: 'VAT percentage must be between 0 and 100.',
+        });
+      }
+      // PostgreSQL DECIMAL(18,2) would silently round a 3/4-decimal
+      // amount from the shared procurement validator; reject instead.
+      for (const [field, value] of [
+        ['discountAmount', data.discountAmount],
+        ['freightAmount', data.freightAmount],
+        ['additionalChargeAmount', data.additionalChargeAmount],
+        ['vatRatePercent', data.vatRatePercent],
+      ] as const) {
+        // Preserve explicit NULL (unknown) and undefined (unchanged). Validate
+        // direct service callers as well as controller-validated requests.
+        if (value == null) continue;
+        if (!value.isFinite() || value.lt(0) || value.gte('10000000000000000')) {
+          throw new UnprocessableEntityException({
+            code: 'PO_COMMERCIAL_AMOUNT_INVALID',
+            detail: field + ' must be nonnegative, finite and within storage range.',
+          });
+        }
+        if (value.decimalPlaces() > 2) {
+          throw new UnprocessableEntityException({
+            code: 'PO_COMMERCIAL_PRECISION_INVALID',
+            detail: field + ' may contain at most two decimal places.',
+          });
+        }
+      }
+      // Recheck the Draft predicate atomically at the actual UPDATE, not
+      // only at the earlier scoped read. A concurrent submit/cancel wins.
+      const changed = await tx.purchaseOrder.updateMany({
+        where: { id: current.id, companyId: current.companyId, projectId: current.projectId,
+          approvalInstanceId: null, submittedAt: null, cancelledAt: null },
         data,
       });
+      if (changed.count !== 1) throw new ConflictException({
+        code: 'PO_NOT_DRAFT', detail: 'Only a Draft Purchase Order revision is directly editable.',
+      });
+      const updated = await tx.purchaseOrder.findUniqueOrThrow({where:{id:current.id}});
       await this.audit.record(
         {
           ...context,
@@ -624,10 +741,30 @@ export class PurchaseOrderService {
           oldValues: {
             remarks: current.remarks,
             revisionReason: current.revisionReason,
+            deliveryLocation: current.deliveryLocation,
+            deliveryContact: current.deliveryContact,
+            deliveryTerms: current.deliveryTerms,
+            paymentTerms: current.paymentTerms,
+            creditTerms: current.creditTerms,
+            discountAmount: current.discountAmount,
+            freightAmount: current.freightAmount,
+            additionalChargeAmount: current.additionalChargeAmount,
+            vatRatePercent: current.vatRatePercent,
+            supplierQuoteExceptionReason: current.supplierQuoteExceptionReason,
           },
           newValues: {
             remarks: updated.remarks,
             revisionReason: updated.revisionReason,
+            deliveryLocation: updated.deliveryLocation,
+            deliveryContact: updated.deliveryContact,
+            deliveryTerms: updated.deliveryTerms,
+            paymentTerms: updated.paymentTerms,
+            creditTerms: updated.creditTerms,
+            discountAmount: updated.discountAmount,
+            freightAmount: updated.freightAmount,
+            additionalChargeAmount: updated.additionalChargeAmount,
+            vatRatePercent: updated.vatRatePercent,
+            supplierQuoteExceptionReason: updated.supplierQuoteExceptionReason,
           },
         },
         tx,
@@ -854,6 +991,25 @@ export class PurchaseOrderService {
           });
         }
 
+        // PUR04: a nominal discount cannot exceed the authoritative PO
+        // line subtotal. This does not implement PUR01 quote-count admission:
+        // legacy NULL commercial fields remain UNKNOWN, not zero.
+        const grossLineTotal = order.lines.reduce(
+          (sum, line) => sum.plus(line.amount),
+          new Prisma.Decimal(0),
+        );
+        if (order.discountAmount && order.discountAmount.gt(grossLineTotal)) {
+          throw new UnprocessableEntityException({
+            code: 'PO_DISCOUNT_EXCEEDS_SUBTOTAL',
+            detail: 'PO header discount cannot exceed the line subtotal.',
+          });
+        }
+
+        // PM02: active approved demand must be scoped to this Company/Project.
+        await this.assertActiveDemand(tx, order);
+        // Revalidate whole-PO commercial basis only after active-demand checks.
+        const quotePolicy = await this.assertPoQuotePolicy(tx, order);
+
         const approvalInstance = await this.approvals.start(
           {
             companyId: context.auth.companyId,
@@ -870,6 +1026,7 @@ export class PurchaseOrderService {
           data: {
             approvalInstanceId: approvalInstance.id,
             submittedByUserId: context.auth.userId,
+            currencyCode: 'THB',
             submittedAt,
           },
         });
@@ -884,6 +1041,7 @@ export class PurchaseOrderService {
               poNumber: order.poNumber,
               revisionNo: order.revisionNo,
               approvalInstanceId: approvalInstance.id,
+              quotePolicy,
               lineCount: order.lines.length,
               submittedAt,
             },
@@ -925,35 +1083,10 @@ export class PurchaseOrderService {
       });
     }
 
-    const sourceLines = await this.prisma.purchaseRequestLine.findMany({
-      where: {
-        id: { in: order.purchaseRequestLineIds },
-      },
-      include: {
-        purchaseRequest: {
-          include: {
-            approvalInstance: {
-              select: { approvalState: true },
-            },
-          },
-        },
-      },
+    await this.assertActiveDemand(this.prisma, {
+      companyId: context.auth.companyId, projectId: order.projectId,
+      lines: order.purchaseRequestLineIds.map(purchaseRequestLineId => ({ purchaseRequestLineId })),
     });
-    if (
-      sourceLines.length !== order.purchaseRequestLineIds.length ||
-      sourceLines.some(
-        (line) =>
-          line.purchaseRequest.cancelledAt ||
-          line.purchaseRequest.approvalInstance?.approvalState !==
-            APPROVAL_STATE.APPROVED,
-      )
-    ) {
-      throw new ConflictException({
-        code: 'PO_SOURCE_DEMAND_INACTIVE',
-        detail:
-          'Purchase Order approval requires active approved Purchase Request demand.',
-      });
-    }
 
     const instance = await this.approvals.approve(
       order.approvalInstanceId,
@@ -961,6 +1094,24 @@ export class PurchaseOrderService {
       order.submittedByUserId,
       comment,
       async (tx) => {
+        const source = await tx.purchaseOrder.findFirst({
+          where: { id: order.id, companyId: context.auth.companyId },
+          include: { lines: true },
+        });
+        if (!source) throw this.orderNotFound();
+        // The preflight read is not sufficient: demand, supplier or Project
+        // access may have changed before the serializable final approval.
+        await this.access.assertAccess(context.auth, source.projectId, tx);
+        if (source.cancelledAt || source.approvalInstanceId !== order.approvalInstanceId ||
+            source.submittedByUserId !== order.submittedByUserId)
+          throw new ConflictException({ code: 'PO_NOT_SUBMITTED' });
+        await this.assertActiveDemand(tx, source);
+        const activeSupplier = await tx.supplier.findFirst({
+          where: { id: source.supplierId, companyId: source.companyId, isActive: true },
+          select: { id: true },
+        });
+        if (!activeSupplier) throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
+        const finalQuotePolicy = await this.assertPoQuotePolicy(tx, source, context.auth);
         const lines = await tx.purchaseOrderLine.findMany({
           where: { purchaseOrderId: order.id },
           select: { quotationAwardId: true, quantity: true },
@@ -973,6 +1124,21 @@ export class PurchaseOrderService {
             line.quantity,
           );
         }
+        // Preserve final comparison evidence in the same approval transaction (#442).
+        await this.audit.record({
+          ...context,
+          entityType: 'PURCHASE_ORDER',
+          entityId: source.id,
+          action: 'PUR01_FINAL_QUOTE_POLICY',
+          newValues: {
+            approvalInstanceId: source.approvalInstanceId,
+            poNumber: source.poNumber,
+            revisionNo: source.revisionNo,
+            projectId: source.projectId,
+            supplierId: source.supplierId,
+            ...finalQuotePolicy,
+          },
+        }, tx);
       },
     );
     await this.audit.record({
@@ -1016,13 +1182,71 @@ export class PurchaseOrderService {
     return this.getOrder(context.auth, order.id);
   }
 
-  async cancel(
+  // PUR10: prevent any controller, test helper, script or internal caller from
+  // bypassing the independently recorded cancellation decision.
+  async cancel(_context: AuditContext, _orderId: string, _reason: string): Promise<never> {
+    throw new ConflictException({
+      code: 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+    });
+  }
+
+  /**
+   * The ONLY PO cancellation writer. Must be invoked inside an already-open
+   * PUR10 advisory-locked transaction after independent Ben case replay and
+   * canonical receipt/Finance checks. It re-admits the exact recorded Ben
+   * decision itself and retains the original PO/receipt/AP/revision guards.
+   */
+  async cancelForReviewedCase(
     context: AuditContext,
     orderId: string,
     reason: string,
+    caseId: string,
+    benEventId: string,
+    expectedPoUpdatedAt: string,
+    tx: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    const recorded = await tx.auditLog.findFirst({
+      where: {
+        id: benEventId, companyId: context.auth.companyId,
+        entityType: 'PURCHASE_ORDER_CANCELLATION', entityId: orderId,
+        action: 'BEN_APPROVE', actorUserId: context.auth.userId,
+      },
+      select: { newValues: true },
+    });
+    const values = recorded?.newValues;
+    if (!values || typeof values !== 'object' || Array.isArray(values) ||
+        values.caseId !== caseId || values.status !== 'BEN_APPROVED' ||
+        values.orderId !== orderId || values.orderUpdatedAt !== expectedPoUpdatedAt ||
+        values.benUserId !== context.auth.userId) {
+      throw new ConflictException({ code: 'PUR10_VERIFIED_BEN_EVENT_REQUIRED' });
+    }
+    // Match the existing revision lock order BEFORE taking the row lock;
+    // otherwise an already-started revise() could create a later revision.
+    const initial = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { poNumber: true },
+    });
+    if (!initial) throw this.orderNotFound();
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'purchase-order:' + initial.poNumber,
+    );
+    // Lock the PO source row to prevent concurrent edits/cancel writes while
+    // retaining the original receipt and Finance advisory guards.
+    const locked = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`
+      SELECT "id" FROM "purchase_orders"
+      WHERE "id" = ${orderId}::uuid
+        AND "company_id" = ${context.auth.companyId}::uuid
+      FOR UPDATE
+    `);
+    if (locked.length !== 1) throw this.orderNotFound();
+    const pinned = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { updatedAt: true },
+    });
+    if (pinned?.updatedAt.toISOString() !== expectedPoUpdatedAt) {
+      throw new ConflictException({ code: 'PUR10_SOURCE_CHANGED_SINCE_BEN_REVIEW' });
+    }
         const order = await tx.purchaseOrder.findFirst({
           where: {
             id: orderId,
@@ -1054,24 +1278,36 @@ export class PurchaseOrderService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'receipt-po:' + order.companyId + ':' + order.poNumber,
         );
-        for (const line of [...order.lines].sort((a, b) => a.id.localeCompare(b.id))) {
+        // Finance can source invoices from a historical revision of this
+        // PO number. Lock every family line in stable order, not only current
+        // lines, before checking the absence of any invoice source.
+        const familyLines = await tx.purchaseOrderLine.findMany({
+          where: { purchaseOrder: {
+            companyId: order.companyId, poNumber: order.poNumber,
+          } },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        });
+        for (const line of familyLines) {
           await tx.$executeRawUnsafe(
             'SELECT pg_advisory_xact_lock(hashtext($1))',
             'finance-source:po-line:' + line.id,
           );
         }
-        const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+        // PUR10 denies any invoice source, even a draft or one linked to an
+        // earlier revision of this PO number. Cancelling must not orphan AP.
+        const anyInvoiceSource = await tx.supplierInvoiceItem.findFirst({
           where: {
-            purchaseOrderLineId: { in: order.lines.map((line) => line.id) },
-            supplierInvoice: { state: 'APPROVED' },
+            purchaseOrderLine: { purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            } },
           },
           select: { id: true },
         });
-        if (approvedInvoiceSource) {
+        if (anyInvoiceSource) {
           throw new ConflictException({
             code: 'PO_CANCEL_FINANCE_SOURCE_LOCKED',
-            detail:
-              'A Purchase Order referenced by an approved Supplier Invoice cannot be cancelled.',
+            detail: 'A Purchase Order referenced by any Supplier Invoice cannot be cancelled.',
           });
         }
         const outstandingReceipt = await tx.goodsReceipt.findFirst({
@@ -1089,6 +1325,30 @@ export class PurchaseOrderService {
           throw new ConflictException({
             code: 'PO_HAS_OUTSTANDING_RECEIPT',
             detail: 'Reverse all posted Goods Receipts before cancelling this Purchase Order.',
+          });
+        }
+
+        // Reversal does not erase the receipt/delivery record. PUR10 exception
+        // policies remain unapproved, so even unposted/reversed sources block.
+        const anyReceipt = await tx.goodsReceipt.findFirst({
+          where: {
+            purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            },
+          },
+          select: { id: true },
+        });
+        const anyDelivery = await tx.receivingDelivery.findFirst({
+          where: {
+            companyId: order.companyId,
+            purchaseOrder: { companyId: order.companyId, poNumber: order.poNumber },
+          },
+          select: { id: true },
+        });
+        if (anyReceipt || anyDelivery) {
+          throw new ConflictException({
+            code: 'PUR10_RECEIPT_OR_DELIVERY_EXCEPTION_REQUIRES_DECISION',
+            detail: 'Receipt/delivery source exists; explicit exception policy is required.',
           });
         }
 
@@ -1174,9 +1434,6 @@ export class PurchaseOrderService {
           ...updated,
           lifecycleState: 'CANCELLED' as const,
         };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
   }
 
   async revise(
@@ -1184,7 +1441,11 @@ export class PurchaseOrderService {
     orderId: string,
     revisionReason?: string | null,
   ) {
-    return this.prisma.$transaction(
+    // Both competing PO lifecycle writers must participate in PostgreSQL SSI.
+    // The family lock alone cannot refresh a SERIALIZABLE finalizer's earlier
+    // snapshot when the revision inserts a child without updating the parent.
+    try {
+      return await this.prisma.$transaction(
       async (tx) => {
         const source = await tx.purchaseOrder.findFirst({
           where: {
@@ -1269,6 +1530,7 @@ export class PurchaseOrderService {
           sourceRequestLines.length !== source.lines.length ||
           sourceRequestLines.some(
             (line) =>
+              line.reviewDecision === 'RETURNED' ||
               line.purchaseRequest.cancelledAt ||
               line.purchaseRequest.approvalInstance?.approvalState !==
                 APPROVAL_STATE.APPROVED,
@@ -1342,16 +1604,48 @@ export class PurchaseOrderService {
           });
         }
 
+        // A cancellation may have committed while this revision waited on
+        // the shared PO-family lock. Never create a successor from that stale
+        // pre-lock read, even when no other revision has been inserted.
+        if (afterLock.cancelledAt) {
+          throw new ConflictException({
+            code: 'PO_REVISION_SOURCE_INVALID',
+            detail: 'A cancelled Purchase Order cannot be revised.',
+          });
+        }
+
+        // A revision inserts a child. Give the predecessor a new PostgreSQL row
+        // version as well so serializable readers waiting on its FOR UPDATE
+        // lock cannot accept the old snapshot after this transaction commits.
+        // Preserve every historical field, including its stored timestamp.
+        await tx.$executeRaw(Prisma.sql`
+          UPDATE "purchase_orders" SET "updated_at" = "updated_at"
+          WHERE "id" = ${source.id}::uuid AND "company_id" = ${source.companyId}::uuid
+        `);
+
         const revision = await tx.purchaseOrder.create({
           data: {
             companyId: source.companyId,
             projectId: source.projectId,
             supplierId: source.supplierId,
             poNumber: source.poNumber,
+            displayNumber: source.displayNumber,
+            supplierShortNameSnapshot: source.supplierShortNameSnapshot,
+            currencyCode: source.currencyCode,
             revisionNo: source.revisionNo + 1,
             previousRevisionId: source.id,
             revisionReason: revisionReason ?? null,
             remarks: source.remarks,
+            deliveryLocation: source.deliveryLocation,
+            deliveryContact: source.deliveryContact,
+            deliveryTerms: source.deliveryTerms,
+            paymentTerms: source.paymentTerms,
+            creditTerms: source.creditTerms,
+            discountAmount: source.discountAmount,
+            freightAmount: source.freightAmount,
+            additionalChargeAmount: source.additionalChargeAmount,
+            vatRatePercent: source.vatRatePercent,
+            supplierQuoteExceptionReason: source.supplierQuoteExceptionReason,
             createdByUserId: context.auth.userId,
           },
         });
@@ -1414,12 +1708,145 @@ export class PurchaseOrderService {
           lifecycleState: 'DRAFT' as const,
         };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001','40P01'].includes(String(error.meta?.code))))) {
+        throw new ConflictException({ code: 'PO_REVISION_CONCURRENT_SOURCE_CHANGE',
+          detail: 'The Purchase Order source changed concurrently. Reload it before revising.' });
+      }
+      throw error;
+    }
   }
 
-  private async assertApprovedNumbering(companyId: string) {
-    const sequence = await this.prisma.numberSequence.findFirst({
+  /**
+   * PUR01: whole-PO comparable supplier count, not the union of incomplete
+   * per-RFQ invitations. Only active, source-linked THB quotation responses
+   * covering each selected PO line qualify. No approval based on NULL fields.
+   */
+  private async assertPoQuotePolicy(
+    tx: Prisma.TransactionClient,
+    order: {
+      companyId: string;
+      projectId: string;
+      supplierId: string;
+      discountAmount: Prisma.Decimal | null;
+      freightAmount: Prisma.Decimal | null;
+      additionalChargeAmount: Prisma.Decimal | null;
+      vatRatePercent: Prisma.Decimal | null;
+      supplierQuoteExceptionReason: string | null;
+      lines: Array<{
+        rfqLineId: string;
+        supplierQuotationId: string;
+        supplierQuotationLineId: string;
+        uomId: string;
+        quantity: Prisma.Decimal;
+        amount: Prisma.Decimal;
+      }>;
+    },
+    approver?: AuthenticatedUserContext,
+  ) {
+    const subtotal = order.lines.reduce(
+      (sum, line) => sum.plus(line.amount), new Prisma.Decimal(0),
+    );
+    const basis = poQuoteBasis(
+      subtotal, order.discountAmount, order.freightAmount,
+      order.additionalChargeAmount, order.vatRatePercent,
+    );
+    // The awarded/selected supplier's *own* quotation must be verified THB;
+    // otherwise unrelated THB bids could make an unknown-currency award pass.
+    const selectedQuotationIds = [...new Set(
+      order.lines.map((line) => line.supplierQuotationId),
+    )];
+    const selectedTHB = await tx.supplierQuotation.count({
+      where: {
+        id: { in: selectedQuotationIds },
+        companyId: order.companyId,
+        supplierId: order.supplierId,
+        currencyCode: 'THB',
+        rfq: { companyId: order.companyId, projectId: order.projectId },
+      },
+    });
+    if (selectedTHB !== selectedQuotationIds.length) {
+      throw new UnprocessableEntityException({
+        code: 'PO_SELECTED_QUOTE_THB_PROVENANCE_REQUIRED',
+        detail: 'Every selected award must have verifiable THB quotation provenance.',
+      });
+    }
+    const selectedOfferLines = await tx.supplierQuotationLine.findMany({
+      where: {
+        supplierQuotationId: { in: selectedQuotationIds },
+        rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
+      },
+      select: { id: true, supplierQuotationId: true, rfqLineId: true, uomId: true, quantity: true },
+    });
+    if (order.lines.some((line) => !selectedOfferLines.some(
+      (offer) => offer.id === line.supplierQuotationLineId &&
+        offer.supplierQuotationId === line.supplierQuotationId &&
+        offer.rfqLineId === line.rfqLineId && offer.uomId === line.uomId &&
+        offer.quantity.isFinite() && offer.quantity.gte(line.quantity),
+    ))) {
+      throw new ConflictException({
+        code: 'PO_SELECTED_QUOTE_QUANTITY_INCOMPLETE',
+        detail: 'Selected supplier quotation must cover every PO source line quantity.',
+      });
+    }
+
+    const offers = await tx.supplierQuotationLine.findMany({
+      where: {
+        rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
+        supplierQuotation: {
+          companyId: order.companyId,
+          currencyCode: 'THB',
+          rfq: { companyId: order.companyId, projectId: order.projectId },
+          supplier: { companyId: order.companyId, isActive: true },
+        },
+      },
+      select: {
+        rfqLineId: true,
+        uomId: true,
+        quantity: true,
+        supplierQuotation: { select: { supplierId: true } },
+      },
+    });
+    const comparableSuppliers = completeSupplierCount(
+      order.lines,
+      offers.map((offer) => ({
+        rfqLineId: offer.rfqLineId,
+        uomId: offer.uomId,
+        supplierId: offer.supplierQuotation.supplierId,
+        quantity: offer.quantity,
+      })),
+    );
+    const exceptionReason = order.supplierQuoteExceptionReason?.trim() || null;
+    if (comparableSuppliers < basis.requiredSuppliers) {
+      if (!exceptionReason || exceptionReason.length < 10) {
+        throw new UnprocessableEntityException({
+          code: 'PO_QUOTE_SUPPLIERS_INSUFFICIENT',
+          detail: 'Required comparable THB suppliers for this whole-PO amount: ' +
+            basis.requiredSuppliers + '; eligible: ' + comparableSuppliers +
+            '. A specific exceptional supplier reason requires Ben review.',
+        });
+      }
+      // Configured maker-checker approval remains mandatory. Shortage
+      // exceptions additionally require the MANAGEMENT business approver;
+      // SYS_ADMIN, buyer and delegated generic workflow grants are not enough.
+      if (approver && !approver.roleCodes.includes('MANAGEMENT')) {
+        throw new ForbiddenException({ code: 'PO_QUOTE_EXCEPTION_BEN_REQUIRED' });
+      }
+    }
+    return {
+      netExVatTHB: basis.netExVat.toFixed(2),
+      requiredSuppliers: basis.requiredSuppliers,
+      comparableSuppliers,
+      exceptionReason,
+    };
+  }
+
+  private async assertApprovedNumbering(companyId: string, db: Prisma.TransactionClient = this.prisma) {
+    const sequence = await db.numberSequence.findFirst({
       where: {
         companyId,
         sequenceCode: 'PURCHASE_ORDER',
@@ -1475,6 +1902,37 @@ export class PurchaseOrderService {
         code: 'PO_NOT_DRAFT',
         detail:
           'Only a Draft Purchase Order revision is directly editable.',
+      });
+    }
+  }
+
+  private async assertActiveDemand(
+    tx: Prisma.TransactionClient,
+    order: {
+      companyId: string;
+      projectId: string;
+      lines: Array<{ purchaseRequestLineId: string }>;
+    },
+  ) {
+    const sourceIds = [...new Set(order.lines.map(line => line.purchaseRequestLineId))];
+    const sources = await tx.purchaseRequestLine.findMany({
+      where: {
+        id: { in: sourceIds },
+        purchaseRequest: { companyId: order.companyId, projectId: order.projectId },
+      },
+      include: { purchaseRequest: {
+        include: { approvalInstance: { select: { approvalState: true } } },
+      } },
+    });
+    if (!sourceIds.length || sources.length !== sourceIds.length ||
+        sources.some(line => line.reviewDecision === 'RETURNED' ||
+          line.purchaseRequest.cancelledAt !== null ||
+          line.purchaseRequest.companyId !== order.companyId ||
+          line.purchaseRequest.projectId !== order.projectId ||
+          line.purchaseRequest.approvalInstance?.approvalState !== APPROVAL_STATE.APPROVED)) {
+      throw new ConflictException({
+        code: 'PO_SOURCE_DEMAND_INACTIVE',
+        detail: 'Purchase Order requires active approved Purchase Request line demand in the same Company and Project.',
       });
     }
   }

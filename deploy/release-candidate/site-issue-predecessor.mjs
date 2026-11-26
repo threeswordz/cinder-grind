@@ -1,3 +1,9 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
+import {stripPurchasingSchema,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
+import {stripPm02Schema} from './pm02-schema-preparation.mjs';
+import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
+import {verifyEquipmentHistoricalIncrement,verifyEquipmentTriggerBindings} from './equipment-successor-historical.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -36,19 +42,30 @@ export async function prepareFm03Upgrade(databaseUrl){
   const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
-  assert.equal(stripSiteIssueSchema(stripReceivingSchema(stripTransferSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
+  const successor=stripSuccessorSchema(await readFile('apps/api/prisma/schema.prisma','utf8'));
+  const priorSuccessor=stripSuccessorSchema(schema);
+  assert.equal(priorSuccessor.pur12||priorSuccessor.pur07,false,'Pinned predecessor unexpectedly contains successor layers');
+  const purchasing=stripPurchasingSchema(successor.text);
+  const priorPurchasing=stripPurchasingSchema(priorSuccessor.text);
+  assert.equal(priorPurchasing.pur04||priorPurchasing.pur01,false,'Pinned predecessor unexpectedly contains purchasing layers');
+  const current=stripPm02Schema(purchasing.text);
+  assert.equal(stripPm02Schema(schema).present,false,'Pinned predecessor unexpectedly contains PM02');
+  assert.equal(stripSiteIssueSchema(stripReceivingSchema(stripTransferSchema(current.text).text).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
   console.log('FM03_PREDECESSOR_SCHEMA_EXACT_MATCH_PASS');
   await writeFile(join(temp,'schema.prisma'),schema,{mode:0o600});
   const names=(await git(['ls-tree','-r','--name-only',previous,'apps/api/prisma/migrations'])).trim().split('\n');
   for(const name of names){const rel=name.slice('apps/api/prisma/'.length),path=join(temp,rel);await mkdir(resolve(path,'..'),{recursive:true});await writeFile(path,await git(['show',previous+':'+name]),{mode:0o600});}
   await execute('pnpm',['--filter','@construction-erp/api','exec','prisma','migrate','deploy','--schema',join(temp,'schema.prisma')],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   const tag=randomUUID(),company=await db.company.create({data:{companyCode:'FM3-PRE-'+tag,companyName:'Synthetic populated predecessor'}});
-  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'PRE',customerName:'Synthetic predecessor customer'}});
+  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'PRE',customerName:'Synthetic predecessor customer'},select:{id:true}});
   const user=await db.user.create({data:{companyId:company.id,email:tag+'@example.invalid',displayName:'Synthetic predecessor',passwordHash:'unusable-synthetic-fixture'}});
   const project=await db.project.create({data:{companyId:company.id,customerId:customer.id,projectCode:'PRE',projectName:'Preserved predecessor',contractValue:'0',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
   await db.dailySiteReport.create({data:{companyId:company.id,projectId:project.id,createdByUserId:user.id,reportDate:new Date('2026-11-14'),issues:{create:{issueText:'Retained issue observation before FM03'}}}});
-  async function snapshot(candidate){
+  async function snapshot(candidate,equipmentIds=[]){
    const result={},tables=await db.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename");
+   const identities=candidate&&successor.pur12?await verifiedPur12HistoricalColumns(db):{};
+   if(candidate&&successor.pur07)await verifiedPur07HistoricalTables(db);
+   const addedCatalogIds=[...siteIssueCatalog,...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id).concat(equipmentIds);
    for(const {tablename}of tables){
     assert.match(tablename,/^[a-z_]+$/);
     if(candidate&&tablename==='permissions')verifyMaterialUomCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)),true);
@@ -63,17 +80,24 @@ export async function prepareFm03Upgrade(databaseUrl){
     // Verify both full definitions before excluding only their IDs from the old-row hash.
     if(candidate&&tablename==='permissions')verifyFm02Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code,description FROM permissions WHERE id=ANY($1::uuid[])',fm02Catalog.map(p=>p.id)));
     const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='activity_progress'?['completed_quantity','source_budget_revision_line_id','source_uom_id']:[];
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...siteIssueCatalog,...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
+    if(candidate&&current.present&&tablename==='purchase_request_lines')columns.push(...await verifiedPm02HistoricalColumns(db));
+    if(candidate&&tablename==='purchase_orders')columns.push(...await verifiedPurchasingHistoricalColumns(db,purchasing));
+    if(candidate)columns.push(...(identities[tablename]??[]));
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[addedCatalogIds]:[]));result[tablename]=row;
    }return result;
   }
   console.log('FM03_PREDECESSOR_POPULATED_PASS');
   const before=await snapshot(false);
+  const beforeMigrations=await db.$queryRaw`SELECT migration_name,checksum FROM _prisma_migrations
+    WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   console.log('FM03_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
-  const after=await snapshot(true);
+  const equipment=await verifyEquipmentHistoricalIncrement(db,beforeMigrations);
+  await verifyEquipmentTriggerBindings(db,equipment.present);
+  const after=await snapshot(true,equipment.ids);
   const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
   if(changed.length)console.log('FM03_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
-  assertHistoricalTables(before,after,false,false,false,false,false,false,true,true,true,true,true,true,true,true);
+  assertHistoricalTables(before,after,false,false,false,false,false,false,true,true,true,true,true,true,true,true,successor.pur07,equipment.present);
   console.log('FM03_EXACT_POPULATED_PREDECESSOR_ALL_HISTORICAL_TABLES_AND_GRANTS_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }

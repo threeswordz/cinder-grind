@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Company {
+  poDispatchEvents PoDispatchEvent[]
   materialPlanPolicies MaterialPlanProjectPolicy[]
   materialPlanIssueOperations MaterialPlanIssueOperation[]
   materialUsagePlans MaterialUsagePlan[]
@@ -96,6 +97,7 @@ model Customer {
   companyId          String   @map("company_id") @db.Uuid
   customerCode       String   @map("customer_code") @db.VarChar(50)
   customerName       String   @map("customer_name") @db.VarChar(200)
+  shortName          String?  @map("short_name") @db.VarChar(100)
   registrationNumber String?  @map("registration_number") @db.VarChar(100)
   contactName        String?  @map("contact_name") @db.VarChar(200)
   email              String?  @db.VarChar(320)
@@ -122,6 +124,7 @@ model Supplier {
   companyId          String   @map("company_id") @db.Uuid
   supplierCode       String   @map("supplier_code") @db.VarChar(50)
   supplierName       String   @map("supplier_name") @db.VarChar(200)
+  shortName          String?  @map("short_name") @db.VarChar(100)
   registrationNumber String?  @map("registration_number") @db.VarChar(100)
   contactName        String?  @map("contact_name") @db.VarChar(200)
   email              String?  @db.VarChar(320)
@@ -250,6 +253,7 @@ model Employee {
 }
 
 model User {
+  poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
   capturedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryCreator")
   checkedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryChecker")
@@ -674,6 +678,7 @@ model SystemSetting {
 
 
 model Project {
+  poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
   receivingDeliveries ReceivingDelivery[]
   receivingOperations ReceivingOperation[]
@@ -1156,6 +1161,7 @@ model DocumentType {
 }
 
 model Document {
+  poDispatchEvidence PoDispatchEvent[] @relation("PoDispatchEvidence")
   receivingEvidence ReceivingDeliveryEvidence[]
   materialRequestReceipts MaterialRequestReceipt[]
   id               String   @id @default(uuid()) @db.Uuid
@@ -2468,6 +2474,13 @@ model PurchaseRequestLine {
   costCodeId        String?   @map("cost_code_id") @db.Uuid
   activityId        String?   @map("activity_id") @db.Uuid
   requiredOnSite    DateTime? @map("required_on_site") @db.Date
+  // PM02: NULL means legacy all-lines-approved behavior when the parent is approved.
+  // New mixed reviews explicitly set APPROVED or RETURNED on *every* source line.
+  reviewDecision        String?   @map("review_decision") @db.VarChar(20)
+  reviewReason          String?   @map("review_reason") @db.Text
+  reviewedByUserId      String?   @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt            DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  correctionSourceLineId String?  @unique @map("correction_source_line_id") @db.Uuid
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -2656,17 +2669,30 @@ model QuotationAward {
 }
 
 model PurchaseOrder {
+  poDispatchEvents PoDispatchEvent[]
   receivingDeliveries ReceivingDelivery[]
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   projectId          String    @map("project_id") @db.Uuid
   supplierId         String    @map("supplier_id") @db.Uuid
   poNumber           String    @map("po_number") @db.VarChar(120)
+  displayNumber      String?   @map("po_display_number") @db.VarChar(240)
+  supplierShortNameSnapshot String? @map("supplier_short_name_snapshot") @db.VarChar(100)
   currencyCode       String?   @map("currency_code") @db.VarChar(3)
   revisionNo         Int       @default(0) @map("revision_no")
   previousRevisionId String?   @unique @map("previous_revision_id") @db.Uuid
   revisionReason     String?   @map("revision_reason") @db.Text
   remarks            String?   @db.Text
+  deliveryLocation   String?   @map("delivery_location") @db.VarChar(500)
+  deliveryContact    String?   @map("delivery_contact") @db.VarChar(200)
+  deliveryTerms      String?   @map("delivery_terms") @db.Text
+  paymentTerms       String?   @map("payment_terms") @db.Text
+  creditTerms        String?   @map("credit_terms") @db.Text
+  discountAmount     Decimal?  @map("discount_amount") @db.Decimal(18, 2)
+  freightAmount      Decimal?  @map("freight_amount") @db.Decimal(18, 2)
+  additionalChargeAmount Decimal? @map("additional_charge_amount") @db.Decimal(18, 2)
+  vatRatePercent     Decimal?  @map("vat_rate_percent") @db.Decimal(5, 2)
+  supplierQuoteExceptionReason String? @map("supplier_quote_exception_reason") @db.VarChar(2000)
   approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
   createdByUserId    String    @map("created_by_user_id") @db.Uuid
   submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
@@ -2696,6 +2722,37 @@ model PurchaseOrder {
   @@index([submittedByUserId])
   @@index([cancelledByUserId])
   @@map("purchase_orders")
+}
+
+
+model PoDispatchEvent {
+  id                    String   @id @default(uuid()) @db.Uuid
+  companyId             String   @map("company_id") @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  purchaseOrderId       String   @map("purchase_order_id") @db.Uuid
+  kind                  String   @db.VarChar(30)
+  channel               String   @db.VarChar(20)
+  recipient             String   @db.VarChar(320)
+  evidenceReference     String   @map("evidence_reference") @db.VarChar(1200)
+  evidenceDocumentId    String?  @map("evidence_document_id") @db.Uuid
+  pdfFileName           String?  @map("pdf_file_name") @db.VarChar(255)
+  pdfSha256             String?  @map("pdf_sha256") @db.VarChar(64)
+  acknowledgesEventId   String?  @map("acknowledges_event_id") @db.Uuid
+  recordedByUserId      String   @map("recorded_by_user_id") @db.Uuid
+  recordedAt            DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  evidenceDocument Document?        @relation("PoDispatchEvidence", fields: [evidenceDocumentId], references: [id], onDelete: Restrict)
+  actor            User             @relation("PoDispatchActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  acknowledges     PoDispatchEvent? @relation("PoDispatchAck", fields: [acknowledgesEventId], references: [id], onDelete: Restrict)
+  acknowledgmentEvents PoDispatchEvent[] @relation("PoDispatchAck")
+
+  @@index([companyId, projectId, purchaseOrderId, recordedAt])
+  @@index([companyId, acknowledgesEventId])
+  @@index([evidenceDocumentId])
+  @@map("po_dispatch_events")
 }
 
 model PurchaseOrderLine {

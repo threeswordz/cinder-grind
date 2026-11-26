@@ -137,6 +137,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__purchase_orders__',
           content: <PurchaseOrdersPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.projectId : undefined}
             initialOrderId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.recordId : undefined}
             onOpenSource={openSource}
@@ -214,6 +215,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__inventory__',
           content: <InventoryWorkspace
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             userId={user.id}
             companyId={user.companyId}
             initialProjectId={linkedSource?.sectionKey === 'inventory' ? linkedSource.projectId : undefined}
@@ -225,7 +227,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'equipment',
           label: 'Equipment',
           permission: '__equipment__',
-          content: <EquipmentPanel permissions={user.permissions} />,
+          content: <EquipmentPanel permissions={user.permissions} roleCodes={user.roleCodes} />,
         },
         {
           key: 'site-execution',
@@ -234,6 +236,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           content: <><SiteIssuesPanel user={user} initialLink={siteIssueLink}/>
           {user.permissions.includes('site.daily_report.view') ? <SiteExecutionPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'site-execution' ? linkedSource.projectId : undefined}
             initialReportId={
               linkedSource?.sectionKey === 'site-execution' &&
@@ -303,7 +306,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'master-data',
           label: 'Master Data',
           permission: '__master_data__',
-          content: <MasterDataPanel permissions={user.permissions} />,
+          content: <MasterDataPanel permissions={user.permissions} roleCodes={user.roleCodes} />,
         },
         {
           key: 'company',

@@ -51,6 +51,9 @@ export class SourcingService {
     await this.access.assertAccess(auth, projectId);
     const lines = await this.prisma.purchaseRequestLine.findMany({
       where: {
+        // Legacy NULL is eligible only when parent is fully approved.
+        // Newly returned PM02 lines are never eligible even if parent APPROVED.
+        OR: [{ reviewDecision: null }, { reviewDecision: 'APPROVED' }],
         purchaseRequest: {
           companyId: auth.companyId,
           projectId,
@@ -316,6 +319,7 @@ export class SourcingService {
         const sources = await tx.purchaseRequestLine.findMany({
           where: {
             id: { in: [...distinct] },
+            OR: [{ reviewDecision: null }, { reviewDecision: 'APPROVED' }],
             purchaseRequest: {
               companyId: context.auth.companyId,
               projectId,
@@ -546,6 +550,9 @@ export class SourcingService {
             rfqId,
             supplierId,
             supplierReference: input.supplierReference ?? null,
+            // V1.2 new monetary capture is THB-only. Do not retroactively
+            // relabel historical unknown-currency supplier quotations.
+            currencyCode: 'THB',
             quotationDate: input.quotationDate,
             validityDate: input.validityDate ?? null,
             remarks: input.remarks ?? null,
@@ -965,6 +972,7 @@ export class SourcingService {
           });
         }
         if (
+          rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
           rfqLine.purchaseRequestLine.purchaseRequest.cancelledAt ||
           rfqLine.purchaseRequestLine.purchaseRequest
             .approvalInstance?.approvalState !== 'APPROVED'

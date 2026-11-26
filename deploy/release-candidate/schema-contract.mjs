@@ -1,3 +1,6 @@
+import {classifySuccessorPreparation} from './purchasing-successor-schema-preparation.mjs';
+import {classifyPurchasingPreparation} from './pur01-schema-preparation.mjs';
+import {stripPm02Schema,normalizeSchema as normalizePm02Schema} from './pm02-schema-preparation.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -214,7 +217,7 @@ function classifyLegacySchema(previous,candidate){
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialUom(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-material-uom-schema':'migration-aware-material-uom-'+base.slice('migration-aware-'.length)):base;
 }
-export function classifySchema(previous,candidate){
+function classifyPrePm02(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  // Strip only the exact FM02 two-model, 13-parent-field additive contract.
  // Historical predecessor modes stay independently strict; no generic bypass.
@@ -243,6 +246,44 @@ export function classifySchema(previous,candidate){
    ?(mode==='migration-aware-sql-only'?'migration-aware-fm02-schema'
      :'migration-aware-fm02-'+mode.slice('migration-aware-'.length))
    :mode;
+}
+
+// Bounded outer layer. Preserve all pre-PM02 checks, including unchanged
+// synthetic classifier fixtures that have no PurchaseRequestLine model.
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ // Only exact PUR12/PUR07 increments may wrap earlier bounded purchasing
+ // migrations; legacy synthetic fixtures retain the previous classifier.
+ const hasSuccessor=s=>/\b(?:PoDispatchEvent|poDispatchEvents|poDispatchEvidence|supplierShortNameSnapshot|po_display_number|supplier_short_name_snapshot|short_name)\b/.test(s);
+ if(hasSuccessor(previous)||hasSuccessor(candidate))return classifySuccessorPreparation(previous,candidate,classifyPreSuccessor);
+ return classifyPreSuccessor(previous,candidate);
+}
+function classifyPreSuccessor(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const hasOrder=s=>/^model PurchaseOrder \{/m.test(s);
+ if(!hasOrder(previous)&&!hasOrder(candidate))return classifyPrePurchasing(previous,candidate);
+ return classifyPurchasingPreparation(previous,candidate,classifyPrePurchasing);
+}
+
+function classifyPrePurchasing(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const hasModel=s=>/^model PurchaseRequestLine \{/m.test(s);
+ if(!hasModel(previous)&&!hasModel(candidate))return classifyPrePm02(previous,candidate);
+ const before=stripPm02Schema(previous),after=stripPm02Schema(candidate);
+ if(before.present&&!after.present)throw Error('PM02 schema removal prohibited');
+ if(!before.present&&after.present)return classifyPm02Preparation(previous,candidate);
+ return classifyPrePm02(before.text,after.text);
+}
+
+// Compose only the exact PM02 increment with previously bounded contracts.
+export function classifyPm02Preparation(previous,candidate){
+ const before=stripPm02Schema(previous),after=stripPm02Schema(candidate);
+ if(before.present||!after.present)throw Error('PM02 preparation requires an additive increment');
+ const prior=normalizePm02Schema(before.text)===normalizePm02Schema(after.text)
+  ?'migration-aware-sql-only':classifyPrePm02(before.text,after.text);
+ return prior==='migration-aware-sql-only'
+  ?'migration-aware-pm02-schema'
+  :'migration-aware-pm02-'+prior.slice('migration-aware-'.length);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

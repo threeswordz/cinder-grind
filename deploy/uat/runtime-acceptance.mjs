@@ -2098,6 +2098,21 @@ check(
   'Draft Purchase Order line did not derive amount or retain Expected Delivery.',
 );
 
+// PUR04/PUR01: a new PO must carry explicit, known commercial terms.
+// This fixture uses zero discount/freight/charges and zero VAT to preserve
+// the original receipt/invoice arithmetic; never default historical NULLs.
+const unknownPoBasis = await request(pm, '/procurement/purchase-orders/' + purchaseOrderId + '/submit', {
+  method: 'POST', json: { workflowCode: poWorkflowCode }, expected: 422,
+});
+check(unknownPoBasis.data.code === 'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+  'PUR01 must reject submission without known commercial basis.');
+const knownCommercial = {discountAmount:'0',freightAmount:'0',additionalChargeAmount:'0',vatRatePercent:'0'};
+const commercialPo=await request(pm, '/procurement/purchase-orders/' + purchaseOrderId, {
+  method:'PATCH',json:knownCommercial,
+});
+for(const field of Object.keys(knownCommercial))check(commercialPo.data.data[field]!==null&&Number(commercialPo.data.data[field])===0,'Explicit commercial input not persisted: '+field);
+record('PUR01 explicit new-draft commercial basis, unknown basis rejected');
+
 const submittedPo = await request(
   pm,
   '/procurement/purchase-orders/' + purchaseOrderId + '/submit',
@@ -2187,6 +2202,8 @@ await request(
     },
   },
 );
+const revisedCommercial=await request(pm, '/procurement/purchase-orders/' + revisedPoId);
+for(const field of Object.keys(knownCommercial))check(revisedCommercial.data.data[field]!==null&&Number(revisedCommercial.data.data[field])===0,'Revision did not preserve commercial basis: '+field);
 await request(
   pm,
   '/procurement/purchase-orders/' + revisedPoId + '/submit',
@@ -3852,6 +3869,9 @@ const rejectedPo = await request(
     expected: 201,
   },
 );
+await request(pm, '/procurement/purchase-orders/' + rejectedPo.data.data.id, {
+  method:'PATCH',json:knownCommercial,
+});
 await request(
   pm,
   '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/submit',
@@ -3889,16 +3909,27 @@ check(
     retryPo.data.data.lifecycleState === 'DRAFT',
   'Rejected Purchase Order could not be copied into a retained corrective revision.',
 );
-await request(
+// PUR10 now prohibits the old direct cancellation writer, even for this
+// synthetic retry draft. Preserve the retry proof and assert the new denial;
+// do not manufacture an approved supplier commitment merely to clean up UAT.
+const deniedRetryCancel = await request(
   pm,
   '/procurement/purchase-orders/' + retryPo.data.data.id + '/cancel',
   {
     method: 'POST',
     json: { reason: 'Rejected retry acceptance cleanup.' },
-    expected: 201,
+    expected: 409,
   },
 );
-record('V0.3-D rejected Purchase Order retry path');
+check(deniedRetryCancel.data.code === 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+  'Legacy direct retry cancellation must be denied by the PUR10 boundary.');
+const retainedRetry = await request(pm,
+  '/procurement/purchase-orders/' + retryPo.data.data.id);
+check(retainedRetry.data.data.lifecycleState === 'DRAFT' &&
+  retainedRetry.data.data.previousRevisionId === rejectedPo.data.data.id &&
+  !retainedRetry.data.data.cancelledAt,
+  'Denied direct cancellation must preserve the corrective draft and lineage.');
+record('V0.3-D rejected Purchase Order retry path; PUR10 direct cancellation denied');
 
 
 const rejectedCandidate = await request(

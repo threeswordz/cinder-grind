@@ -1,8 +1,16 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
+const successors=successorFlags();
+import {purchasingUpgradeFlags,purchasingHistoricalNames,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
+const purchasingFlags=purchasingUpgradeFlags();
+import {pm02Columns} from './pm02-schema-preparation.mjs';
+import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
 const fm02Approved=process.env.FM02_SCHEMA_UPGRADE==='YES';
+const pm02Approved=process.env.PM02_SCHEMA_UPGRADE==='YES';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -26,6 +34,7 @@ import { resolve } from 'node:path';
 import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
 import { hrCatalog, verifyHrCatalog } from './hr-catalog-contract.mjs';
 import { stockCountCatalog, verifyStockCountCatalog } from './stock-count-catalog-contract.mjs';
+import { verifyEquipmentHistoricalIncrement } from './equipment-successor-historical.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
 const [mode, previousRoot, manifestPath, keyPath] = process.argv.slice(2);
@@ -38,7 +47,7 @@ if (process.env.GITHUB_ACTIONS !== 'true' || process.env.RC_NON_PRODUCTION_CONFI
 }
 // A real nonempty HR document recovery is limited to an isolated CI host,
  // an exact disposable rehearsal DB and a named temporary storage directory.
-const attachmentRecovery = process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' &&
+const attachmentRecovery = (process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' || pm02Approved || purchasingFlags.pur04 || purchasingFlags.pur01 || successors.pur12 || successors.pur07) &&
   ['protect', 'restored'].includes(mode);
 if (attachmentRecovery) {
   const storage = process.env.HR_ATTACHMENT_RECOVERY_STORAGE_ROOT;
@@ -62,12 +71,16 @@ const provenanceColumns = {
   boqs:['currency_code'],
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
+  ...(pm02Approved ? {purchase_request_lines:pm02Columns} : {}),
+  ...((purchasingFlags.pur04||purchasingFlags.pur01||successors.pur12) ? {purchase_orders:[...purchasingHistoricalNames(purchasingFlags),...(successors.pur12?pur12Columns.purchase_orders:[])]} : {}),
+  ...(successors.pur12 ? {customers:pur12Columns.customers,suppliers:pur12Columns.suppliers} : {}),
   ...(fm02Approved ? {activity_progress:['completed_quantity','source_budget_revision_line_id','source_uom_id']} : {}),
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
   ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
 };
 
 async function snapshot(before) {
+  const equipment=await verifyEquipmentHistoricalIncrement(db,before?.migrations);
   const tables = await db.$queryRaw`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename`;
   const catalog = await db.permission.findMany({where:{id:{in:knownCatalog.map(p=>p.id)}}});
   const present = catalog.map(p=>p.id).sort();
@@ -98,8 +111,10 @@ async function snapshot(before) {
   // Verify every field before excluding only their IDs from the old-row digest.
   if(fm02Approved&&mode==='verify')verifyFm02Catalog(rawCatalog.filter(p=>fm02Catalog.some(x=>x.id===p.id)));
 
-  const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
+  const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id).concat(equipment.ids);
   const hashes={}, columns={};
+  const identities=mode==='verify'&&successors.pur12?await verifiedPur12HistoricalColumns(db):{};
+  if(mode==='verify'&&successors.pur07)await verifiedPur07HistoricalTables(db);
   for(const {tablename:name} of tables){
     if(!/^[a-z_]+$/.test(name))throw new Error('Unexpected rehearsal table');
     columns[name]=(await db.$queryRaw`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=${name} ORDER BY column_name`).map(c=>c.column_name);
@@ -115,11 +130,19 @@ async function snapshot(before) {
       assert.deepEqual([...added].sort(),['completed_quantity','source_budget_revision_line_id','source_uom_id'].sort(),'FM02 activity_progress column additions must be exact');
       assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM activity_progress WHERE completed_quantity IS NOT NULL OR source_budget_revision_line_id IS NOT NULL OR source_uom_id IS NOT NULL'))[0].n,'0','FM02 cannot backfill historical progress quantities');
     }
+    if(name==='purchase_request_lines'&&pm02Approved&&mode==='verify'){
+      const verified=await verifiedPm02HistoricalColumns(db);
+      assert.deepEqual([...added].sort(),verified.sort(),'Exact PM02 historical columns required');
+    }
+    if(mode==='verify'&&(Object.hasOwn(identities,name)||name==='purchase_orders'&&(purchasingFlags.pur04||purchasingFlags.pur01))){
+      const verified=[...(identities[name]??[]),...(name==='purchase_orders'?await verifiedPurchasingHistoricalColumns(db,purchasingFlags):[])];
+      assert.deepEqual([...added].sort(),verified.sort(),'Exact purchasing historical columns required');
+    }
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count, encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${name}" t ${name==='permissions'?'WHERE id <> ALL($2::uuid[])':''}`, ... (name==='permissions'?[added,excluded]:[added]));
     hashes[name]=row;
   }
   const migrations=await db.$queryRaw`SELECT migration_name,checksum FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
-  return {tables:hashes,columns,catalogPresent:present,migrations};
+  return {tables:hashes,columns,catalogPresent:present,migrations,equipmentPresent:equipment.present};
 }
 
 async function service(){
@@ -141,7 +164,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,after.equipmentPresent,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');

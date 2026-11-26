@@ -159,7 +159,7 @@ async function native(){
     // Reuse this now-populated signed material fixture for the new FM03
     // deployment engine. No second material cycle, actor setup or database.
     phase='FM03_POPULATED_DELTA';
-    const fmBinding={...binding,configuration},fmBefore=await fm03Snapshot(db);
+    const fmBinding={...binding,configuration,nativeReceivingCommercialTerms:true},fmBefore=await fm03Snapshot(db);
     verifyDocumentInventory(fmBefore.documents,await privateInventory(env.STORAGE_ROOT));
     // Reproduce a membership change after the earlier snapshot. A fresh state
     // digest must not authorize another user to inherit the capability delta.

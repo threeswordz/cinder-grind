@@ -46,6 +46,21 @@ export class ProjectCloseoutService {
     private readonly audit:AuditService,
   ) {}
 
+  // Serializable conflicts are expected when independent actions race on the
+  // immutable preparation history. Never replay a stale preparation/signature.
+  private async guardedSerializable<T>(operation:(tx:Db)=>Promise<T>):Promise<T> {
+    try {
+      return await this.prisma.$transaction(operation,{
+        isolationLevel:Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch(error) {
+      if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2034')
+        throw new ConflictException(err('BEN04_CONCURRENT_SOURCE',
+          'The closeout source changed concurrently. Refresh and review the latest preparation before retrying.'));
+      throw error;
+    }
+  }
+
   private async current(auth:AuthenticatedUserContext,projectId:string,db:Db) {
     const records=await db.auditLog.findMany({
       where:{companyId:auth.companyId,entityType:CLOSEOUT_ENTITY,
@@ -91,7 +106,7 @@ export class ProjectCloseoutService {
     if(!preparer(context.auth))
       throw new ForbiddenException(err('BEN04_KHAIMOOK_REQUIRED',
         'Only an authorized assigned Project Manager may prepare the six-category closeout.'));
-    await this.prisma.$transaction(async tx=>{
+    await this.guardedSerializable(async tx=>{
       await this.access.assertAccess(context.auth,projectId,tx);
       const project=await tx.project.findFirst({
         where:{id:projectId,companyId:context.auth.companyId},select:{id:true,isActive:true},
@@ -142,7 +157,7 @@ export class ProjectCloseoutService {
           purpose:'OPERATIONAL_CLOSURE_REVIEW_ONLY_NOT_ARCHIVE_OR_PAYMENT',
         },
       },tx);
-    },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+    });
     return this.get(context.auth,projectId);
   }
 
@@ -156,7 +171,7 @@ export class ProjectCloseoutService {
     if(!/^[a-f0-9]{64}$/.test(expectedFingerprint))
       throw new UnprocessableEntityException(err('BEN04_FINGERPRINT_REQUIRED',
         'Refresh the current prepared checklist and provide its fingerprint.'));
-    await this.prisma.$transaction(async tx=>{
+    await this.guardedSerializable(async tx=>{
       await this.access.assertAccess(context.auth,projectId,tx);
       const project=await tx.project.findFirst({
         where:{id:projectId,companyId:context.auth.companyId},
@@ -188,7 +203,7 @@ export class ProjectCloseoutService {
           meaning:'JOINT_OPERATIONAL_SIGNOFF_NOT_FINANCIAL_SETTLEMENT_OR_ARCHIVE',
         },
       },tx);
-    },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+    });
     return this.get(context.auth,projectId);
   }
 }

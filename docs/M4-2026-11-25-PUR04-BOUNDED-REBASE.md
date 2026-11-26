@@ -1,0 +1,5 @@
+# PUR04 bounded rebase preparation — 25 Nov 2026
+
+Isolated staged source atop exact PM02 `05e64e24eb8d5b0864c360109bcdc570eae9134a`, replaying seven non-document paths of original PUR04 #413 (`b55f5887b300921dfd0288d51ef16673a1e307a6` → `2e4ea1f7eda3e3a6ca6952926153ca3be10a1619`). Five modified base blobs checked identical or selectively merged: the shared PO service patch reconstructed against its original base, then applied to unique exact context. Its discount/subtotal check is inserted immediately before the newer PM02 active-demand submit guard; that guard and final approval recheck remain intact.
+
+Prior full-stack native and browser evidence remains historical. Staged branch has not been built or tested; later revision/approval and commercial threshold interactions must be reconciled from #421/#442 and preserved stack before release. Nine nullable header fields; no Finance posting or retained grants. PUR04 global schema admission and historical preservation require explicit contracts. No full CI or PR admission authorized here.

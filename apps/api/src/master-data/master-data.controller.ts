@@ -116,6 +116,9 @@ export class MasterDataController {
           50,
         ),
         customerName: requiredMasterString(input, 'customerName', 200),
+        ...(input.shortName !== undefined
+          ? { shortName: nullableMasterString(input, 'shortName', 100) }
+          : {}),
         ...(input.registrationNumber !== undefined
           ? {
               registrationNumber: nullableMasterString(
@@ -159,6 +162,9 @@ export class MasterDataController {
     }
     if (input.customerName !== undefined) {
       data.customerName = requiredMasterString(input, 'customerName', 200);
+    }
+    if (input.shortName !== undefined) {
+      data.shortName = nullableMasterString(input, 'shortName', 100);
     }
     if (input.registrationNumber !== undefined) {
       data.registrationNumber = nullableMasterString(
@@ -245,6 +251,9 @@ export class MasterDataController {
           50,
         ),
         supplierName: requiredMasterString(input, 'supplierName', 200),
+        ...(input.shortName !== undefined
+          ? { shortName: nullableMasterString(input, 'shortName', 100) }
+          : {}),
         ...(input.registrationNumber !== undefined
           ? {
               registrationNumber: nullableMasterString(
@@ -288,6 +297,9 @@ export class MasterDataController {
     }
     if (input.supplierName !== undefined) {
       data.supplierName = requiredMasterString(input, 'supplierName', 200);
+    }
+    if (input.shortName !== undefined) {
+      data.shortName = nullableMasterString(input, 'shortName', 100);
     }
     if (input.registrationNumber !== undefined) {
       data.registrationNumber = nullableMasterString(

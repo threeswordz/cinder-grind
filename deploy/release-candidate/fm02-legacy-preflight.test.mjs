@@ -25,7 +25,7 @@ test('legacy historical verifier explicitly gates FM02 using the signed migratio
   // Subsequent releases retain the FM02 rows in the old-row digest when
   // the migration was already part of the previous release.
   assert.match(legacy,/FM02 can already be a legitimate part of a LATER predecessor/);
-  assert.match(legacy,/materialUomEffectApproved,materialUomStageCApproved,fm02Approved\)/);
+  assert.match(legacy,/materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors\.pur07,after\.equipmentPresent\)/);
 });
 
 test('legacy audit excludes exactly nullable FM02 progress columns while rejecting any backfill',()=>{

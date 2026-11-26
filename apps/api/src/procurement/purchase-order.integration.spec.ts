@@ -614,6 +614,31 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       expectedDelivery.toISOString().slice(0, 10),
     );
 
+    // PUR01 requires explicit known commercial terms, even for a small PO.
+    // Preserve the legacy traceability scenario while proving NULL is not zero.
+    await assert.rejects(
+      () => purchaseOrders.submit(
+        { auth: makerAuth },
+        draft.id,
+        poWorkflow.workflowCode,
+      ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code ===
+          'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+    );
+    const rejectedDraft = await purchaseOrders.getOrder(makerAuth, draft.id);
+    assert.equal(rejectedDraft.lifecycleState, 'DRAFT');
+    await purchaseOrders.updateOrder(
+      { auth: makerAuth },
+      draft.id,
+      {
+        discountAmount: new Prisma.Decimal('0'),
+        freightAmount: new Prisma.Decimal('0'),
+        additionalChargeAmount: new Prisma.Decimal('0'),
+        vatRatePercent: new Prisma.Decimal('0'),
+      },
+    );
     await purchaseOrders.submit(
       { auth: makerAuth },
       draft.id,
@@ -723,6 +748,12 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       revisionDetail.lines[0]?.unitPrice.toString(),
       '13',
     );
+
+    // Revision carries the explicitly agreed commercial basis, not defaults.
+    assert.equal(revisionDetail.discountAmount?.toString(), '0');
+    assert.equal(revisionDetail.freightAmount?.toString(), '0');
+    assert.equal(revisionDetail.additionalChargeAmount?.toString(), '0');
+    assert.equal(revisionDetail.vatRatePercent?.toString(), '0');
 
     const revisedLine = await purchaseOrders.updateLine(
       { auth: makerAuth },
@@ -2327,20 +2358,31 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     });
     assert.equal(archivedAfterReversal.isActive, false);
 
-    await purchaseOrders.cancel(
-      { auth: makerAuth }, afterReceiptRevision.id, 'Draft revision withdrawn after reversal',
+    // PUR10 supersedes the historic unilateral cancellation API. Neither a
+    // Draft nor an approved PO may be cancelled by the old direct service path.
+    // The new dedicated PUR10 native test owns Jai→PM→Ben finalization proof.
+    const requiresReview = (error: unknown) =>
+      error instanceof ConflictException &&
+      (error.getResponse() as { code?: string }).code ===
+        'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED';
+    await assert.rejects(
+      () => purchaseOrders.cancel(
+        { auth: makerAuth }, afterReceiptRevision.id,
+        'Draft revision withdrawn after reversal',
+      ),
+      requiresReview,
     );
-
-    const cancelled = await purchaseOrders.cancel(
-      { auth: makerAuth },
-      revision.id,
-      'Supplier order cancelled.',
+    await assert.rejects(
+      () => purchaseOrders.cancel(
+        { auth: makerAuth }, revision.id, 'Supplier order cancelled.',
+      ),
+      requiresReview,
     );
-    assert.equal(cancelled.lifecycleState, 'CANCELLED');
-    assert.equal(
-      cancelled.cancellationReason,
-      'Supplier order cancelled.',
-    );
+    const retained = await prisma.purchaseOrder.findUniqueOrThrow({
+      where: { id: revision.id },
+    });
+    assert.equal(retained.cancelledAt, null);
+    assert.equal(retained.cancellationReason, null);
     const retainedApproval =
       await prisma.approvalInstance.findUniqueOrThrow({
         where: {
@@ -2351,7 +2393,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
 
     await assert.rejects(
       () => prisma.purchaseOrder.delete({ where: { id: revision.id } }),
-      'Cancelled Purchase Order revision must remain retained history.',
+      'Purchase Order history must not be deletable through direct SQL.',
     );
 
     await assert.rejects(

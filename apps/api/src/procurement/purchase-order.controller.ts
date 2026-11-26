@@ -8,6 +8,9 @@ import {
   Patch,
   Post,
   Req,
+  StreamableFile,
+  UnprocessableEntityException,
+  ConflictException,
   UseGuards,
 } from '@nestjs/common';
 
@@ -31,6 +34,7 @@ import {
   procurementUuid,
 } from './procurement-validation';
 import { PurchaseOrderService } from './purchase-order.service';
+import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -48,7 +52,10 @@ function auditContext(request: AuthenticatedRequest) {
 
 @Controller('procurement')
 export class PurchaseOrderController {
-  constructor(private readonly purchaseOrders: PurchaseOrderService) {}
+  constructor(
+    private readonly purchaseOrders: PurchaseOrderService,
+    private readonly pur07: PurchaseOrderPur07Service,
+  ) {}
 
   @Get('po-projects')
   @UseGuards(AuthGuard, PermissionGuard)
@@ -143,6 +150,67 @@ export class PurchaseOrderController {
     };
   }
 
+  // PUR07: read-only PDF of the exact approved revision (never draft or cancelled).
+  @Get('purchase-orders/:orderId/pdf')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.view')
+  async downloadApprovedPdf(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+  ) {
+    const output = await this.pur07.approvedPdf(authOf(request), orderId);
+    const encodedName = encodeURIComponent(output.fileName);
+    return new StreamableFile(output.bytes, {
+      type: 'application/pdf',
+      length: output.bytes.length,
+      disposition: "attachment; filename*=UTF-8''" + encodedName,
+    });
+  }
+
+  @Get('purchase-orders/:orderId/dispatch-events')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.view')
+  async dispatchEvents(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+  ) {
+    return { data: await this.pur07.events(authOf(request), orderId) };
+  }
+
+  // The action is a manual report with evidence, NOT an email/LINE send.
+  @Post('purchase-orders/:orderId/dispatch-events')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.edit')
+  async recordExternalDispatch(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @Body() body: unknown,
+  ) {
+    const input = procurementObject(body);
+    const kind = procurementString(input, 'kind', 30);
+    const channel = procurementString(input, 'channel', 20);
+    if (kind !== 'DISPATCH' && kind !== 'ACKNOWLEDGMENT') {
+      throw new UnprocessableEntityException({ code: 'PO_DISPATCH_KIND_INVALID' });
+    }
+    if (channel !== 'EMAIL' && channel !== 'LINE') {
+      throw new UnprocessableEntityException({ code: 'PO_DISPATCH_CHANNEL_INVALID' });
+    }
+    return {
+      data: await this.pur07.record(auditContext(request), orderId, {
+        kind,
+        channel,
+        recipient: procurementString(input, 'recipient', 320),
+        evidenceReference: procurementString(input, 'evidenceReference', 1200),
+        evidenceDocumentId: input.evidenceDocumentId === undefined ||
+          input.evidenceDocumentId === null ? null :
+          procurementUuid(input.evidenceDocumentId, 'evidenceDocumentId'),
+        acknowledgesEventId: input.acknowledgesEventId === undefined ||
+          input.acknowledgesEventId === null ? null :
+          procurementUuid(input.acknowledgesEventId, 'acknowledgesEventId'),
+      }),
+    };
+  }
+
   @Get('purchase-orders/:orderId/revisions')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('procurement.po.view')
@@ -217,6 +285,41 @@ export class PurchaseOrderController {
                 10000,
               ) ?? null,
           }
+        : {}),
+      ...(input.deliveryLocation !== undefined
+        ? { deliveryLocation: procurementNullableString(input, 'deliveryLocation', 500) ?? null }
+        : {}),
+      ...(input.deliveryContact !== undefined
+        ? { deliveryContact: procurementNullableString(input, 'deliveryContact', 200) ?? null }
+        : {}),
+      ...(input.deliveryTerms !== undefined
+        ? { deliveryTerms: procurementNullableString(input, 'deliveryTerms', 5000) ?? null }
+        : {}),
+      ...(input.paymentTerms !== undefined
+        ? { paymentTerms: procurementNullableString(input, 'paymentTerms', 5000) ?? null }
+        : {}),
+      ...(input.creditTerms !== undefined
+        ? { creditTerms: procurementNullableString(input, 'creditTerms', 5000) ?? null }
+        : {}),
+      ...(input.discountAmount !== undefined
+        ? { discountAmount: input.discountAmount === null ? null :
+            procurementNonnegativeDecimal(input.discountAmount, 'discountAmount') }
+        : {}),
+      ...(input.freightAmount !== undefined
+        ? { freightAmount: input.freightAmount === null ? null :
+            procurementNonnegativeDecimal(input.freightAmount, 'freightAmount') }
+        : {}),
+      ...(input.additionalChargeAmount !== undefined
+        ? { additionalChargeAmount: input.additionalChargeAmount === null ? null :
+            procurementNonnegativeDecimal(input.additionalChargeAmount, 'additionalChargeAmount') }
+        : {}),
+      ...(input.vatRatePercent !== undefined
+        ? { vatRatePercent: input.vatRatePercent === null ? null :
+            procurementNonnegativeDecimal(input.vatRatePercent, 'vatRatePercent') }
+        : {}),
+      ...(input.supplierQuoteExceptionReason !== undefined
+        ? { supplierQuoteExceptionReason:
+            procurementNullableString(input, 'supplierQuoteExceptionReason', 2000) ?? null }
         : {}),
     };
     procurementNonEmpty(data);
@@ -396,23 +499,23 @@ export class PurchaseOrderController {
     };
   }
 
+  // PUR10 migration safety: the previous one-step cancellation endpoint was
+  // a maker/checker bypass. Deny it until the independently reviewed case
+  // reaches an atomic, source-rechecked Ben finalization service.
   @Post('purchase-orders/:orderId/cancel')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('procurement.po.cancel')
   async cancel(
     @Req() request: AuthenticatedRequest,
-    @Param('orderId', new ParseUUIDPipe({ version: '4' }))
-    orderId: string,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
     @Body() body: unknown,
   ) {
-    const input = procurementObject(body);
-    return {
-      data: await this.purchaseOrders.cancel(
-        auditContext(request),
-        orderId,
-        procurementString(input, 'reason', 10000),
-      ),
-    };
+    // Auth/CSRF/permission and UUID guards still execute; no source mutation.
+    void request; void orderId; void body;
+    throw new ConflictException({
+      code: 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+      detail: 'Use the independent Jai → Khaimook → Ben cancellation review.',
+    });
   }
 
   @Post('purchase-orders/:orderId/revise')

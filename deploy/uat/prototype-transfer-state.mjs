@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {SOURCE,ROLES,httpClient} from './prototype-actors.mjs';
 import {FM03_GRANTS,fm03Snapshot,digest} from './prototype-fm03-state.mjs';
-import {RECEIVING_GRANTS,verifyReceivingDocumentFiles} from './prototype-receiving-state.mjs';
+import {receivingGrantsFor,verifyReceivingDocumentFiles} from './prototype-receiving-state.mjs';
 import {transferTables} from '../release-candidate/transfer-schema-contract.mjs';
 import {transferCatalog,verifyTransferCatalog} from '../release-candidate/transfer-catalog-contract.mjs';
 export {fm03Snapshot as transferSnapshot,digest,verifyReceivingDocumentFiles as verifyTransferDocumentFiles};
@@ -78,7 +78,7 @@ export async function configureTransfer(db,binding,expected){
     await tx.employee.count({where:{id:a.employeeId,companyId:f.companyId,isActive:true}})===1&&
     await tx.projectMember.count({where:{employeeId:a.employeeId,projectId:f.projectId,isActive:true}})===1,'TR_ACTOR_SCOPE_DRIFT');
    const delta=b.configuration?.changes?.find(c=>c.roleCode==='PROTO_'+key)?.addedCapabilities??[];
-   const wanted=[...new Set([...ROLES[key].permissions,...delta,...(FM03_GRANTS[key]??[]),...(RECEIVING_GRANTS[key]??[])])].sort();
+   const wanted=[...new Set([...ROLES[key].permissions,...delta,...(FM03_GRANTS[key]??[]),...(receivingGrantsFor(b)[key]??[])])].sort();
    demand(canonical(user.userRoles[0].role.rolePermissions.map(r=>r.permission.permissionCode).sort())===canonical(wanted),'TR_EXISTING_GRANT_MATRIX_CHANGED');
    const missing=(TRANSFER_GRANTS[key]??[]).filter(code=>!wanted.includes(code)),catalog=await tx.permission.findMany({where:{permissionCode:{in:missing}}});
    demand(catalog.length===missing.length,'TR_MIGRATED_CAPABILITY_CATALOG_REQUIRED');

@@ -23,8 +23,12 @@ import {
 } from '@tanstack/react-query';
 
 import { ApiError } from '../api/client';
+import { printApprovedPurchaseOrderHtml } from './purchase-order-print';
+import { PurchaseOrderCancellationPanel } from './PurchaseOrderCancellationPanel';
+import { SupplierDeliveryCasePanel } from './SupplierDeliveryCasePanel';
 import {
   PoAward,
+  PoDispatchDraft,
   PurchaseOrderLine,
   purchaseOrdersApi,
 } from '../api/purchase-orders';
@@ -39,6 +43,7 @@ import {
 
 type Props = {
   permissions: string[];
+  roleCodes?: string[];
   initialProjectId?: string | undefined;
   initialOrderId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
@@ -53,6 +58,48 @@ type LineDraft = {
   expectedDelivery: string;
   remarks: string;
 };
+
+type CommercialDraftKey =
+  | 'deliveryLocation'
+  | 'deliveryContact'
+  | 'deliveryTerms'
+  | 'paymentTerms'
+  | 'creditTerms'
+  | 'discountAmount'
+  | 'freightAmount'
+  | 'additionalChargeAmount'
+  | 'vatRatePercent'
+  | 'supplierQuoteExceptionReason';
+
+const commercialHeaderFields: Array<{
+  key: CommercialDraftKey;
+  label: string;
+  numeric: boolean;
+}> = [
+  { key: 'deliveryLocation', label: 'Delivery location', numeric: false },
+  { key: 'deliveryContact', label: 'Delivery contact', numeric: false },
+  { key: 'deliveryTerms', label: 'Partial delivery / delivery terms', numeric: false },
+  { key: 'paymentTerms', label: 'Payment terms', numeric: false },
+  { key: 'creditTerms', label: 'Credit terms', numeric: false },
+  { key: 'discountAmount', label: 'Discount (THB)', numeric: true },
+  { key: 'freightAmount', label: 'Freight (THB)', numeric: true },
+  { key: 'additionalChargeAmount', label: 'Additional charges (THB)', numeric: true },
+  { key: 'vatRatePercent', label: 'VAT rate (%)', numeric: true },
+  { key: 'supplierQuoteExceptionReason', label: 'Special/sole supplier exception reason for Ben', numeric: false },
+];
+
+const emptyCommercialDraft = (): Record<CommercialDraftKey, string> => ({
+  deliveryLocation: '',
+  deliveryContact: '',
+  deliveryTerms: '',
+  paymentTerms: '',
+  creditTerms: '',
+  discountAmount: '',
+  freightAmount: '',
+  additionalChargeAmount: '',
+  vatRatePercent: '',
+  supplierQuoteExceptionReason: '',
+});
 
 function message(error: unknown) {
   if (error instanceof ApiError) return error.message;
@@ -76,7 +123,7 @@ function lineDraft(line: PurchaseOrderLine): LineDraft {
   };
 }
 
-export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrderId, onOpenSource }: Props) {
+export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjectId, initialOrderId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.po.view');
   const canCreate = permissions.includes('procurement.po.create');
@@ -84,7 +131,6 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   const canSubmit = permissions.includes('procurement.po.submit');
   const canApprove = permissions.includes('procurement.po.approve');
   const canReject = permissions.includes('procurement.po.reject');
-  const canCancel = permissions.includes('procurement.po.cancel');
   const canRevise = permissions.includes('procurement.po.revise');
 
   const [projectId, setProjectId] = useState('');
@@ -94,10 +140,17 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   const [selectedAwards, setSelectedAwards] = useState<string[]>([]);
   const [createRemarks, setCreateRemarks] = useState('');
   const [headerRemarks, setHeaderRemarks] = useState('');
+  const [commercialDraft, setCommercialDraft] = useState(emptyCommercialDraft);
   const [workflowCode, setWorkflowCode] = useState('');
   const [actionComment, setActionComment] = useState('');
-  const [cancelReason, setCancelReason] = useState('');
   const [revisionReason, setRevisionReason] = useState('');
+  const [dispatchKind, setDispatchKind] = useState<PoDispatchDraft['kind']>('DISPATCH');
+  const [dispatchChannel, setDispatchChannel] = useState<PoDispatchDraft['channel']>('EMAIL');
+  const [dispatchRecipient, setDispatchRecipient] = useState('');
+  const [dispatchReference, setDispatchReference] = useState('');
+  const [dispatchDocumentId, setDispatchDocumentId] = useState('');
+  const [dispatchAckId, setDispatchAckId] = useState('');
+  const [manualPrintError, setManualPrintError] = useState('');
   const [lineDrafts, setLineDrafts] = useState<Record<string, LineDraft>>({});
 
   const projects = useQuery({
@@ -198,6 +251,49 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     enabled: canView && Boolean(orderId),
   });
 
+  const dispatchEvents = useQuery({
+    queryKey: ['po-dispatch-events', orderId],
+    queryFn: () => purchaseOrdersApi.dispatchEvents(orderId),
+    enabled: canView && Boolean(orderId),
+  });
+
+  const pdfDownload = useMutation({
+    mutationFn: () => purchaseOrdersApi.approvedPdf(orderId),
+    onSuccess: ({blob, fileName}) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const element = document.createElement('a');
+      element.href = objectUrl;
+      // The API's Content-Disposition is not necessarily CORS-exposed.
+      // Use the already scoped immutable PO display as deterministic fallback.
+      const selected = detail.data?.data;
+      const stem = selected?.displayNumber ?? selected?.poNumber ?? 'approved-purchase-order';
+      const revisionSuffix = selected?.revisionNo
+        ? '-rev' + String(selected.revisionNo).padStart(2, '0') : '';
+      element.download = fileName ?? stem + revisionSuffix + '.pdf';
+      document.body.appendChild(element);
+      element.click();
+      element.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    },
+  });
+
+  const recordExternal = useMutation({
+    mutationFn: () => purchaseOrdersApi.recordDispatch(orderId, {
+      kind: dispatchKind,
+      channel: dispatchChannel,
+      recipient: dispatchRecipient,
+      evidenceReference: dispatchReference,
+      evidenceDocumentId: dispatchDocumentId.trim() || null,
+      acknowledgesEventId: dispatchKind === 'ACKNOWLEDGMENT' ? dispatchAckId : null,
+    }),
+    onSuccess: async () => {
+      setDispatchReference('');
+      setDispatchDocumentId('');
+      setDispatchAckId('');
+      await queryClient.invalidateQueries({queryKey: ['po-dispatch-events', orderId]});
+    },
+  });
+
   const revisions = useQuery({
     queryKey: ['purchase-order-revisions', orderId],
     queryFn: () => purchaseOrdersApi.revisions(orderId),
@@ -219,6 +315,11 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     const current = detail.data?.data;
     if (!current) return;
     setHeaderRemarks(current.remarks ?? '');
+    setCommercialDraft(Object.fromEntries(
+      commercialHeaderFields.map((field) => [
+        field.key, current[field.key] ?? '',
+      ]),
+    ) as Record<CommercialDraftKey, string>);
     setLineDrafts(
       Object.fromEntries(
         current.lines.map((line) => [line.id, lineDraft(line)]),
@@ -266,6 +367,16 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     mutationFn: () =>
       purchaseOrdersApi.update(orderId, {
         remarks: headerRemarks || null,
+        deliveryLocation: commercialDraft.deliveryLocation.trim() || null,
+        deliveryContact: commercialDraft.deliveryContact.trim() || null,
+        deliveryTerms: commercialDraft.deliveryTerms.trim() || null,
+        paymentTerms: commercialDraft.paymentTerms.trim() || null,
+        creditTerms: commercialDraft.creditTerms.trim() || null,
+        discountAmount: commercialDraft.discountAmount.trim() || null,
+        freightAmount: commercialDraft.freightAmount.trim() || null,
+        additionalChargeAmount: commercialDraft.additionalChargeAmount.trim() || null,
+        vatRatePercent: commercialDraft.vatRatePercent.trim() || null,
+        supplierQuoteExceptionReason: commercialDraft.supplierQuoteExceptionReason.trim() || null,
       }),
     onSuccess: () => refreshOrder(),
   });
@@ -323,14 +434,6 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     },
   });
 
-  const cancelOrder = useMutation({
-    mutationFn: () => purchaseOrdersApi.cancel(orderId, cancelReason),
-    onSuccess: async () => {
-      setCancelReason('');
-      await refreshOrder();
-    },
-  });
-
   const reviseOrder = useMutation({
     mutationFn: () =>
       purchaseOrdersApi.revise(orderId, revisionReason || null),
@@ -367,6 +470,34 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   };
 
   const current = detail.data?.data;
+  const manualPrintApprovedPo = async () => {
+    if (!current || !orderId) return;
+    setManualPrintError('');
+    // Open synchronously on the human click to avoid popup blockers, but
+    // NEVER print cached previously-approved PO data. Reauthorize/readback
+    // exact source from the backend before rendering any supplier details.
+    const windowRef = window.open('', '_blank', 'width=950,height=820');
+    if (!windowRef) {
+      setManualPrintError('Your browser blocked the print window. Enable this ERP popup and retry.');
+      return;
+    }
+    windowRef.opener = null;
+    try {
+      const fresh = (await purchaseOrdersApi.detail(orderId)).data;
+      if (fresh.id !== orderId) throw new Error('PO_PRINT_REVISION_MISMATCH');
+      const { html } = printApprovedPurchaseOrderHtml(fresh);
+      if (windowRef.closed) return;
+      windowRef.document.open();
+      windowRef.document.write(html);
+      windowRef.document.close();
+      await windowRef.document.fonts.ready;
+      windowRef.focus();
+      windowRef.print();
+    } catch (error) {
+      if (!windowRef.closed) windowRef.close();
+      setManualPrintError(message(error));
+    }
+  };
   const draft = current?.lifecycleState === 'DRAFT';
   const awaitingApproval = current?.lifecycleState === 'SUBMITTED';
   const approved = current?.lifecycleState === 'APPROVED';
@@ -378,8 +509,9 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     submitOrder.isPending ||
     approveOrder.isPending ||
     rejectOrder.isPending ||
-    cancelOrder.isPending ||
-    reviseOrder.isPending;
+    reviseOrder.isPending ||
+    pdfDownload.isPending ||
+    recordExternal.isPending;
 
   const mutationError =
     createOrder.error ||
@@ -389,8 +521,9 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     submitOrder.error ||
     approveOrder.error ||
     rejectOrder.error ||
-    cancelOrder.error ||
-    reviseOrder.error;
+    reviseOrder.error ||
+    pdfDownload.error ||
+    recordExternal.error;
 
   if (projects.isPending) {
     return (
@@ -522,7 +655,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
               >
                 {(orders.data?.data ?? []).map((order) => (
                   <MenuItem key={order.id} value={order.id}>
-                    {order.poNumber} · <CurrencyLabel code={order.currencyCode} /> · Rev {order.revisionNo} ·{' '}
+                    {order.displayNumber ?? order.poNumber} · <CurrencyLabel code={order.currencyCode} /> · Rev {order.revisionNo} ·{' '}
                     {order.supplier.supplierCode} · {order.lifecycleState}
                   </MenuItem>
                 ))}
@@ -553,7 +686,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                 >
                   <Box>
                     <Typography variant="h6">
-                      {current.poNumber} · <CurrencyLabel code={current.currencyCode} /> · Revision {current.revisionNo}
+                      {current.displayNumber ?? current.poNumber} · <CurrencyLabel code={current.currencyCode} /> · Revision {current.revisionNo}
                     </Typography>
                     <Typography color="text.secondary">
                       {current.project.projectCode} ·{' '}
@@ -589,6 +722,33 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                   multiline
                   minRows={2}
                 />
+                <Typography variant="subtitle2">PUR04 · Delivery and commercial terms</Typography>
+                <Alert severity="info">
+                  PUR01 compares the net whole-PO THB total after discount,
+                  freight and charges (excluding VAT): up to ฿10,000 requires
+                  one comparable supplier, up to ฿50,000 requires two, and
+                  above ฿50,000 requires three. A shortage needs a specific
+                  reason and independent Ben approval.
+                  Enter explicit zero values where applicable; blanks mean unknown.
+                </Alert>
+                <Box sx={{ display: 'grid', gridTemplateColumns: {
+                  xs: '1fr', md: 'repeat(2, minmax(0, 1fr))',
+                }, gap: 2 }}>
+                  {commercialHeaderFields.map((field) => (
+                    <TextField
+                      key={field.key}
+                      label={field.label}
+                      type={field.numeric ? 'number' : 'text'}
+                      inputProps={field.numeric ? { min: 0, step: '0.01' } : undefined}
+                      value={commercialDraft[field.key]}
+                      disabled={!canEdit || !draft}
+                      onChange={(event) => setCommercialDraft((previous) => ({
+                        ...previous, [field.key]: event.target.value,
+                      }))}
+                      fullWidth
+                    />
+                  ))}
+                </Box>
                 {canEdit && draft ? (
                   <Button
                     variant="outlined"
@@ -926,24 +1086,12 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                   </Stack>
                 ) : null}
 
-                {canCancel &&
-                current.lifecycleState !== 'CANCELLED' &&
-                current.lifecycleState !== 'REJECTED' ? (
-                  <Stack spacing={1}>
-                    <TextField
-                      label="Cancellation reason"
-                      value={cancelReason}
-                      onChange={(event) => setCancelReason(event.target.value)}
-                    />
-                    <Button
-                      color="error"
-                      variant="outlined"
-                      disabled={!cancelReason.trim() || busy}
-                      onClick={() => cancelOrder.mutate()}
-                    >
-                      Cancel Revision
-                    </Button>
-                  </Stack>
+                {approved && !current.nextRevision ? (
+                  <PurchaseOrderCancellationPanel orderId={orderId} permissions={permissions} roleCodes={roleCodes}/>
+                ) : null}
+
+                {approved && !current.nextRevision ? (
+                  <SupplierDeliveryCasePanel orderId={orderId} permissions={permissions} roleCodes={roleCodes}/>
                 ) : null}
 
                 {canRevise &&
@@ -987,6 +1135,115 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                       </Typography>
                     ))}
                   </>
+                ) : null}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined">
+            <CardContent>
+              <Stack spacing={2}>
+                <Typography variant="h6">Approved PO PDF & Manual Dispatch (PUR07)</Typography>
+                <Alert severity="info">
+                  Export is available only for the exact approved, active revision.
+                  Jai sends the file outside ERP by email or LINE. Reporting a send or
+                  acknowledgment records your evidence; ERP does not transmit or verify
+                  third-party delivery. The approved-PDF download supports Thai text
+                  only when this ERP host has its local Chromium Unicode renderer
+                  and Thai fonts installed and verified. If unavailable, export fails
+                  without creating an incomplete PDF. Browser Print - Save as PDF
+                  remains a manual fallback. Attach the actual file you sent as evidence;
+                  do not record an unsent or incomplete document.
+                </Alert>
+                {approved && canView ? (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Button variant="outlined" disabled={busy}
+                      onClick={() => pdfDownload.mutate()}>
+                      {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF (Thai / English)'}
+                    </Button>
+                    <Button variant="outlined" onClick={manualPrintApprovedPo}
+                      disabled={busy}>Print / Save as PDF (Thai supported by browser)</Button>
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary" variant="body2">
+                    Only approved, non-cancelled revisions can be downloaded or newly dispatched.
+                  </Typography>
+                )}
+                {manualPrintError ? (
+                  <Alert severity="error">{manualPrintError}</Alert>
+                ) : null}
+                {pdfDownload.isError ? (
+                  <Alert severity="error">
+                    {message(pdfDownload.error)} If the local Unicode renderer is
+                    unavailable, ask the system operator to verify Chromium and Thai
+                    fonts. Alternatively, attach the actual externally prepared PDF
+                    using the scoped Project Document workflow. Never report sending
+                    a file that has not been created and checked.
+                  </Alert>
+                ) : null}
+                <Divider />
+                <Typography variant="subtitle2">Reported external activity for this revision</Typography>
+                {dispatchEvents.isPending ? <CircularProgress size={20} /> : null}
+                {dispatchEvents.isError ? (
+                  <Alert severity="error">{message(dispatchEvents.error)}</Alert>
+                ) : null}
+                {(dispatchEvents.data?.data ?? []).map((event) => (
+                  <Typography key={event.id} variant="body2">
+                    {event.kind === 'DISPATCH' ? 'Reported sent' : 'Reported acknowledged'}
+                    {' · '}{event.channel}{' · '}{event.recipient}
+                    {' · '}{event.actor?.displayName ?? 'Unknown actor'}
+                    {' · '}{new Date(event.recordedAt).toLocaleString()}
+                    {' · Evidence: '}{event.evidenceReference}
+                    {event.evidenceDocumentId ? ' · Document '+ event.evidenceDocumentId : ''}
+                  </Typography>
+                ))}
+                {canEdit && (approved || (dispatchEvents.data?.data.some(
+                  (event) => event.kind === 'DISPATCH') ?? false)) ? (
+                  <Stack spacing={2}>
+                    <Alert severity="warning">
+                      Only authorized Purchasing staff may record these actions.
+                      Provide a real external message/thread reference or uploaded
+                      Project Document; recording is not proof of external delivery.
+                    </Alert>
+                    <TextField select label="Record external event" value={dispatchKind}
+                      onChange={(e) => setDispatchKind(e.target.value as PoDispatchDraft['kind'])}>
+                      {approved ? <MenuItem value="DISPATCH">I sent an approved PO externally</MenuItem> : null}
+                      <MenuItem value="ACKNOWLEDGMENT">Supplier acknowledged an earlier send</MenuItem>
+                    </TextField>
+                    {dispatchKind === 'ACKNOWLEDGMENT' ? (
+                      <TextField select label="Earlier sent PO record" value={dispatchAckId}
+                        onChange={(e) => setDispatchAckId(e.target.value)}>
+                        {(dispatchEvents.data?.data ?? []).filter(e => e.kind === 'DISPATCH')
+                          .map(e => <MenuItem key={e.id} value={e.id}>
+                            {e.channel}{' · '}{e.recipient}{' · '}
+                            {new Date(e.recordedAt).toLocaleString()}
+                          </MenuItem>)}
+                      </TextField>
+                    ) : null}
+                    <TextField select label="External channel" value={dispatchChannel}
+                      onChange={(e) => setDispatchChannel(e.target.value as PoDispatchDraft['channel'])}>
+                      <MenuItem value="EMAIL">Email</MenuItem>
+                      <MenuItem value="LINE">LINE</MenuItem>
+                    </TextField>
+                    <TextField label={dispatchKind === 'DISPATCH' ?
+                      'Recipient email / LINE contact' : 'Acknowledging supplier contact'}
+                      value={dispatchRecipient} onChange={(e) => setDispatchRecipient(e.target.value)}
+                      inputProps={{maxLength:320}} />
+                    <TextField label="External evidence reference (required)"
+                      helperText="Message ID, dated email thread, LINE screenshot reference or other verifiable evidence. No automatic send."
+                      value={dispatchReference} onChange={(e) => setDispatchReference(e.target.value)}
+                      inputProps={{maxLength:1200}} multiline minRows={2} />
+                    <TextField label="Linked Project Document UUID (optional)"
+                      helperText="If used, the existing upload must belong to this Company and Project."
+                      value={dispatchDocumentId} onChange={(e) => setDispatchDocumentId(e.target.value)} />
+                    <Button variant="outlined" disabled={busy ||
+                      dispatchRecipient.trim().length < 3 ||
+                      dispatchReference.trim().length < 3 ||
+                      (dispatchKind === 'ACKNOWLEDGMENT' && !dispatchAckId)}
+                      onClick={() => recordExternal.mutate()}>
+                      Record reported {dispatchKind === 'DISPATCH' ? 'external send' : 'supplier acknowledgment'}
+                    </Button>
+                  </Stack>
                 ) : null}
               </Stack>
             </CardContent>

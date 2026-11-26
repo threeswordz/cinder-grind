@@ -1,8 +1,15 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
+const successors=successorFlags();
+import {purchasingUpgradeFlags,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
+const purchasingFlags=purchasingUpgradeFlags();
+import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054MigrationState} from './dec054-permission-catalog.mjs';
 import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
 const fm02Approved=process.env.FM02_SCHEMA_UPGRADE==='YES';
+const pm02Approved=process.env.PM02_SCHEMA_UPGRADE==='YES';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -21,6 +28,7 @@ import {materialRequestCatalog,verifyMaterialRequestCatalog} from './material-re
 import {hrCatalog,verifyHrCatalog} from './hr-catalog-contract.mjs';
 import {stockCountCatalog,verifyStockCountCatalog} from './stock-count-catalog-contract.mjs';
 import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
+import { verifyEquipmentHistoricalIncrement } from './equipment-successor-historical.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -41,9 +49,12 @@ const provenanceColumns = ['contract_currency_code', 'currency_code'];
 const protect = (path, value) => writeFileSync(path, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
 const load = (path) => JSON.parse(readFileSync(path, 'utf8'));
 
-async function snapshot() {
+async function snapshot(before) {
+  const equipment=await verifyEquipmentHistoricalIncrement(prisma,before?.migrations);
   const tables = await prisma.$queryRawUnsafe(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations' ORDER BY tablename`);
   const hashes = {};
+  const identities=mode==='verify'&&successors.pur12?await verifiedPur12HistoricalColumns(prisma):{};
+  if(mode==='verify'&&successors.pur07)await verifiedPur07HistoricalTables(prisma);
   for (const { tablename } of tables) {
     if (!/^[a-z_]+$/.test(tablename)) throw new Error('Unexpected fixture table name');
     // The old and upgraded rows must be byte-for-byte equal after excluding
@@ -52,7 +63,7 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog,...(fm02Approved ? fm02Catalog : [])].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog,...(fm02Approved ? fm02Catalog : [])].map(row => row.id).concat(equipment.ids);
     if (tablename === 'permissions') {
       if(materialUomApproved)verifyMaterialUomCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)));
       if(physicalApproved)verifyPhysicalCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',physicalCatalog.map(p=>p.id)));
@@ -121,6 +132,9 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       }
       excludedColumns=[...excludedColumns,...fm02Names];
     }
+    if(pm02Approved&&mode==='verify'&&tablename==='purchase_request_lines')excludedColumns.push(...await verifiedPm02HistoricalColumns(prisma));
+    if(mode==='verify'&&tablename==='purchase_orders')excludedColumns.push(...await verifiedPurchasingHistoricalColumns(prisma,purchasingFlags));
+    if(mode==='verify')excludedColumns.push(...(identities[tablename]??[]));
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
@@ -128,7 +142,7 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
     hashes[tablename] = row;
   }
   const migrations = await prisma.$queryRawUnsafe(`SELECT migration_name, checksum FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`);
-  return { tables: hashes, migrations };
+  return { tables: hashes, migrations, equipmentPresent:equipment.present };
 }
 
 try {
@@ -165,10 +179,10 @@ try {
     protect(snapshotPath, await snapshot());
   } else {
     const before = load(snapshotPath);
-    const after = await snapshot();
+    const after = await snapshot(before);
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,after.equipmentPresent);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

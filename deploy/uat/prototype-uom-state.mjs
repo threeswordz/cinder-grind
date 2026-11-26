@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {SOURCE,ROLES,httpClient} from './prototype-actors.mjs';
 import {fm03Snapshot,digest,FM03_GRANTS} from './prototype-fm03-state.mjs';
-import {RECEIVING_GRANTS} from './prototype-receiving-state.mjs';
+import {receivingGrantsFor} from './prototype-receiving-state.mjs';
 import {TRANSFER_GRANTS} from './prototype-transfer-state.mjs';
 import {SUBCONTRACT_GRANTS} from './prototype-subcontract-state.mjs';
 import {materialUomTables,materialUomMigrations} from '../release-candidate/material-uom-schema-contract.mjs';
@@ -61,7 +61,7 @@ export async function configureUom(db,binding,expected){
     await tx.employee.count({where:{id:a.employeeId,companyId:f.companyId,isActive:true}})===1&&
     await tx.projectMember.count({where:{employeeId:a.employeeId,projectId:f.projectId,isActive:true}})===1,'UOM_ACTOR_SCOPE_DRIFT');
    const delta=b.configuration?.changes?.find(c=>c.roleCode==='PROTO_'+key)?.addedCapabilities??[];
-   const wanted=[...new Set([...ROLES[key].permissions,...delta,...(FM03_GRANTS[key]??[]),...(RECEIVING_GRANTS[key]??[]),...(TRANSFER_GRANTS[key]??[]),...(SUBCONTRACT_GRANTS[key]??[])])];
+   const wanted=[...new Set([...ROLES[key].permissions,...delta,...(FM03_GRANTS[key]??[]),...(receivingGrantsFor(b)[key]??[]),...(TRANSFER_GRANTS[key]??[]),...(SUBCONTRACT_GRANTS[key]??[])])];
    demand(sorted(user.userRoles[0].role.rolePermissions.map(r=>r.permission.permissionCode))===sorted(wanted),'UOM_EXISTING_GRANT_MATRIX_CHANGED');
    const missing=(UOM_GRANTS[key]??[]).filter(code=>!wanted.includes(code)),catalog=await tx.permission.findMany({where:{permissionCode:{in:missing}}});
    demand(catalog.length===missing.length,'UOM_MIGRATED_CAPABILITY_CATALOG_REQUIRED');
