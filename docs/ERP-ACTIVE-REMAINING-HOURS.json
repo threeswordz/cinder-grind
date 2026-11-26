@@ -4834,6 +4834,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-138",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_PUR14_LINKED_SOURCE_NATIVE_PASS_DRAFT_REVIEW_REQUESTED",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45820461137/job/139911063441",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7192190753"
+      ],
+      "basis": "Exact isolated application source024b30c3 (workflow-only child80a224fe excluded) locked build, schema validation, fresh migrations and four native PG17.11 tests PASS4/4, job13/13. Actual M4_PUR14_LINKED_FINANCE_SOURCE_AUTHORIZATION_AND_ATOMIC_DENIAL_PASS and M4_PUR14_LINKED_SOURCE_TARGETED_PASS logged. Three-file delta confirmed; PR455 returned Draft before guarded nonforced fast-forward; independent Codex requested once. Verified provisional rework −0.5h only, no formal acceptance or actual labor claim. Predecessor full46/46 not transferred.",
+      "blocker": "Fresh independent correction review, P2 resolution and specific final CI/merge authorization, integrated and retained readback.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4856,6 +4876,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1733,
-  "currentRollingTotalSemantics": "1733h = prior 1732.5h plus 0.5h provisional mandatory PUR14 write-side authorization rework. M4 11h; M6 112h; prototype238h. Formal acceptance false, 112 IDs preserved; actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1732.5,
+  "currentRollingTotalSemantics": "1732.5h = prior 1733h minus 0.5h verified provisional PUR14 linked-source rework. M4 10.5h, M6 112h, prototype237.5h. Formal acceptance false; all112 IDs preserved; actual labor unmeasured."
 }
