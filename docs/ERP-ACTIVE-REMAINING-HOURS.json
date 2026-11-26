@@ -4733,6 +4733,25 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M6-01-133",
+      "date": "2026-11-26",
+      "packageId": "M6-01",
+      "kind": "M6_FINAL_HR_PROOF_COORDINATOR_GATE_CORRECTED",
+      "beforeHours": 22.5,
+      "afterHours": 22.5,
+      "sourceSha": "82b15472d149b194f1b5b7194ec0113f04df5aa8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/82b15472d149b194f1b5b7194ec0113f04df5aa8"
+      ],
+      "basis": "Runtime already emits historicalHrRowsPreserved and oneNewHrAttachmentVerified but coordinator accepted absent flags. Original exact Git blobs 4e788d0e7b6bc69484e16d308f12f00c84342241 and b7d3855ef3b2a109c1b4899c2c8a9ba0714235c2 matched local bytes. Extended existing preservation negative matrix to require both true booleans; reproduced 7/8 before (missing rejection), corrected 8/8 PASS on Node22.16.0, rejects undefined/false/string true for both flags before recording preserve or sealing. Exact tested remote blobs 7e28e9349b64d4c10779d9284f770f5eed6e94e7 and 69b69dcd3c9de0b58226ba92314f6e7d84a87acb read back; production adapter delegates runtime.preserve unchanged. New defect +0.5h, completed rework -0.5h provisional, net zero. No actual deployed execution, independent review or acceptance.",
+      "blocker": "Independent review, authorized native Mac/PG rehearsal and deployed journeys; M4 release first.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
