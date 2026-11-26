@@ -4,12 +4,12 @@
 
 | Package | Estimate | First execution objective |
 |---|---:|---|
-| M6-01 | 21 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
+| M6-01 | 20.5 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
 | M6-02 | 24.5 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
 | M6-03 | 31.5 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
 | M6-04 | 18.5 | Physical acceptance/certification history |
 | M6-05 | 18 | HR private file/history and keys |
-| Total | 113.5 | Low confidence estimates, no actual labor |
+| Total | 113 | Low confidence estimates, no actual labor |
 
 Earlier exact M6 local helper regressions preserved; integration against current M4 runtime not assumed. First reconcile candidate branch and guard against duplicate old journeys/receipt identity. Use focused validation, independent review for changed candidate and specific #384 release authority; no full CI until appropriate. DEC-042 human UAT at frozen prototype, GL04/05 carryover as approved. Existing synthetic login checks are not comprehensive role acceptance.
 
@@ -41,3 +41,7 @@ Source 43b7bb2b534e303154d2a1edc0b97be970ba33fa. Local Node22.16.0 actual 20/20 
 ## M4 process observation adapter (event165)
 
 Source 54c358273736d36d09aa01b01a00e4c265994239. Actual Node22.16.0 Linux 19/19 focused tests PASS on real temporary private receipt files and mocked native command/container/health observations; exact Git blob hashes match local files. Reconstructed M4 process receipt contract from prior cutover script context: releaseSha, databaseName, pid, born, entry, port. Reads private cutover source-api-owned.json and source-web-owned.json, strict lsof field normalization, bounded ps/Podman inspect and loopback health. Existing container validator must be wired by caller. Does not prove current native receipt schema or live Mac state. M6-01 21.5→21h; M6 113.5h. Next reconcile actual M4 DB/file/compiled artifact baseline schemas, wire canonical container/config validator and client, then consolidate read-only successor. No worker launch, source business changes, CI or Mac mutations.
+
+## Native read-only entry (event166)
+
+Source 0d927eb2e11fb6ef445585238be8735992af4c88. Actual local Linux Node22.16.0 11/11 focused tests PASS, fixture database/runtime and real temporary private receipt files; exact Git blob hashes matched. Executable native admission wires existing receipt/checkout, process observer and canonical config/container validators, then opens Prisma only after identity checks. Repeatable-read identity, zero sessions, structural migration count and repeated current protected and artifact inventories do not prove historical preservation; historicalBaselineVerified remains false. Independent schema discovery emits filenames and field names only. M6-01 21→20.5h; M6 113h. Native Mac execution and baseline schema/byte reconciliation now require actual private local evidence (return only redacted schema and status); no new CI, mutation or lane closure.

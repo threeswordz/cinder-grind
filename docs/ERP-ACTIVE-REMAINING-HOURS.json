@@ -5505,6 +5505,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-166",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_READ_ONLY_ENTRY_LOCAL_VALIDATION",
+      "beforeHours": 21,
+      "afterHours": 20.5,
+      "sourceSha": "0d927eb2e11fb6ef445585238be8735992af4c88",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0d927eb2e11fb6ef445585238be8735992af4c88",
+        "https://github.com/threeswordz/cinder-grind/blob/0d927eb2e11fb6ef445585238be8735992af4c88/deploy/uat/m6-native-inspect.mjs",
+        "https://github.com/threeswordz/cinder-grind/blob/0d927eb2e11fb6ef445585238be8735992af4c88/deploy/uat/m6-native-inspect.test.mjs"
+      ],
+      "basis": "Wired native read-only CLI with exact checkout/Mac environment, existing receipt and runtime observer, canonical config/container validation, Prisma client admission, zero-session and 177 migration row structural checks, current protected and compiled inventory repeated observation; separate schema discovery prints filenames/field names only. Actual local Linux Node22.16.0 11/11 tests PASS, 106.27ms runner, temporary private files and fixture DB/runtime observations; two local git hash-object values bf64112620a0767e51af040cb1c7bf1b75bb9dcd and bdbc74f3a412ee2afc05ffc61c1616a0b883707b match published blobs. Provisional 0.5h retired for CLI wiring only; no native execution or full historical baseline comparison, no measured labor.",
+      "blocker": "Actual Mac historical snapshot, inventory, artifact and process receipt schemas unavailable in connected repository. Need owner to run pinned read-only --inspect-schema and optionally --inspect-runtime; only redacted schema/status output requested, no private values. Then bind existing historical baseline comparison to CLI. No lane closure or workers launched.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5534,8 +5555,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1723.5,
-  "currentRollingTotalSemantics": "1723.5h = previous 1724h minus 0.5h provisional verified M6-01 local observation adapter implementation. M4 0h, M6 113.5h, M7 50h, M8 65h, combined228.5h. Actual labor unknown, no formal acceptance change, all112 requirements preserved. No live runtime proof.",
+  "currentRollingTotalAfterPricedGapsHours": 1723,
+  "currentRollingTotalSemantics": "1723h = previous 1723.5h minus 0.5h provisional verified M6-01 local native CLI wiring. M6 113h, M7 50h, M8 65h, combined228h. No measured labor, live baseline proof or formal acceptance change; all112 requirements retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
