@@ -14,7 +14,7 @@ test('PUR07 external send cannot link a Project Document without document.view',
     throw new Error('SOURCE_LOOKUP_SENTINEL');
   } };
   const sut = new PurchaseOrderPur07Service(
-    {} as never, {} as never, {} as never, orders as never,
+    {} as never, {} as never, {} as never, orders as never, {} as never,
   );
   const auth = {
     roleCodes: ['PROCUREMENT_OFFICER'],

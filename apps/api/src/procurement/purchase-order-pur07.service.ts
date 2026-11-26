@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentsService } from '../documents/documents.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import {
   approvedPoPdfFilename,
@@ -41,7 +42,45 @@ export class PurchaseOrderPur07Service {
     private readonly access: ProjectAccessService,
     private readonly audit: AuditService,
     private readonly orders: PurchaseOrderService,
+    private readonly documents: DocumentsService,
   ) {}
+
+  // A cached request context is not authority to attach or disclose a protected
+  // document after a role/session revocation. Intersect with current DB grants.
+  private async liveDocumentActor(auth: AuthenticatedUserContext, db: Prisma.TransactionClient) {
+    const session = await db.userSession.findFirst({
+      where: { id: auth.sessionId, userId: auth.userId, revokedAt: null,
+        expiresAt: { gt: new Date() }, user: { companyId: auth.companyId,
+          isActive: true, company: { isActive: true } } },
+      select: { user: { select: { employee: { select: { companyId: true, isActive: true } },
+        userRoles: { select: { role: { select: { companyId: true, isActive: true, roleCode: true,
+          rolePermissions: { select: { permission: { select: { permissionCode: true } } } },
+        } } } },
+      } } },
+    });
+    if (!session?.user.employee?.isActive || session.user.employee.companyId !== auth.companyId) return null;
+    const roles = session.user.userRoles.map(row => row.role).filter(role => role.isActive && role.companyId === auth.companyId);
+    const current = new Set(roles.flatMap(role => role.rolePermissions.map(row => row.permission.permissionCode)));
+    const permissions = auth.permissions.filter(code => current.has(code));
+    if (!permissions.includes('documents.document.view')) return null;
+    return { ...auth, permissions, roleCodes: roles.map(role => role.roleCode) };
+  }
+
+  private async authorizedEvidence(auth: AuthenticatedUserContext, projectId: string,
+    documentId: string, db: Prisma.TransactionClient): Promise<boolean> {
+    try {
+      await this.access.assertAccess(auth, projectId, db);
+      const doc = await db.document.findFirst({
+        where: { id: documentId, companyId: auth.companyId, isActive: true,
+          links: { some: { entityType: 'PROJECT', entityId: projectId } } },
+        select: { id: true, links: { select: { entityType: true, entityId: true } } },
+      });
+      return Boolean(doc && (await this.documents.filterSourceDocuments(auth, projectId, [doc], db)).length === 1);
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) return false;
+      throw error;
+    }
+  }
 
   private purchasingOnly(auth: AuthenticatedUserContext): void {
     if (!auth.roleCodes.includes('PROCUREMENT_OFFICER') ||
@@ -171,15 +210,22 @@ export class PurchaseOrderPur07Service {
 
   async events(auth: AuthenticatedUserContext, orderId: string) {
     const order = await this.orders.getOrder(auth, orderId);
-    return this.prisma.poDispatchEvent.findMany({
-      where: { companyId: auth.companyId, projectId: order.projectId, purchaseOrderId: order.id },
-      orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
-      // PO viewing alone is NOT documents.document.view: never leak an
-      // attached Project Document's filename or checksum through this list.
-      include: {
-        actor: { select: { id: true, displayName: true } },
-      },
-    });
+    return this.prisma.$transaction(async tx => {
+      const rows = await tx.poDispatchEvent.findMany({
+        where: { companyId: auth.companyId, projectId: order.projectId, purchaseOrderId: order.id },
+        orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
+        include: { actor: { select: { id: true, displayName: true } } },
+      });
+      if (!rows.some(row => row.evidenceDocumentId)) return rows;
+      const scoped = await this.liveDocumentActor(auth, tx);
+      // Keep communication history; redact even the document ID when the
+      // document grant, linked owning source, or active document is absent.
+      return Promise.all(rows.map(async row => ({ ...row, evidenceDocumentId:
+        row.evidenceDocumentId && scoped && scoped.permissions.includes('procurement.po.view') &&
+        await this.authorizedEvidence(scoped, order.projectId, row.evidenceDocumentId, tx)
+          ? row.evidenceDocumentId : null,
+      })));
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async record(
@@ -252,16 +298,10 @@ export class PurchaseOrderPur07Service {
       }
       const evidenceDocumentId = input.evidenceDocumentId ?? null;
       if (evidenceDocumentId) {
-        const document = await tx.document.findFirst({
-          where: {
-            id: evidenceDocumentId,
-            companyId: context.auth.companyId,
-            isActive: true,
-            links: { some: { entityType: 'PROJECT', entityId: order.projectId } },
-          },
-          select: { id: true },
-        });
-        if (!document) {
+        const scoped = await this.liveDocumentActor(context.auth, tx);
+        if (!scoped) throw new ForbiddenException({ code: 'PO_DISPATCH_DOCUMENT_VIEW_REQUIRED' });
+        this.purchasingOnly(scoped);
+        if (!await this.authorizedEvidence(scoped, order.projectId, evidenceDocumentId, tx)) {
           throw new ConflictException({ code: 'PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE' });
         }
       }

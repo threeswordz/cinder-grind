@@ -24,7 +24,7 @@ test('PUR07 server PDF cannot invent completed independent PO approval evidence'
       // preflight MUST run before PDF generation can consume these sources.
     }) };
     const sut = new PurchaseOrderPur07Service(
-      {} as never, {} as never, {} as never, orders as never,
+      {} as never, {} as never, {} as never, orders as never, {} as never,
     );
     await assert.rejects(
       () => sut.approvedPdf({} as never, '00000000-0000-4000-8000-000000000001'),
@@ -58,7 +58,7 @@ test('PUR07 preserves contractual rate and rounds only monetary presentation', a
       deliveryContact: 'APPROVED CONTACT', deliveryLocation: null, deliveryTerms: null, paymentTerms: null, creditTerms: null,
     };
     const sut = new PurchaseOrderPur07Service({} as never, {} as never, {} as never,
-      { getOrder: async () => order } as never);
+      { getOrder: async () => order } as never, {} as never);
     const exported = await sut.approvedPdf({} as never, 'synthetic-order');
     assert.equal(exported.fileName, 'K-PO2611-001 A_B.pdf');
     const pdf = exported.bytes.toString('ascii');

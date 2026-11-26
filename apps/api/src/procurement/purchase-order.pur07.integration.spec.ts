@@ -11,6 +11,9 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentsService } from '../documents/documents.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ProcurementService } from './procurement.service';
 import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
@@ -119,12 +122,24 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
     const prs = new ProcurementService(prisma,access,audit,approvals,numbers);
     const sourcing = new SourcingService(prisma,access,audit,numbers);
     const pos = new PurchaseOrderService(prisma,access,audit,approvals,numbers);
-    const pur07 = new PurchaseOrderPur07Service(prisma,access,audit,pos);
+    const documents = new DocumentsService(prisma,access,audit,new LocalDocumentStorage(),new DocumentPolicyService());
+    const pur07 = new PurchaseOrderPur07Service(prisma,access,audit,pos,documents);
     const store = actor(company.id,people[0]!.user.id,['STOREKEEPER']);
     const khaimook = actor(company.id,people[1]!.user.id,['PROJECT_MANAGER',pmRole.roleCode]);
     const jai = actor(company.id,people[2]!.user.id,['PROCUREMENT_OFFICER']);
     const ben = actor(company.id,people[3]!.user.id,['MANAGEMENT',benRole.roleCode]);
     const outsider = actor(company.id,people[4]!.user.id,['FINANCE_OFFICER']);
+    // Real current document grants/session in the disposable DB. No retained grants.
+    const jaiRole=await prisma.role.create({data:{companyId:company.id,roleCode:'PROCUREMENT_OFFICER',roleName:'Purchasing test'}});
+    await prisma.userRole.create({data:{companyId:company.id,userId:jai.userId,roleId:jaiRole.id}});
+    const docGrants = new Map<string,string>();
+    for(const code of ['procurement.po.view','procurement.po.edit','documents.document.view','finance.supplier_invoice.view']){
+      const permission=await prisma.permission.upsert({where:{permissionCode:code},update:{},create:{permissionCode:code,moduleCode:'TEST'}});
+      docGrants.set(code,permission.id);
+      if(code!=='finance.supplier_invoice.view')await prisma.rolePermission.create({data:{roleId:jaiRole.id,permissionId:permission.id}});
+    }
+    const session=await prisma.userSession.create({data:{userId:jai.userId,tokenHash:randomUUID().replaceAll('-',''),csrfTokenHash:'1'.repeat(64),expiresAt:new Date(Date.now()+3600000)}});
+    const documentActor={...jai,sessionId:session.id,permissions:[...jai.permissions,'documents.document.view','finance.supplier_invoice.view']};
     const supplier = await prisma.supplier.create({
       data:{companyId:company.id,supplierCode:'PDF'+key,
         supplierName:'ABC Concrete Company Limited',shortName:'ABC'},
@@ -181,7 +196,7 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
       }),
     );
     await assert.rejects(
-      ()=>pur07.record({auth:{...jai,permissions:[...jai.permissions,'documents.document.view']}},order.id,{
+      ()=>pur07.record({auth:documentActor},order.id,{
         kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
         evidenceReference:'Attempt to link cross-scope evidence',evidenceDocumentId:randomUUID(),
       }),
@@ -192,13 +207,38 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
           response.code==='PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE';
       },
     );
-    const sent = await pur07.record({auth:jai},order.id,{
+    const type=await prisma.documentType.create({data:{companyId:company.id,documentTypeCode:'PDF-'+key,documentTypeName:'Test evidence'}});
+    const invoice=await prisma.supplierInvoice.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,
+      supplierInvoiceNumber:'SEC-'+key,supplierReference:'SEC-'+key,invoiceDate:new Date(),currencyCode:'THB',
+      createKey:randomUUID(),createPayloadHash:'1'.repeat(64),createdByUserId:jai.userId}});
+    const protectedDoc=await prisma.document.create({data:{companyId:company.id,documentTypeId:type.id,fileName:'protected.pdf',
+      storageProvider:'LOCAL',storageKey:'synthetic-'+randomUUID(),mimeType:'application/pdf',fileSizeBytes:20,uploadedByUserId:jai.userId}});
+    await prisma.documentLink.createMany({data:[{documentId:protectedDoc.id,entityType:'PROJECT',entityId:project.id,linkedByUserId:jai.userId},
+      {documentId:protectedDoc.id,entityType:'SUPPLIER_INVOICE',entityId:invoice.id,linkedByUserId:jai.userId}]});
+    const protectedDispatch={kind:'DISPATCH' as const,channel:'EMAIL' as const,recipient:'supplier@example.invalid',
+      evidenceReference:'Synthetic restricted document reference',evidenceDocumentId:protectedDoc.id};
+    const deniedEvidence=(e:unknown)=>e instanceof ConflictException &&
+      (e.getResponse() as {code?:string}).code==='PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE';
+    await assert.rejects(()=>pur07.record({auth:documentActor},order.id,protectedDispatch),deniedEvidence);
+    assert.equal(await prisma.poDispatchEvent.count({where:{purchaseOrderId:order.id}}),0);
+    const financeId=docGrants.get('finance.supplier_invoice.view')!;
+    await prisma.rolePermission.create({data:{roleId:jaiRole.id,permissionId:financeId}});
+    const sent = await pur07.record({auth:documentActor},order.id,{
       kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
       evidenceReference:'SYNTHETIC email thread PDF-001; no email actually transmitted',
+      evidenceDocumentId:protectedDoc.id,
     });
     assert.equal(sent.kind,'DISPATCH');
     assert.equal(sent.pdfFileName,file.fileName);
     assert.equal(sent.pdfSha256,null,'ERP must not fabricate hash of external sent attachment');
+    assert.equal((await pur07.events(documentActor,order.id))[0]?.evidenceDocumentId,protectedDoc.id);
+    await prisma.rolePermission.deleteMany({where:{roleId:jaiRole.id,permissionId:financeId}});
+    assert.equal((await pur07.events(documentActor,order.id))[0]?.evidenceDocumentId,null);
+    assert.equal((await pur07.events(jai,order.id))[0]?.evidenceDocumentId,null);
+    const protectedAck={...protectedDispatch,kind:'ACKNOWLEDGMENT' as const,acknowledgesEventId:sent.id};
+    await assert.rejects(()=>pur07.record({auth:documentActor},order.id,protectedAck),deniedEvidence);
+    assert.equal(await prisma.poDispatchEvent.count({where:{purchaseOrderId:order.id}}),1);
+    assert.equal((await prisma.poDispatchEvent.findUniqueOrThrow({where:{id:sent.id}})).evidenceDocumentId,protectedDoc.id);
     const ack = await pur07.record({auth:jai},order.id,{
       kind:'ACKNOWLEDGMENT',channel:'LINE',recipient:'supplier LINE contact',
       evidenceReference:'SYNTHETIC LINE screenshot reference; no message transmitted',
@@ -222,6 +262,7 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
         action:{in:['EXTERNAL_SEND_REPORTED','EXTERNAL_ACK_REPORTED']}},
     });
     assert.equal(rows.length,2);
+    console.log('M4_PUR07_LINKED_SOURCE_WRITE_READ_REVOCATION_ATOMICITY_PASS');
     console.log('PUR07_NATIVE_APPROVED_PDF_REPORTED_SEND_ACK_IMMUTABILITY_SCOPE_PASS');
   } finally {
     await prisma.$disconnect();

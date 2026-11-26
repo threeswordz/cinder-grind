@@ -116,7 +116,7 @@ test('PUR07 new server Chromium: searchable Thai real PDF and actual approvedPdf
     } as unknown as PurchaseOrderService;
     const service=new PurchaseOrderPur07Service(
       {} as PrismaService,{} as ProjectAccessService,
-      {} as AuditService,orders,
+      {} as AuditService,orders,{} as never,
     );
     const actual=await service.approvedPdf({} as AuthenticatedUserContext,orderId);
     assert.equal(actual.fileName,'T-PO2611-002 SEMICON.pdf');
