@@ -6203,6 +6203,26 @@
       "verifiedCompletedScopeHours": 3,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-200",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_BROWSER_COMPONENT_AND_INDEPENDENT_REVIEW_PREPARATION",
+      "beforeHours": 20,
+      "afterHours": 20,
+      "sourceSha": "78d1ddc63ad584aa06330250411c3a92ea5c50b5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7202539331",
+        "https://github.com/threeswordz/cinder-grind/blob/78d1ddc63ad584aa06330250411c3a92ea5c50b5/docs/M6-SS16-INDEPENDENT-REVIEW-PACKET-20261127.md"
+      ],
+      "basis": "Two commits three new files, browser component synthetic transport fixture and review packet; exact candidate/diff verified, no app change, no executed new tests or credit.",
+      "blocker": "Mac regression/component browser runs, complete direct service caller and DB proof audit, decision history UX and uncertain intent across unmount, authenticated native browser acceptance, retained config, independent review, integrated release/preservation.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
