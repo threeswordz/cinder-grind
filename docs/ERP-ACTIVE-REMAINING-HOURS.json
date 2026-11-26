@@ -6143,6 +6143,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-197",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_CONSOLIDATED_LIFECYCLE_UI_AND_MAC_RUNNER_DRAFT",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "9cd32ec6630262184f77a105b7b3fc343ff934cf",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7202262693",
+        "https://github.com/threeswordz/cinder-grind/commit/9cd32ec6630262184f77a105b7b3fc343ff934cf"
+      ],
+      "basis": "Draft terminal approved-undispatched transfer and overage cancellation with historical approval preservation, shared trilingual correction UI across four movement screens, native assertions for all four posted movement types and controlled cancellation. Exact runner blob verified locally, bash syntax and two early safety checks pass. API/web builds, migrations, native tests not executed. No forecast credit.",
+      "blocker": "Exact-head disposable Mac validation required; browser acceptance, legacy HTTP/browser test cutover, internal service bypass audit, real scoped grants/workflow, independent review and integrated release/preservation remain.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
