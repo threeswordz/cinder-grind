@@ -5919,6 +5919,26 @@
       "verifiedCompletedScopeHours": 2,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-186",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_FM02_NATIVE_WEIGHTED_PROGRESS_PASS",
+      "beforeHours": 24,
+      "afterHours": 23,
+      "sourceSha": "b4ddb641302ac448b7becb2093dbc62a2f8f866e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200877010",
+        "https://github.com/threeswordz/cinder-grind/commit/b4ddb641302ac448b7becb2093dbc62a2f8f866e"
+      ],
+      "basis": "Owner supplied terminal excerpt for recommended disposable native test batch: all migrations successfully applied; “M6 FM02: approved BOQ, independent confirmation, measured and assessed progress” PASS (412.172375ms); tests1/pass1/fail0/skipped0, total608.257083ms; NATIVE_fm02_PASS. Prescribed candidate b4ddb641302ac448b7becb2093dbc62a2f8f866e; current isolated branch head independently confirmed, excerpt itself does not repeat checkout SHA or SS08 result. Test source exercises actual PostgreSQL and authenticated HTTP, canonical approved BOQ source, role separation, CSRF and project-scope denials, stale confirmation/measurement rejection, quantity pin and incomplete evidence behavior, 40.00% mixed weighted result. Credit 1h provisional forecast for focused native FM02 workflow, not full FM02 deployed/browser acceptance; no measured human labor. SS08 result not supplied; do not infer PASS or repeat before checking existing output. No formal acceptance, retained-runtime write or full-CI claim. Pending bounded mutable login-rate-limit disposition, SS08 evidence, remaining M6 business journeys and integrated release gates. M6-02 24→23h; M6 104.5→103.5h; prototype219.5→218.5h; ERP1714.5→1713.5h.",
+      "blocker": "SS08 batch result missing; deployed browser evidence and remaining site/material workflow integration pending; no formal acceptance.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5948,8 +5968,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1714.5,
-  "currentRollingTotalSemantics": "1714.5h = previous1716.5h minus 1h native account/session projection verification and 1h exact-source compiled rebuild comparison. M6 104.5h, M7 50h, M8 65h, combined219.5h. Actual labor unknown; no formal acceptance change; all112 requirements retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1713.5,
+  "currentRollingTotalSemantics": "1713.5h = previous1714.5h minus 1h provisional focused native FM02 verification. M6 103.5h, M7 50h, M8 65h, combined218.5h. Actual labor unknown, all112 requirements retained; no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
