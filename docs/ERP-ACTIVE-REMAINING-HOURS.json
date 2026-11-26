@@ -4695,6 +4695,25 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M6-01-131",
+      "date": "2026-11-26",
+      "packageId": "M6-01",
+      "kind": "M6_RECOVERY_DIRECTORY_AND_DUMP_IDENTITY_HARDENING_LOCAL_PASS",
+      "beforeHours": 22.5,
+      "afterHours": 22.5,
+      "sourceSha": "abd4e205dd2382a721162ec96ed56c62ad4a0873",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/abd4e205dd2382a721162ec96ed56c62ad4a0873"
+      ],
+      "basis": "Exact original helper/test blobs verified locally. Three new regressions fail on original (8/11), then corrected Node22.16.0 actual local filesystem test 11/11 PASS: reject nonprivate recovery root, symlink root and directory entry drift during inventory reads. Open dump O_RDONLY|O_NOFOLLOW|O_NONBLOCK, compare descriptor/path identity before and after streaming hash, close handle; root metadata rechecked. Both tested Git blobs f4e0c493d26894fa6f8d7de59d9ce89367a2bab4 and aa5b8ee0980e2cbd119036e0efa55e459752b683 match remote isolated integrated work-m6-03 branch; guarded nonforce fast-forward. +0.5h newly identified defect effort and -0.5h completed rework estimate, net zero; not actual hours or duplicate prior proof. No native PostgreSQL/Mac, real backup or independent review.",
+      "blocker": "Native authorized rehearsal, remaining integrated deployment journeys, exact independent review; M4 release first. No production action.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
