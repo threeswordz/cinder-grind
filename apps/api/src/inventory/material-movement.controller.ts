@@ -1,6 +1,6 @@
 import {uomDate} from '../master-data/material-uom-contract';
 import {
-  Body,
+  ConflictException, Body,
   Controller,
   Get,
   Param,
@@ -512,19 +512,11 @@ export class MaterialMovementController {
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('inventory.issue.reverse')
   async reverseIssue(
-    @Req() request: AuthenticatedRequest,
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() body: unknown,
+    @Req() _request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) _id: string,
+    @Body() _body: unknown,
   ) {
-    const input = inventoryObject(body);
-    return {
-      data: await this.issues.reverse(
-        auditContext(request),
-        id,
-        requiredInventoryString(input, 'reversalKey', 120),
-        requiredInventoryString(input, 'reason', 1000),
-      ),
-    };
+    throw new ConflictException({ code: 'SS16_CORRECTION_APPROVAL_REQUIRED' });
   }
 
   @Get('return-projects')
@@ -714,18 +706,10 @@ export class MaterialMovementController {
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('inventory.return.reverse')
   async reverseReturn(
-    @Req() request: AuthenticatedRequest,
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() body: unknown,
+    @Req() _request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) _id: string,
+    @Body() _body: unknown,
   ) {
-    const input = inventoryObject(body);
-    return {
-      data: await this.returns.reverse(
-        auditContext(request),
-        id,
-        requiredInventoryString(input, 'reversalKey', 120),
-        requiredInventoryString(input, 'reason', 1000),
-      ),
-    };
+    throw new ConflictException({ code: 'SS16_CORRECTION_APPROVAL_REQUIRED' });
   }
 }

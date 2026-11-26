@@ -28,7 +28,12 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     storage = await mkdtemp(join(tmpdir(), 'm6-ss16-'));
     process.env.STORAGE_ROOT = storage;
     app = await NestFactory.create(AppModule, {logger:false});
-    await app.init();
+    await app.listen(0, '127.0.0.1');
+    const origin = await app.getUrl();
+    const post = (path: string, session: {sessionToken:string;csrfToken:string} | null, body: unknown, csrf = true) =>
+      fetch(origin + '/inventory/' + path, { method:'POST', headers:{'content-type':'application/json',
+        ...(session ? {cookie:'erp_session='+session.sessionToken} : {}),
+        ...(session && csrf ? {'x-csrf-token':session.csrfToken} : {})}, body:JSON.stringify(body) });
     const f = await receivingFixture(db);
     await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
     await db.role.update({where:{id:f.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
@@ -52,7 +57,19 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',
       entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic correction review',
       steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
+    const requestPath = 'movement-corrections/sources/GOODS_RECEIPT/'+receipt.id+'/requests';
+    const requestBody = {requestKey:key,reason};
+    assert.equal((await post(requestPath,null,requestBody)).status,401);
+    assert.equal((await post(requestPath,f.store.session,requestBody,false)).status,403);
+    assert.equal((await post(requestPath,f.pm.session,requestBody)).status,403);
+    const legacy = await post('goods-receipts/'+receipt.id+'/reverse',f.pm.session,{reversalKey:randomUUID(),reason});
+    assert.equal(legacy.status,409);
+    assert.equal(await stock(),1,'Legacy route must not mutate stock');
+    const created = await post(requestPath,f.store.session,requestBody);
+    const createdText = await created.text();
+    assert.equal(created.status,201,createdText);
     const pending = await request();
+    assert.equal(JSON.parse(createdText).data.id,pending.id);
     assert.equal(pending.approvalInstance.approvalState,'SUBMITTED');
     assert.equal((await request()).id,pending.id);
     await assert.rejects(corrections.request({auth:store},'GOODS_RECEIPT',receipt.id,key,'Changed reason'));
@@ -76,7 +93,14 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     await db.rolePermission.delete({where:{roleId_permissionId:{roleId:f.pm.role.id,permissionId:reverse.id}}});
     try { await assert.rejects(corrections.decide({auth:pm},pending.id,'APPROVE','Stale grant')); }
     finally { await db.rolePermission.create({data:{roleId:f.pm.role.id,permissionId:reverse.id}}); }
-    const result = await corrections.decide({auth:pm},pending.id,'APPROVE','Independent review accepted');
+    const approvePath = 'movement-corrections/'+pending.id+'/approve';
+    assert.equal((await post(approvePath,f.store.session,{comment:'Self approval'})).status,403);
+    assert.equal((await post(approvePath,f.pm.session,{comment:'Missing CSRF'},false)).status,403);
+    assert.equal(await stock(),1);
+    const approved = await post(approvePath,f.pm.session,{comment:'Independent review accepted'});
+    const approvedText = await approved.text();
+    assert.equal(approved.status,201,approvedText);
+    const result = JSON.parse(approvedText).data;
     assert.equal(result.approvalInstance.approvalState,'APPROVED');
     const reversed = await db.goodsReceipt.findUniqueOrThrow({where:{id:receipt.id}});
     assert.equal(reversed.reversalReason,reason);

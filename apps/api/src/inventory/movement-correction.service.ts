@@ -22,8 +22,8 @@ const deny = (): never => { throw new ForbiddenException({ code: 'SS16_CORRECTIO
 const invalid = (): never => { throw new UnprocessableEntityException({ code: 'SS16_CORRECTION_INPUT_INVALID' }); };
 const uuid = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id);
 
-// Draft posted-source transaction core. No HTTP routes or retained grants yet.
-// Submitted-but-unposted cancellation and direct-route cutover are separate exits.
+// Posted-source transaction core; HTTP access must go through the scoped maker/checker methods.
+// Retained workflow grants, submitted-but-unposted cancellation and UI remain separate exits.
 @Injectable()
 export class MovementCorrectionService {
   constructor(private readonly prisma: PrismaService, private readonly approval: ApprovalService,
