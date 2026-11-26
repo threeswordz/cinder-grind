@@ -1,18 +1,18 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 11h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
+**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) remains exact `024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2`; [fresh PUR07 P2](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4708438233) blocks full/merge. Owner-approved [comprehensive review gate](M4-2026-11-26-COMPREHENSIVE-REVIEW-GATE.md); [isolated batch correction](https://github.com/threeswordz/cinder-grind/commit/2468adefd0f6a8a14c981a7386dd9b0d91d1b53c) and [focused run](https://github.com/threeswordz/cinder-grind/actions/runs/45822516895). +0.5h provisional rework; no verified credit or full CI.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) now exact `2468adefd0f6a8a14c981a7386dd9b0d91d1b53c`; [batched focused PASS14/14, tests8/8](https://github.com/threeswordz/cinder-grind/actions/runs/45822516895/job/139918133823). [Comprehensive independent review requested](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7192445100) under [review gate](M4-2026-11-26-COMPREHENSIVE-REVIEW-GATE.md); two P2 threads remain open pending review. −0.5h verified provisional rework; no expensive full authorized. Retained verification pending.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,732.5 |
-| Newly identified mandatory scope | +0.5 |
-| Verified remaining-effort reduction | −0 |
-| Revised remaining ERP forecast | **1,733** |
+| Previous reported ERP forecast | 1,733 |
+| Newly identified mandatory scope | +0 |
+| Verified remaining-effort reduction | −0.5 |
+| Revised remaining ERP forecast | **1,732.5** |
 
 Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
 **Latest M6-01 rework:** [82b15472](https://github.com/threeswordz/cinder-grind/commit/82b15472d149b194f1b5b7194ec0113f04df5aa8) makes both final HR preservation flags mandatory at the coordinator seal gate. Actual local 7/8 before, 8/8 after. New defect +0.5h and verified rework −0.5h, net zero; M6 112h and ERP 1732.5h unchanged. [Event133](https://github.com/threeswordz/cinder-grind/commit/9f3f9da68524a8df0fcd60a18cd5191d258081f2).

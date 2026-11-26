@@ -4875,6 +4875,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-140",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_BATCH_DOCUMENT_AUTH_NATIVE_PASS_COMPREHENSIVE_REVIEW_REQUESTED",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "2468adefd0f6a8a14c981a7386dd9b0d91d1b53c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45822516895/job/139918133823",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7192445100"
+      ],
+      "basis": "Actual exact application2468adef (workflow-only child6fd69b9f excluded) build and fresh migrations on two disposable PG17.11 databases PASS; four supplier native tests and four PUR07 unit/native tests PASS8/8, job14/14. Logs include M4_PUR14_LINKED_FINANCE_SOURCE_AUTHORIZATION_AND_ATOMIC_DENIAL_PASS, M4_PUR07_LINKED_SOURCE_WRITE_READ_REVOCATION_ATOMICITY_PASS and M4_DOCUMENT_AUTHORIZATION_BATCH_TARGETED_PASS. Guarded nonforced Draft update verified. Comprehensive independent review requested once across five risk lanes and full 238-file base-to-head diff; coverage must be explicitly reconciled. Both P2s open pending independent review. Provisional verified rework credit −0.5h only, no formal acceptance or labor claim.",
+      "blocker": "Independent comprehensive review results, scope/coverage and P2 reconciliation; focused gate then exact owner authorization for one full while Draft, Ready and integration/Mac.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4897,6 +4917,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1733,
-  "currentRollingTotalSemantics": "1733h = prior 1732.5h plus 0.5h provisional mandatory PUR07 linked-source rework. M4 11h; M6 112h; prototype238h. Formal acceptance false; actual elapsed/AI time not measured."
+  "currentRollingTotalAfterPricedGapsHours": 1732.5,
+  "currentRollingTotalSemantics": "1732.5h = prior 1733h minus 0.5h verified provisional PUR07 linked-source rework. M4 10.5h, M6 112h, prototype237.5h. Formal acceptance false; elapsed labor unmeasured."
 }
