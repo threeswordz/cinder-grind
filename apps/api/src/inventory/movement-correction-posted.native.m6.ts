@@ -217,7 +217,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const readDelivery = async () => {
       const response = await get(root+'/'+delivery.id,rc.store.session);
       assert.equal(response.status,200);
-      return (await response.json()).data;
+      return JSON.parse(await response.text()).data;
     };
     const command = async (extra: Record<string,unknown> = {}) => ({requestKey:randomUUID(),
       expectedVersion:(await readDelivery()).version,reason:'Synthetic source evidence action',...extra});
