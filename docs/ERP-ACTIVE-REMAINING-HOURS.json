@@ -6103,6 +6103,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-195",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_BOUNDED_UNPOSTED_CANCELLATION_DRAFT",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "faf3fb91ebca5fd90d61b7720caad82e76081953",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7202050856",
+        "https://github.com/threeswordz/cinder-grind/commit/faf3fb91ebca5fd90d61b7720caad82e76081953"
+      ],
+      "basis": "Forward-only source pin migration and scoped cancellation request/independent decision for ordinary submitted unposted movement; original approval cancel and audit in one transaction, no stock/header overwrite. Controlled receiving, plan issue, transfer custody and approved-undispatched exclusions remain pending. Expanded native GR assertions authored, not executed. Exact SS16-only runner blob 5c64d15f0439e563d915d913066f46c0d0508356 local bash syntax and early invalid mode/SHA rejection PASS. No app validation or estimate credit.",
+      "blocker": "Controlled lifecycle cancellation disposition, UI cutover, actual workflow/grants, internal bypass audit, native HTTP and movement coverage, Prisma/build/migration proof, independent review and integrated release/preservation.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
