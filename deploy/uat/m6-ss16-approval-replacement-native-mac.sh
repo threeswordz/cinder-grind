@@ -4,6 +4,8 @@
 set -euo pipefail
 umask 077
 expected=${1:-}
+mode=${2:-both}
+[[ "$mode" = both || "$mode" = ss16-only ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
 [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo M6_FOCUSED_EXACT_SHA_REQUIRED; exit 1; }
 cd "$(git rev-parse --show-toplevel)"
 test "$(git rev-parse HEAD)" = "$expected"
@@ -60,7 +62,11 @@ run_test() {
     FAIL=1
   fi
 }
-run_test PUR14_REPLACEMENT "m6_replacement_$SUFFIX" apps/api/dist/procurement/supplier-replacement-posted.native.integration.spec.js
+if [[ "$mode" = both ]]; then
+  run_test PUR14_REPLACEMENT "m6_replacement_$SUFFIX" apps/api/dist/procurement/supplier-replacement-posted.native.integration.spec.js
+else
+  echo M6_PRIOR_PUR14_REPLACEMENT_NOT_RERUN
+fi
 export M6_SS16_DISPOSABLE_DB="m6_ss16_$SUFFIX"
 run_test SS16_POSTED_APPROVAL "$M6_SS16_DISPOSABLE_DB" apps/api/dist/inventory/movement-correction-posted.native.m6.js
 echo "M6_FOCUSED_CANDIDATE=$expected"
