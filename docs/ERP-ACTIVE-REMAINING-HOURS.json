@@ -5980,6 +5980,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-189",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_ACCELERATED_BRANCH_CONSOLIDATION_AND_REUSE_PLAN",
+      "beforeHours": 14,
+      "afterHours": 14,
+      "sourceSha": "9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201398570",
+        "https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934"
+      ],
+      "basis": "Owner authorized accelerated completion strategy. Integrated existing disjoint lane A b4ddb641 and lane B 0795baf5 via true two-parent commit 60ed8c63445d79116333850c4e71d55ac31f03bc; exactly two added test blobs match source (SS08 7ad3a26e1f0385c65d72873e6dc846805abb456a, FM02 7ea13266dad51abe1d15ff5f146c051b00de1553). Successor 9762c5ecfd4015e6b0cfb87891ab272685a21b48 updates single runner to execute both changed policy specs and SS08 plus six pending movement/supplier test groups in one API build and migrated disposable PG template; does not repeat FM02. Actual local bash -n passed; local Git blob 9701b2def5ef27de5ab50f2df73e0a9d6dadab22 equals published runner. Exact branch head independently read back; 65 paths differ vs main 9417f07c, only four modified existing runtime app files (issue/return/transfer/transfer actor), no HR/subcontract/Documents/Web/Prisma changes, no new Actions runs and protected main unchanged. Verified original run45857511934 exact main SUCCESS, named workspace and eight browser steps PASS: receiving, transfer, subcontract physical, FM03, FM01-A, HR1-A, material request, Material Plan C. Preserve these as prior exact-base evidence; current integrated candidate still requires affected-path/regression/release checks; do not claim same-head integrated pass. Target89h (14/20/25/15/15), stretch65h contingent; no target entered as earned reduction. Prior ledger already excludes historical replay, so no duplicate savings or branch-creation credit; current 103.5h remains. SS16 durable configured maker/checker request, atomic canonical reversal, legacy bypass protection and UI remain true critical-path development; no new permission grants, schema/production change, Codex execution, worker launch, or native PASS. Next consolidated Mac batch and complete SS16 lifecycle, reuse existing C/D source evidence without replay of retained business mutations.",
+      "blocker": "Mac seven-group native runner; SS16 durable approval and affected-path integration; bounded preservation disposition, independent review and release gates.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
