@@ -146,7 +146,12 @@ export class MovementCorrectionService {
         take: 100,
         select: { id: true, sourceKind: true, sourceId: true, sourcePostedAt: true, sourceSubmittedAt: true, reason: true,
           requestedByUserId: true, requestedAt: true,
-          approvalInstance: { select: { approvalState: true } } },
+          approvalInstance: { select: { approvalState: true,
+            actions: { where: { action: { in: ['APPROVE','REJECT'] },
+                actionByUser: { companyId: context.auth.companyId } },
+              orderBy: [{ actionAt: 'asc' }, { id: 'asc' }], take: 10,
+              select: { id: true, action: true, actionAt: true, comment: true,
+                actionByUserId: true, actionByUser: { select: { displayName: true } } } } } } },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }

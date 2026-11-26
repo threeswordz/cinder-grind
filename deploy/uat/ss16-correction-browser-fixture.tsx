@@ -30,7 +30,7 @@ window.fetch=async (input,init={})=>{
   check(actor===store,'PM unexpectedly requested');requests.push(body);
   if(!rows.length){
    rows=[{id:requestId,sourcePostedAt:date,requestedByUserId:store,requestedAt:date,reason:body.reason,
-    approvalInstance:{approvalState:'SUBMITTED'}}];
+    approvalInstance:{approvalState:'SUBMITTED',actions:[]}}];
    effects++;
   }else check(body.requestKey===requests[0].requestKey&&body.reason===requests[0].reason,'Retry changed payload');
   if(loseResponse){loseResponse=false;throw Error('Synthetic committed response lost');}
@@ -38,6 +38,8 @@ window.fetch=async (input,init={})=>{
  }
  check(actor===pm,'Maker unexpectedly decided');decisions.push({path,body});
  rows[0].approvalInstance.approvalState=path.endsWith('/approve')?'APPROVED':'REJECTED';
+ rows[0].approvalInstance.actions=[{id:requestId,action:path.endsWith('/approve')?'APPROVE':'REJECT',
+  actionByUserId:pm,actionByUser:{displayName:'Synthetic PM reviewer'},actionAt:date,comment:body.comment}];
  return response(201,{data:rows[0]});
 };
 const root=createRoot(document.getElementById('root'));
@@ -86,8 +88,14 @@ async function run(){
  denied=false;await client.invalidateQueries({queryKey:['movement-corrections']});
  await until(()=>button('Approve correction'),'PM recovery absent');
  await input('Decision reason','Independent review');await click('Approve correction');
- await until(()=>text().includes('Approved'),'Decision result absent');
+ await until(()=>text().includes('Approved')&&text().includes('Synthetic PM reviewer')&&text().includes('Independent review'),'Decision history absent');
  check(decisions.length===1&&decisions[0].body.comment==='Independent review'&&refreshes>=2,'Decision not bound or refreshed');
+ render(store,['STOREKEEPER'],maker);
+ await until(()=>text().includes('Synthetic PM reviewer')&&text().includes('Independent review'),'Maker decision history absent');
+ denied=true;await client.invalidateQueries({queryKey:['movement-corrections']});
+ await until(()=>text().includes('Unable to verify current correction access'),'History access loss absent');
+ check(!text().includes('Synthetic PM reviewer')&&!text().includes('Independent review'),'Revoked history still visible');
+ denied=false;
  render(pm,['PROJECT_MANAGER'],reviewer,'th');
  await until(()=>text().includes('แก้ไขรายการเคลื่อนไหว')&&text().includes('อนุมัติแล้ว'),'Thai history absent');
  render(pm,['PROJECT_MANAGER'],reviewer,'zh-TW');

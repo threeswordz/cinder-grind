@@ -87,6 +87,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
       assert.equal(rows[0].id,pending.id);
       assert.equal(rows[0].approvalInstance.approvalState,'SUBMITTED');
       assert.equal(Object.hasOwn(rows[0],'requestKey'),false);
+      assert.deepEqual(rows[0].approvalInstance.actions,[]);
     }
     const unauthorizedRead = await get(requestPath,f.viewer.session);
     assert.ok([403,404].includes(unauthorizedRead.status));
@@ -122,6 +123,19 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(approved.status,201,approvedText);
     const result = JSON.parse(approvedText).data;
     assert.equal(result.approvalInstance.approvalState,'APPROVED');
+    for(const actor of [f.store,f.pm]){
+      const history=await get(requestPath,actor.session);
+      assert.equal(history.status,200);
+      const rows=(await history.json() as any).data;
+      const actions=rows[0].approvalInstance.actions;
+      assert.equal(actions.length,1);
+      assert.equal(actions[0].action,'APPROVE');
+      assert.equal(actions[0].actionByUserId,pm.userId);
+      assert.equal(actions[0].comment,'Independent review accepted');
+      assert.ok(Number.isFinite(Date.parse(actions[0].actionAt)));
+      assert.deepEqual(Object.keys(actions[0].actionByUser),['displayName']);
+      assert.equal(actions[0].actionByUser.displayName,f.pm.user.displayName);
+    }
     const reversed = await db.goodsReceipt.findUniqueOrThrow({where:{id:receipt.id}});
     assert.equal(reversed.reversalReason,reason);
     assert.equal(reversed.reversalKey,'ss16:'+pending.id);

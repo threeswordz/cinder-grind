@@ -6,13 +6,14 @@ import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 
 type Kind = 'GOODS_RECEIPT' | 'MATERIAL_ISSUE' | 'MATERIAL_RETURN' | 'STOCK_TRANSFER';
 type Correction = {id:string; reason:string; requestedByUserId:string; requestedAt:string; sourcePostedAt:string|null;
-  approvalInstance:{approvalState:string}};
+  approvalInstance:{approvalState:string;actions:{id:string;action:string;actionAt:string;comment:string|null;
+    actionByUserId:string;actionByUser:{displayName:string}}[]}};
 type Intent = {path:string; body:{requestKey:string;reason:string}|{comment:string}};
 const prefixes:Record<Kind,string>={GOODS_RECEIPT:'receipt',MATERIAL_ISSUE:'issue',MATERIAL_RETURN:'return',STOCK_TRANSFER:'transfer'};
 const labels={
- en:{title:'Movement correction',reason:'Reason',comment:'Decision reason',reverse:'Request stock reversal',cancel:'Request cancellation',approve:'Approve correction',reject:'Reject correction',pending:'Pending review',approved:'Approved',rejected:'Rejected',empty:'No correction requests',refresh:'Refresh',retry:'Retry same request',clear:'Refresh and clear request',error:'Unable to verify current correction access or state. Refresh before continuing.',uncertain:'Request result uncertain. Retry the exact request or refresh.',posted:'Posted reversal',unposted:'Unposted cancellation',loading:'Checking current correction access…'},
- th:{title:'แก้ไขรายการเคลื่อนไหว',reason:'เหตุผล',comment:'เหตุผลการตัดสินใจ',reverse:'ขอกลับรายการสต็อก',cancel:'ขอยกเลิกรายการ',approve:'อนุมัติการแก้ไข',reject:'ไม่อนุมัติการแก้ไข',pending:'รอตรวจสอบ',approved:'อนุมัติแล้ว',rejected:'ไม่อนุมัติ',empty:'ไม่มีคำขอแก้ไข',refresh:'โหลดใหม่',retry:'ลองคำขอเดิมอีกครั้ง',clear:'โหลดใหม่และล้างคำขอ',error:'ไม่สามารถยืนยันสิทธิ์หรือสถานะล่าสุด โปรดโหลดใหม่',uncertain:'ยังไม่ทราบผลคำขอ ลองคำขอเดิมหรือโหลดใหม่',posted:'กลับรายการที่ลงสต็อกแล้ว',unposted:'ยกเลิกรายการที่ยังไม่ลงสต็อก',loading:'กำลังตรวจสอบสิทธิ์…'},
- 'zh-TW':{title:'庫存異動更正',reason:'原因',comment:'決策原因',reverse:'申請沖銷庫存',cancel:'申請取消',approve:'核准更正',reject:'駁回更正',pending:'待審核',approved:'已核准',rejected:'已駁回',empty:'沒有更正申請',refresh:'重新整理',retry:'重試相同請求',clear:'重新整理並清除請求',error:'無法確認目前權限或狀態，請重新整理。',uncertain:'請求結果未確認。重試相同請求或重新整理。',posted:'已過帳沖銷',unposted:'未過帳取消',loading:'正在確認更正權限…'},
+ en:{title:'Movement correction',decidedBy:'Decision by',decisionAt:'Decision time',reason:'Reason',comment:'Decision reason',reverse:'Request stock reversal',cancel:'Request cancellation',approve:'Approve correction',reject:'Reject correction',pending:'Pending review',approved:'Approved',rejected:'Rejected',empty:'No correction requests',refresh:'Refresh',retry:'Retry same request',clear:'Refresh and clear request',error:'Unable to verify current correction access or state. Refresh before continuing.',uncertain:'Request result uncertain. Retry the exact request or refresh.',posted:'Posted reversal',unposted:'Unposted cancellation',loading:'Checking current correction access…'},
+ th:{title:'แก้ไขรายการเคลื่อนไหว',decidedBy:'ผู้ตัดสินใจ',decisionAt:'เวลาที่ตัดสินใจ',reason:'เหตุผล',comment:'เหตุผลการตัดสินใจ',reverse:'ขอกลับรายการสต็อก',cancel:'ขอยกเลิกรายการ',approve:'อนุมัติการแก้ไข',reject:'ไม่อนุมัติการแก้ไข',pending:'รอตรวจสอบ',approved:'อนุมัติแล้ว',rejected:'ไม่อนุมัติ',empty:'ไม่มีคำขอแก้ไข',refresh:'โหลดใหม่',retry:'ลองคำขอเดิมอีกครั้ง',clear:'โหลดใหม่และล้างคำขอ',error:'ไม่สามารถยืนยันสิทธิ์หรือสถานะล่าสุด โปรดโหลดใหม่',uncertain:'ยังไม่ทราบผลคำขอ ลองคำขอเดิมหรือโหลดใหม่',posted:'กลับรายการที่ลงสต็อกแล้ว',unposted:'ยกเลิกรายการที่ยังไม่ลงสต็อก',loading:'กำลังตรวจสอบสิทธิ์…'},
+ 'zh-TW':{title:'庫存異動更正',decidedBy:'決策人',decisionAt:'決策時間',reason:'原因',comment:'決策原因',reverse:'申請沖銷庫存',cancel:'申請取消',approve:'核准更正',reject:'駁回更正',pending:'待審核',approved:'已核准',rejected:'已駁回',empty:'沒有更正申請',refresh:'重新整理',retry:'重試相同請求',clear:'重新整理並清除請求',error:'無法確認目前權限或狀態，請重新整理。',uncertain:'請求結果未確認。重試相同請求或重新整理。',posted:'已過帳沖銷',unposted:'未過帳取消',loading:'正在確認更正權限…'},
 };
 export function MovementCorrectionPanel({kind,sourceId,permissions,roleCodes,userId,companyId,reverseEligible,cancelEligible,onChanged}:{
  kind:Kind; sourceId:string; permissions:string[];roleCodes:string[];userId:string;companyId:string;
@@ -47,6 +48,11 @@ export function MovementCorrectionPanel({kind,sourceId,permissions,roleCodes,use
    <Stack direction="row" spacing={1}><Chip label={stateLabel(r.approvalInstance.approvalState)} size="small"/><Typography variant="body2">{r.sourcePostedAt?t.posted:t.unposted}</Typography></Stack>
    <Typography variant="body2" sx={{overflowWrap:'anywhere'}}>{r.reason}</Typography>
    <Typography variant="caption">{new Date(r.requestedAt).toLocaleString()}</Typography>
+   {r.approvalInstance.actions.map(a=><Stack key={a.id} spacing={0.25} data-testid="movement-correction-decision-history">
+    <Typography variant="body2">{t.decidedBy}: {a.actionByUser.displayName} ({a.action==='APPROVE'?t.approved:t.rejected})</Typography>
+    <Typography variant="caption">{t.decisionAt}: {new Date(a.actionAt).toLocaleString()}</Typography>
+    {a.comment?<Typography variant="body2" sx={{overflowWrap:'anywhere'}}>{t.comment}: {a.comment}</Typography>:null}
+   </Stack>)}
    {reviewer&&r.requestedByUserId!==userId&&r.approvalInstance.approvalState==='SUBMITTED'?<>
     <TextField label={t.comment} value={comment} onChange={e=>setComment(e.target.value)} disabled={locked} inputProps={{maxLength:1000}}/>
     <Stack direction={{xs:'column',sm:'row'}} spacing={1}>
