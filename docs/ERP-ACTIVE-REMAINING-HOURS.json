@@ -5752,6 +5752,111 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-178",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_HISTORICAL_AND_LANE_OBSERVATION",
+      "beforeHours": 17,
+      "afterHours": 16,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934"
+      ],
+      "basis": "165/168 original table fingerprints matched natively; zero nonempty new tables and zero non-null additive column tables. Three auth tables still differ. One provisional forecast hour retired for the observed comparison, not full preservation or helper implementation.",
+      "blocker": "Three authentication differences, native compiled rebuild, independent review and release gates pending.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-179",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_NATIVE_HISTORICAL_AND_LANE_OBSERVATION",
+      "beforeHours": 24.25,
+      "afterHours": 24,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934"
+      ],
+      "basis": "Native aggregate queries executed; zero dimensioned links, zero confirmed weighted plans and source lines. Retires initial native evidence-discovery task only, not the representative journey.",
+      "blocker": "Actual representative deployed workflow and required authorization/browser evidence pending.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-180",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_NATIVE_HISTORICAL_AND_LANE_OBSERVATION",
+      "beforeHours": 31.25,
+      "afterHours": 31,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934"
+      ],
+      "basis": "Native aggregates: two PO-linked deliveries, zero receiving/transfer binding discrepancies, zero correction-linked PR lines. Retires evidence discovery only, not correction lifecycle or role tests.",
+      "blocker": "Actual representative deployed workflow and required authorization/browser evidence pending.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-04-181",
+      "date": "2026-11-27",
+      "packageId": "M6-04",
+      "kind": "M6_NATIVE_HISTORICAL_AND_LANE_OBSERVATION",
+      "beforeHours": 18.25,
+      "afterHours": 18,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934"
+      ],
+      "basis": "Native aggregates: one physical claim, one decision, one retention entry, zero certification scope discrepancies. Retires evidence discovery only, not certification/role tests.",
+      "blocker": "Actual representative deployed workflow and required authorization/browser evidence pending.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-05-182",
+      "date": "2026-11-27",
+      "packageId": "M6-05",
+      "kind": "M6_NATIVE_HISTORICAL_AND_LANE_OBSERVATION",
+      "beforeHours": 17.75,
+      "afterHours": 17.5,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934"
+      ],
+      "basis": "Native aggregates: two private revisions, one employment revision, one attachment, zero attachment scope discrepancies. Retires evidence discovery only, not privacy access or byte-denial tests.",
+      "blocker": "Actual representative deployed workflow and required authorization/browser evidence pending.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5781,8 +5886,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1718.5,
-  "currentRollingTotalSemantics": "1718.5h = previous1720.5h minus 1h local shared historical rows/rebuild implementation and 1h four local lane evidence preparations (0.25 each). M6 108.5h, M7 50h, M8 65h, combined223.5h. Actual labor unknown, no formal acceptance change, all112 IDs retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1716.5,
+  "currentRollingTotalSemantics": "1716.5h = previous1718.5h minus 1h partial native historical comparison and 1h native lane evidence discovery. M6 106.5h, M7 50h, M8 65h, combined221.5h. No actual labor measurement or formal acceptance change; all112 requirements retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",

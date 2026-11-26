@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 108.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 223.5h → 0h · Full ERP 1,718.5h → 0h.**
+**M4 CLOSED 0h · M6 106.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 221.5h → 0h · Full ERP 1,716.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -39,6 +39,8 @@
 **M6 110.5→108.5h (events172–176):** [evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729). [Candidate a75f7132](https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689), 16/16 local shared helper tests and 16/16 lane fixture tests passed, exact published blobs matched; read-only row/rebuild and aggregate lane CLI wiring awaiting actual Mac proof. M6-01 18→17h; lane A24.5→24.25, B31.5→31.25, C18.5→18.25, D18→17.75. No worker sessions, actual business execution, new CI or acceptance. Prior full ERP1720.5−2=1718.5h, provisional forecast only.
 
 **Event177:** [Mac 32/32 fixture PASS, native observation blocked and targeted correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200428822). [Corrected candidate](https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704) removes five malformed SQL alias references in lanes A/B, separates historical-row/lane results and redacts stage diagnostics. Local 4/4 diagnostic tests PASS, exact blob match; new alias regressions and native readback pending. Rebuild not started. No credit for rework or repeated fixture checks, no new CI. M6-01 remains17h, M6 108.5h, full ERP1,718.5h.
+
+**M6 108.5→106.5h (events178–182):** [Mac evidence and follow-up](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200540147); exact [60a97e12](https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704) 14/14 PASS and native 165/168 original fingerprints match; auth differences only, four lane aggregate probes complete (none workflow accepted). [Authentication comparator](https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934) local 10/10 helper tests PASS, source bytes verified; rehearsal source availability and native proof unknown. Compiled rebuild NOT_RUN. M6-01 17→16h; lanes A24.25→24, B31.25→31, C18.25→18, D17.75→17.5. No repeated-test/rework credit, no new auth-helper forecast deduction, no release acceptance. Full ERP1,716.5h.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
