@@ -5731,6 +5731,27 @@
       "verifiedCompletedScopeHours": 0.25,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-177",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_OBSERVATIONS_BLOCKED_SQL_ALIAS_DIAGNOSTIC_CORRECTION",
+      "beforeHours": 17,
+      "afterHours": 17,
+      "sourceSha": "60a97e120770313ca32d8015e490cc66e3a20704",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200428822",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689",
+        "https://github.com/threeswordz/cinder-grind/commit/60a97e120770313ca32d8015e490cc66e3a20704"
+      ],
+      "basis": "Owner exact-head Mac a75f7132d8098ff4c88fab539e7f9bc4d7606689: 32/32 focused fixture tests passed (125.236041ms), native rows/four lanes inspection returned M6_NATIVE_PRIVATE_FAILURE, no individual results, and set -e stopped before the rebuild. Actual failed native stage remains unknown. Source inspection identified concrete erroneous schema-prefix expansion in lane A (3 public.i alias references) and lane B (2 public.d alias references); these would fail live SQL, but cannot prove first failure stage from generic output. Corrected five references, added explicit alias regression tests, isolated historical-row and lane outcomes and optional rebuild in redacted stage wrapper; only safe code/Prisma code/SQLSTATE returned, no raw private messages/SQL/values. Stage failures remain blocked and yield nonzero exit; final migration/runtime checks retained. Actual local Node22.16.0 diagnostic helper 4/4 PASS, published exact tested blobs 667fa05568295f8d26cd6d02df9e062a0be9ddab and 4bfd51fd7ffa91d444db9331695072fec3a3fe7e match. New alias regressions and combined native CLI not yet executed. Consolidated candidate 60a97e120770313ca32d8015e490cc66e3a20704, zero Actions runs; original isolated A/B refs retain prior code, coordinator candidate supersedes their query implementations. No scope increase, no credit for rework or already-priced fixture tests. No mutations/deployment. Next focused diagnostic and changed lane tests then native rows/lanes, not another full CI or rebuild yet.",
+      "blocker": "Exact corrected native rows and lane observations, historical row comparison, artifact build comparison and release gates pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
