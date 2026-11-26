@@ -6083,6 +6083,26 @@
       "verifiedCompletedScopeHours": 2,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-194",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_POSTED_CORRECTION_HTTP_CUTOVER_AND_SCOPED_READ_DRAFT",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "46979e1bed7ff63942acfd68a6e39347ede4f79a",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201988355",
+        "https://github.com/threeswordz/cinder-grind/commit/46979e1bed7ff63942acfd68a6e39347ede4f79a"
+      ],
+      "basis": "Four guarded request/list/approve/reject routes and four legacy direct HTTP reversal refusals; source-scoped Store own/PM checker read policy. Exact local authority/spec blobs match GitHub; strict authority helper compile, 14/14 local tests PASS including 4 new read cases. Initial raw TS Node extensionless module resolution corrected by CommonJS transpile. Full API build and native HTTP execution not yet performed. No estimate credit until affected end-to-end evidence.",
+      "blocker": "Submitted/unposted cancellation, UI cutover from legacy reverse routes, actual workflow/grants, internal service bypass audit, native HTTP validation incl. all movement types, DB/concurrency/security independent review, integrated release/preservation.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
