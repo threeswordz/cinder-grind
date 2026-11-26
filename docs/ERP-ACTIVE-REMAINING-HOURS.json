@@ -6043,6 +6043,26 @@
       "verifiedCompletedScopeHours": 5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-192",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_DURABLE_ATOMIC_APPROVAL_DRAFT_AND_FOCUSED_RUNNER",
+      "beforeHours": 26,
+      "afterHours": 26,
+      "sourceSha": "88ac733b93bebfec8e7c5fcd2c88b30f043994a3",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201805117",
+        "https://github.com/threeswordz/cinder-grind/commit/88ac733b93bebfec8e7c5fcd2c88b30f043994a3"
+      ],
+      "basis": "Isolated draft branch work-m6-ss16-atomic-approval-20261127 based on b1bc13f8 (corrected supplier replacement fixture). b5a9b071 refactors all four canonical reversal services to optionally execute inside an enclosing Prisma transaction, retaining existing standalone isolation levels. 949a4ae7 adds forward-only immutable request table/migration and registered MovementCorrectionService: request/approval-instance linkage, exact replay identity, source Company/Project/posted timestamp, active live session/Employee/grants and distinct requester, one explicit configured PROJECT_MANAGER step; final approval callback invokes canonical reversal using same transaction, decision audit inside transaction. Proposed workflow code SS16_MOVEMENT_CORRECTION and existing role-specific grants; no retained configuration changed. 12d72bbc adds guarded disposable native GR test (missing workflow, exact request replay, self-approval, immutable request, induced audit failure rolling back canonical stock and approval, revoked grant, exact linked reversal); 88ac733b93bebfec8e7c5fcd2c88b30f043994a3 adds two-group Mac runner for corrected PUR14 and new SS16 core only, prior six groups and FM02 retained not repeated. Exact published source readback verified; no real Prisma schema validation, TypeScript build, migration or native test run yet. Draft core only: no HTTP routes/UI, legacy direct-reversal bypass still open, submitted/unposted cancellation not implemented, actual configured grants not established, other three movement types need native coverage, DB binding/concurrency/authorization review outstanding. No formal acceptance, new CI, protected-main changes, production actions, Codex execution or forecast credit. M6-03 remains26h; M6 remains97.5h.",
+      "blocker": "Mac schema/build and two native groups; activate scoped endpoints/UI and configured step, prevent legacy bypass, submitted/unposted cancellation, additional movement/negative coverage, independent review.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
