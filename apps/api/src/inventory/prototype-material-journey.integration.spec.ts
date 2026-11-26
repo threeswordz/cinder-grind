@@ -194,8 +194,14 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       // Verify the actual guarded HTTP reversal boundary and its stock/readback effects.
       await call(f.foreman, '/inventory/material-issues/' + issue.id + '/reverse', 403,
         { reversalKey: randomUUID(), reason: 'Foreman cannot reverse a material issue' });
-      await call(f.store, '/inventory/material-issues/' + issue.id + '/reverse', 201,
-        { reversalKey: randomUUID(), reason: 'Synthetic physical issue reversal' });
+      const reversal = { reversalKey: randomUUID(), reason: 'Synthetic physical issue reversal' };
+      const reversePath = '/inventory/material-issues/' + issue.id + '/reverse';
+      await call(f.store, reversePath, 201, reversal);
+      const afterReversalStock = await db.stockTransaction.count({ where: { materialIssueId: issue.id } });
+      await call(f.store, reversePath, 201, reversal);
+      await call(f.store, reversePath, 409, { ...reversal, reason: 'Changed reversal reason' });
+      assert.equal(await db.stockTransaction.count({ where: { materialIssueId: issue.id } }), afterReversalStock);
+      assert.equal((await db.materialIssue.findUniqueOrThrow({ where: { id: issue.id } })).reversalReason, reversal.reason);
       const reversed = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(reversed.lines[0].issuedQuantity, '0.0000');
       assert.equal(reversed.lines[0].acknowledgedQuantity, '0.0000');

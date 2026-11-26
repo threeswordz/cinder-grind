@@ -1,3 +1,4 @@
+import { reversalReplayState } from './movement-reversal-replay';
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
@@ -530,7 +531,9 @@ export class MaterialReturnService {
         'material-return-reverse:' + id,
       );
       const row = await this.get(context.auth, id, tx);
-      if (row.reversedAt && row.reversalKey === reversalKey) return row;
+      const replay = reversalReplayState(row, reversalKey, reason);
+      if (replay === 'CONFLICT') throw new ConflictException({ code: 'MATERIAL_RETURN_REVERSAL_REPLAY_CONFLICT' });
+      if (replay === 'MATCH') return row;
       if (!row.postedAt || row.reversedAt) {
         throw new ConflictException({ code: 'MATERIAL_RETURN_NOT_REVERSIBLE' });
       }

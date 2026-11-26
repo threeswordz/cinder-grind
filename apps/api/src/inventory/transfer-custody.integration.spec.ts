@@ -204,7 +204,14 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       const results = await Promise.all([call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder), call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder)]);
       assert.deepEqual(results[0], results[1]); assert.equal((await detail()).lines[0].outstanding, '0.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '5.0000');
       await db.projectMember.create({ data: { projectId: f.unassigned.id, employeeId: f.store.employee.id, projectRole: 'Explicit synthetic reversal scope' } });
-      await call(f.store, ordinary + '/' + id + '/reverse', 201, { reversalKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' });
+      const reversePath = ordinary + '/' + id + '/reverse';
+      const reversal = { reversalKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' };
+      await call(f.store, reversePath, 201, reversal);
+      const transferStockAfter = await db.stockTransaction.count({ where: { stockTransferId: id } });
+      await call(f.store, reversePath, 201, reversal);
+      await call(f.store, reversePath, 409, { ...reversal, reason: 'Changed transfer correction reason' });
+      assert.equal(await db.stockTransaction.count({ where: { stockTransferId: id } }), transferStockAfter);
+      assert.equal((await db.stockTransfer.findUniqueOrThrow({ where: { id } })).reversalReason, reversal.reason);
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
       await f.sessions.revoke(f.viewer.auth.sessionId);
       await call(f.viewer, destination, 401);

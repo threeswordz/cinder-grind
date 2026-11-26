@@ -1,3 +1,4 @@
+import { reversalReplayState } from './movement-reversal-replay';
 import {activatedStockMaterials} from './material-uom-active-source';
 import {createHash} from 'node:crypto';
 import {inventoryUuid} from './inventory-validation';
@@ -773,9 +774,9 @@ export class StockTransferService {
         const transfer = await this.get(context.auth, id, tx);
         if (transfer.custody) context = { ...context, auth: await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.reverse']) };
         if (transfer.custody) for (const projectId of new Set(transfer.items.map(item => item.destinationProjectId))) await this.access.assertAccess(context.auth, projectId, tx);
-        if (transfer.reversedAt && transfer.reversalKey === reversalKey) {
-          return transfer;
-        }
+        const replay = reversalReplayState(transfer, reversalKey, reason);
+        if (replay === 'CONFLICT') throw new ConflictException({ code: 'STOCK_TRANSFER_REVERSAL_REPLAY_CONFLICT' });
+        if (replay === 'MATCH') return transfer;
         if (!transfer.postedAt || transfer.reversedAt) {
           throw new ConflictException({ code: 'STOCK_TRANSFER_NOT_REVERSIBLE' });
         }

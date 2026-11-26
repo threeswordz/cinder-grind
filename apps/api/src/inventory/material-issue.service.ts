@@ -1,3 +1,4 @@
+import { reversalReplayState } from './movement-reversal-replay';
 import {activatedStockMaterials,lockStockWarehouses} from './material-uom-active-source';
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
@@ -604,7 +605,9 @@ export class MaterialIssueService {
         'material-issue-reverse:' + id,
       );
       const issue = await this.get(context.auth, id, tx);
-      if (issue.reversedAt && issue.reversalKey === reversalKey) return issue;
+      const replay = reversalReplayState(issue, reversalKey, reason);
+      if (replay === 'CONFLICT') throw new ConflictException({ code: 'MATERIAL_ISSUE_REVERSAL_REPLAY_CONFLICT' });
+      if (replay === 'MATCH') return issue;
       if (!issue.postedAt || issue.reversedAt) {
         throw new ConflictException({ code: 'MATERIAL_ISSUE_NOT_REVERSIBLE' });
       }

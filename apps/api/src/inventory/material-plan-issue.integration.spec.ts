@@ -101,7 +101,13 @@ test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and 
    const returned=await f.sourceReturn(overageId,'3');returnId=returned.id;let plan=await f.service.get(f.store.auth,f.plan.id);
    await f.service.revise({auth:f.store.auth},plan.id,{requestKey:randomUUID(),expectedVersion:plan.version,validFrom:'2026-11-01',validTo:'2026-12-31',reason:'Reduce only after canonical return',lines:[{budgetRevisionLineId:f.source.id,materialId:f.material.id,uomId:f.uom.id,quantity:'6'}]});plan=await f.service.get(f.store.auth,plan.id);
    await f.service.submit({auth:f.store.auth},plan.id,{requestKey:randomUUID(),expectedVersion:plan.version});plan=await f.service.get(f.store.auth,plan.id);await f.service.decide({auth:f.manager.auth},plan.id,{requestKey:randomUUID(),expectedVersion:plan.version,decision:'APPROVE',comment:'Net usage carried'});
-   await f.returns.reverse({auth:f.store.auth},returnId,randomUUID(),'Canonical returned material reversal');
+   const returnKey=randomUUID(),returnReason='Canonical returned material reversal';
+   await f.returns.reverse({auth:f.store.auth},returnId,returnKey,returnReason);
+   const returnStockAfter=await db.stockTransaction.count({where:{materialReturnId:returnId}});
+   await f.returns.reverse({auth:f.store.auth},returnId,returnKey,returnReason);
+   await assert.rejects(()=>f.returns.reverse({auth:f.store.auth},returnId,returnKey,'Changed reason'),(e:unknown)=>(e as {getResponse?:()=>{code?:string}}).getResponse?.()?.code==='MATERIAL_RETURN_REVERSAL_REPLAY_CONFLICT');
+   assert.equal(await db.stockTransaction.count({where:{materialReturnId:returnId}}),returnStockAfter);
+   assert.equal((await db.materialReturn.findUniqueOrThrow({where:{id:returnId}})).reversalReason,returnReason);
    plan=await f.service.get(f.store.auth,plan.id);const next=await f.issue('0.0001',false),pins=await f.pin(next.id,plan.approvedRevision!.lines[0]!.id);
    const preview=(await call(f.store,'/issues/'+next.id+'/preview',201,pins)).data;assert.equal(preview.items[0].used,'9.0000');assert.equal(preview.items[0].remaining,'-3.0000');await call(f.store,'/issues/'+next.id+'/within-plan',409,pins);
    await f.issues.reverse({auth:f.store.auth},overageId,randomUUID(),'Canonical source reversal after returned row reversed');
