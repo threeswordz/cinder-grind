@@ -4,12 +4,12 @@
 
 | Package | Estimate | First execution objective |
 |---|---:|---|
-| M6-01 | 19 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
+| M6-01 | 18 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
 | M6-02 | 24.5 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
 | M6-03 | 31.5 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
 | M6-04 | 18.5 | Physical acceptance/certification history |
 | M6-05 | 18 | HR private file/history and keys |
-| Total | 111.5 | Low confidence estimates, no actual labor |
+| Total | 110.5 | Low confidence estimates, no actual labor |
 
 Earlier exact M6 local helper regressions preserved; integration against current M4 runtime not assumed. First reconcile candidate branch and guard against duplicate old journeys/receipt identity. Use focused validation, independent review for changed candidate and specific #384 release authority; no full CI until appropriate. DEC-042 human UAT at frozen prototype, GL04/05 carryover as approved. Existing synthetic login checks are not comprehensive role acceptance.
 
@@ -57,3 +57,9 @@ M6-01 20.5→19.5h; M6 112h. [Evidence](https://github.com/threeswordz/cinder-gr
 Owner exact-head Mac 0e2b419a73e4811506a66ebfff83c8fbff00a95b: schema discovery found database-baseline-private.json (array table/rows/sha256), file-baseline-private.json (documents/hrkeys/uploads); preservation inspection stopped M6_HISTORICAL_BACKUP_RECEIPT_INVALID. Source execution order proves prior live migration name/checksum comparison with 177 planned and SQL-source entries and 166 predecessor entries passed (11 addition count only). No archive or file comparison reached. Recovered prior original capture contract: backup isolatedRestoreVerified=false at capture, separate rehearsal isolatedRestoreVerified=true; previous helper incorrectly expected both in one receipt. 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4 requires both independent pinned receipts, retains capture receipt unchanged, normalizes original historical [path,file,size,sha256] manifest and compares retained AND live inventories against historical manifest. Actual local Linux Node22.16.0 15/15 new receipt/manifest tests PASS (136.794962ms), exact Git blobs e22652a34cbb1267ed16f546e9c8e8799b644798 and 675c5642d69003f0505d46c432add9feb37a540f match. Three integration files also changed; updated integration tests/native readback pending. No new Actions runs. 0.5h provisional credit for separately observed native migration checksum milestone, zero credit for correcting own receipt assumption. No additional rework allowance; no measured labor, formal acceptance or historical row proof.
 
 M6-01 19.5→19h; M6 111.5h. [Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200152088).
+
+## Native backup preservation PASS (event171)
+
+Owner supplied exact-head Mac output 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4: 26/26 focused backup tests PASS, no failures or skips, 51.058708ms. Native M6_HISTORICAL_BACKUP_CHECKS_PASS: 166 historical and 177 live migration checksums matched, additive migration count11, retained archive SHA-256 matched and protected copies match current and original saved manifest. Historical database row and compiled artifact provenance flags remain false; mayMutate=false, productionAuthorized=false. No new migration credit (already recorded event170). Provisional 0.5h each for native archive and protected-file checks completed, 1h total, not measured labor; no new scope or formal acceptance. Next reconstruct exact historical SQL row fingerprint projection from original operator, reconcile session/permission exceptions and additive columns, then prove compiled artifact provenance and integrate successor release. No repeat of unchanged tests required.
+
+M6-01 19→18h; M6 110.5h. [Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200204517).

@@ -5607,6 +5607,26 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-171",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_HISTORICAL_BACKUP_AND_PROTECTED_FILES_PASS",
+      "beforeHours": 19,
+      "afterHours": 18,
+      "sourceSha": "13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200204517",
+        "https://github.com/threeswordz/cinder-grind/commit/13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4"
+      ],
+      "basis": "Owner supplied exact-head Mac output 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4: 26/26 focused backup tests PASS, no failures or skips, 51.058708ms. Native M6_HISTORICAL_BACKUP_CHECKS_PASS: 166 historical and 177 live migration checksums matched, additive migration count11, retained archive SHA-256 matched and protected copies match current and original saved manifest. Historical database row and compiled artifact provenance flags remain false; mayMutate=false, productionAuthorized=false. No new migration credit (already recorded event170). Provisional 0.5h each for native archive and protected-file checks completed, 1h total, not measured labor; no new scope or formal acceptance. Next reconstruct exact historical SQL row fingerprint projection from original operator, reconcile session/permission exceptions and additive columns, then prove compiled artifact provenance and integrate successor release. No repeat of unchanged tests required.",
+      "blocker": "Historical database row projection comparison, compiled artifact provenance and integrated successor release remain pending.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5636,8 +5656,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1721.5,
-  "currentRollingTotalSemantics": "1721.5h = previous1722h minus 0.5h provisional native migration checksum verification. M6 111.5h, M7 50h, M8 65h, combined226.5h. No credit for rework, no measured labor or formal acceptance change; all112 requirements retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1720.5,
+  "currentRollingTotalSemantics": "1720.5h = previous1721.5h minus 1h provisional native archive and protected-file evidence. M6 110.5h, M7 50h, M8 65h, combined225.5h. Actual labor unknown, all112 requirements retained, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
