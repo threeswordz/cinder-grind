@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Company {
+  movementCorrectionRequests MovementCorrectionRequest[]
   poDispatchEvents PoDispatchEvent[]
   materialPlanPolicies MaterialPlanProjectPolicy[]
   materialPlanIssueOperations MaterialPlanIssueOperation[]
@@ -253,6 +254,7 @@ model Employee {
 }
 
 model User {
+  movementCorrectionRequests MovementCorrectionRequest[] @relation("MovementCorrectionRequester")
   poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
   capturedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryCreator")
@@ -543,6 +545,7 @@ model ApprovalStepRole {
 }
 
 model ApprovalInstance {
+  movementCorrectionRequest MovementCorrectionRequest?
   materialPlanIssueAuthorization MaterialPlanIssueAuthorization?
   customerBoqVersion CustomerBoqVersion?
 
@@ -4462,4 +4465,25 @@ model MaterialUomActivation {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   @@unique([companyId, actorUserId, requestKey])
   @@map("material_uom_activations")
+}
+
+model MovementCorrectionRequest {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  sourceKind String @map("source_kind") @db.VarChar(30)
+  sourceId String @map("source_id") @db.Uuid
+  sourcePostedAt DateTime @map("source_posted_at") @db.Timestamptz(6)
+  requestKey String @map("request_key") @db.VarChar(120)
+  reason String @db.Text
+  requestedByUserId String @map("requested_by_user_id") @db.Uuid
+  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+  approvalInstanceId String @unique @map("approval_instance_id") @db.Uuid
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  requestedBy User @relation("MovementCorrectionRequester", fields: [companyId, requestedByUserId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, sourceKind, sourceId, requestKey], map: "movement_correction_request_replay_key")
+  @@index([companyId, sourceKind, sourceId], map: "movement_correction_source_idx")
+  @@map("movement_correction_requests")
 }
