@@ -4549,6 +4549,28 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-124",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_POST_READY_NFC_READINESS_FINDING_CORRECTED_FOCUSED_PROOF_PENDING",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "709b9d8e6be5d1341a4d26410846eda4ba29bf5e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7181853848",
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703622481",
+        "https://github.com/threeswordz/cinder-grind/commit/709b9d8e6be5d1341a4d26410846eda4ba29bf5e",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750532867"
+      ],
+      "basis": "Owner authorized corrected5af60607 Ready and conditional guarded merge after post-Ready clean evidence and identity checks. Ready completed; post-Ready review found decomposed supplier Unicode blocked readiness because generated HTML uses NFC and expected text did not. Merge condition was unsatisfied. Returned PR to Draft, corrected expected name through existing clean() for both browser attempts, and added actual Chromium/searchable PDF regressions for decomposed Cafe and A-ring names. Local API build/Unicode HTML test PASS; focused hosted renderer run45750532867 pending. No protected merge occurred.",
+      "blocker": "Observe new exact Chromium regressions, independently re-review new709b9d8e, then applicable source-specific full/Ready/integration authorization.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
