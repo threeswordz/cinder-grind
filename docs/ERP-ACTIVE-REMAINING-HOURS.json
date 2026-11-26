@@ -5442,6 +5442,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-163",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_POST_M4_HISTORICAL_CUSTODY_CHECKOUT_LOCAL_FOCUSED_PASS",
+      "beforeHours": 22.5,
+      "afterHours": 22,
+      "sourceSha": "a1f8325ec53a31ee9c7596dbaf6d419767429a84",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/3481a00e52d96217d10ab76d2b4fc60a901719dd",
+        "https://github.com/threeswordz/cinder-grind/commit/a1f8325ec53a31ee9c7596dbaf6d419767429a84",
+        "https://github.com/threeswordz/cinder-grind/compare/9417f07c609dbc091b5bbe2e09071c5e2c316459...a1f8325ec53a31ee9c7596dbaf6d419767429a84"
+      ],
+      "basis": "Implemented separate read-only historical receipt and checkout adapter pinned to M4 deployed application, original and target SHAs, exact tree and full-main run. Node22.16.0 Linux local 30/30 focused tests actually passed on temporary files and real temporary Git checkout; four local git hash-object values match published blobs. No replay or authority to mutate. Main unchanged, candidate ahead3/behind0 with 23 added files only, zero Actions runs observed at head. Conservatively retire 0.5h estimated implementation allowance for local identity guard/checkout inspection only; live private receipt schema/runtime/process/container/DB/build bytes, integration and independent review remain unverified. No actual labor claim.",
+      "blocker": "Connect successor read-only entry to actual Mac process/artifact/container/session/database/file preservation evidence and reconcile complete existing helper suite. Actual Mac private receipt schema has not been independently inspected; no --execute or release authority. Parallel lane boundaries recorded; shared integration contract not yet complete.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5471,8 +5492,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1725,
-  "currentRollingTotalSemantics": "1725h = 1732.5h prior less 0.5h verified release allowance and 7h overlapping named acceptance estimate removed (already priced GL04 ROLE-01/02/03); 3h transferred to M6-02/03, no new scope or actual labor. M4 0h bounded technical closure; M6 115h, M7 50h, M8 65h, combined230h. Formal business acceptance remains 0/8; all 112 criteria preserved. GL04 120h and GL05 300h include residual configuration/UAT/HR scope; reserve is specific to extra integrated M6 verification not duplicated in other budget.",
+  "currentRollingTotalAfterPricedGapsHours": 1724.5,
+  "currentRollingTotalSemantics": "1724.5h = previous 1725h minus 0.5h estimated M6-01 local historical custody/checkout guard implementation. M4 0h, M6 114.5h, M7 50h, M8 65h, combined229.5h. Actual labor unknown; formal acceptance unchanged, all112 requirements preserved. Prior M4 reallocation remains in m4TechnicalClosure.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",

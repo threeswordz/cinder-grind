@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 115h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 230h → 0h · Full ERP 1,725h → 0h.**
+**M4 CLOSED 0h · M6 114.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 229.5h → 0h · Full ERP 1,724.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -17,6 +17,8 @@
 **M6 active:** [execution baseline](M6-2026-11-27-POST-M4-EXECUTION-BASELINE.md); reconcile staged candidate against actual M4 main and Mac identity. Existing M6 local helper evidence preserved, no previous runtime journey replay. Actual human labor unmeasured. GL04/05 unchanged; specific carryovers tracked once. No new CI.
 
 **M6 candidate started:** [`b99f5b7b`](https://github.com/threeswordz/cinder-grind/commit/b99f5b7b1f2fc5190f1b61d181c78dbe00809b18), branch `work-m6-post-m4-preservation-baseline-20261127`. Exact parent M4 main; 19/19 standalone preservation/test blobs recovered from prior M6 branch, only 19 added files, no workflow/app/schema/legacy operator changes. Zero Actions runs observed; previous test evidence retained, no fresh test claim or forecast credit. Next adapt successor operator to actual M4 custody, avoid historical M6 business replay.
+
+**M6-01 22.5→22h (local bounded implementation only):** [historical receipt adapter](https://github.com/threeswordz/cinder-grind/commit/3481a00e52d96217d10ab76d2b4fc60a901719dd) and [pinned checkout inspector](https://github.com/threeswordz/cinder-grind/commit/a1f8325ec53a31ee9c7596dbaf6d419767429a84); actual local Node22.16.0 30/30 focused tests PASS, four exact published blob hashes match. Candidate ahead3/behind0, 23 added files, zero Actions runs observed. No historical replay, release or live Mac proof. Previous 1,725h −0.5h = 1,724.5h; provisional allowance for locally verified implementation only. Shared lane interfaces in [M6 execution baseline](M6-2026-11-27-POST-M4-EXECUTION-BASELINE.md). Next bind current owned process/artifact/container/DB/session and protected-file identity, integrate existing preservation helpers. Actual Mac private receipt schema remains unverified; fail closed, no mutation. No new full CI.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
