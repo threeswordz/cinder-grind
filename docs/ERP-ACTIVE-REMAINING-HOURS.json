@@ -4752,6 +4752,25 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M6-02-134",
+      "date": "2026-11-26",
+      "packageId": "M6-02",
+      "kind": "M6_FM02_HISTORICAL_PROGRESS_PRESERVATION_CONTRACT_LOCAL_PASS",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "0d79684314fea829376492a102a61cba730ad40b",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0d79684314fea829376492a102a61cba730ad40b"
+      ],
+      "basis": "Exact integrated predecessor migration adds three nullable activity_progress fields and two weighted-progress tables. Existing exact historical row helper accepts non-null new field (locally reproduced with original blob b33f5866c3a95c07d675d2ab778d7d0fdc8941dd). New migration-specific helper checks exact old SQL values, counts, three explicit null additions, no unexpected columns and both new tables empty. Actual container Node22.16.0 7/7 focused tests PASS; new source and test blobs b2ed42fa7e4f8432db918c81753e7c0a7b38fd47 and cc9c36a79cee884cc467c3fc3655916f979bae50 matched remote; runtime import and calls at rehearsal, source migration, final preservation read back from exact new blob da2af9b239f382ed6587597eb30db9fede964b3b. Existing generic proof gap +0.5h and correction -0.5h provisional net zero; no actual runtime execution or native database proof.",
+      "blocker": "Independent review, authorized native populated Mac/PG rehearsal and site journey; M4 release first.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
