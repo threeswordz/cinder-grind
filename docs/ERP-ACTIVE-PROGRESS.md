@@ -3,9 +3,7 @@
 <!-- current-work-m4 -->
 **M4 10.5h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) at `9482cd57d5eacf4f8708859f84d6fb94d9c7fd02` corrects the post-Ready NFC readiness defect and bounded profile cleanup. [Real Chromium regression](https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698) passed3/3. [Independent re-review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182040132) is clean and all findings are resolved. Full46/46 remains recorded for prior5af60607. The current draft full45750831129 stopped at admission. Current-source full/Ready/post-Ready review/guarded integration authorization and retained technical readback remain.
-
-[Current-source full45750831129 attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45750831129/attempts/2) passed46/46 at9482cd57 with final source/base identity confirmed. Under explicit Owner guarded-sequence authority, that head became Ready at2026-11-26T04:20:43Z. Post-Ready clean review and integration checks remain before authorized squash.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) at `0bcc355c0149197c13a90b0c652452861496578e` corrects post-Ready [P2 page clipping](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703866900), preserves delivery contact and bounds ASCII/Unicode/browser export. [Exact targeted proof](https://github.com/threeswordz/cinder-grind/actions/runs/45755656135/job/139693546793) SUCCESS: API build, web typecheck, real PDF page bounds and browser print; workflow-only child excluded. [Independent re-review requested](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182741761); layout thread remains open pending review. Full 46/46 at [9482cd57](https://github.com/threeswordz/cinder-grind/actions/runs/45750831129/attempts/2) is prior-source evidence only; new [draft run](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615) stopped at admission. Previous conditional authorization does not transfer to changed source. No further full CI, Ready or merge initiated.
 
 | Forecast reconciliation | Hours |
 |---|---:|
@@ -14,7 +12,7 @@
 | Verified remaining-effort reduction | −0 |
 | Revised remaining ERP forecast | **1,733** |
 
-Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved.
+Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. Next: exact independent review; fresh source-specific release authorization; governed integration and retained technical readback. [Event129](https://github.com/threeswordz/cinder-grind/commit/167fff602d4100ffeab6515218a080421160545a).
 <!-- /current-work-m4 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
