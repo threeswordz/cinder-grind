@@ -522,8 +522,9 @@ export class MaterialReturnService {
     id: string,
     reversalKey: string,
     reason: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
       const sourceItems=await tx.materialReturnItem.findMany({where:{materialReturnId:id},select:{materialIssueItem:{select:{materialIssueId:true}}}});
       await lockMaterialPlanLineages(tx,sourceItems.map(i=>i.materialIssueItem.materialIssueId));
       await tx.$executeRawUnsafe(
@@ -621,7 +622,9 @@ export class MaterialReturnService {
         newValues: { reversalKey, reason, reversedAt: at },
       }, tx);
       return this.get(context.auth, id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private async assertCurrentReturnAuthority(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,permission:string){

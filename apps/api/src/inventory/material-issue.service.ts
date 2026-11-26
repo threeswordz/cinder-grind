@@ -597,8 +597,9 @@ export class MaterialIssueService {
     id: string,
     reversalKey: string,
     reason: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
       await lockMaterialPlanLineages(tx,[id]);
       await tx.$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -713,7 +714,9 @@ export class MaterialIssueService {
         newValues: { reversalKey, reason, reversedAt: at },
       }, tx);
       return this.get(context.auth, id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private async reservationPostingPins(tx:Prisma.TransactionClient,issue:{companyId:string;projectId:string;warehouseId:string;items:{id:string;reservationId:string|null;materialId:string;uomId:string;quantity:Prisma.Decimal}[]}) {

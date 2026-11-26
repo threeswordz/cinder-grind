@@ -763,9 +763,9 @@ export class StockTransferService {
     id: string,
     reversalKey: string,
     reason: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
         await tx.$executeRawUnsafe(
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'stock-transfer-reverse:' + id,
@@ -897,9 +897,9 @@ export class StockTransferService {
           tx,
         );
         return this.get(context.auth, id, tx);
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private dimension(
