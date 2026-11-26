@@ -4592,6 +4592,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-126",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_NFC_AND_PROFILE_CLEANUP_HOSTED_CHROMIUM_3_TESTS_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9482cd57d5eacf4f8708859f84d6fb94d9c7fd02",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182014808"
+      ],
+      "basis": "Exact source9482cd57 hosted renderer job SUCCESS. All3 tests passed including real searchable Thai service fallback, decomposed Cafe/A-ring names normalized for readiness and original inputs preserved. Terminal M4_PUR07_UNICODE_NFC_CHROMIUM_PASS. Bounded owned-profile removal retry passed. Independent re-review requested for the two-file delta from full-green5af60607. New exact full run45750831129 first attempt is draft-admission failure only.",
+      "blocker": "Independent re-review and specific source full/Ready/integration authorization. Retained technical readback remains.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [

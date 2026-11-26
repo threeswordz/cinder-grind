@@ -7,7 +7,7 @@ Post-Ready review found two PUR07 PDF defects on82df55d after its full46/46 PASS
 
 Post-Ready review of5af60607 found [a Unicode normalization readiness defect](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703622481). The merge condition was unsatisfied. [Draft correction709b9d8e](https://github.com/threeswordz/cinder-grind/commit/709b9d8e6be5d1341a4d26410846eda4ba29bf5e) uses the existing NFC cleaner for expected readiness text and adds real decomposed-name PDF regressions. [Focused renderer run45750532867](https://github.com/threeswordz/cinder-grind/actions/runs/45750532867) is pending. Full46/46 remains recorded for5af60607.
 
-The decomposed-name regression passed in real Chromium. An existing renderer test then failed at owned profile cleanup with ENOTEMPTY. [Successor9482cd57](https://github.com/threeswordz/cinder-grind/commit/9482cd57d5eacf4f8708859f84d6fb94d9c7fd02) adds bounded removal retries. [Focused renderer45750861241](https://github.com/threeswordz/cinder-grind/actions/runs/45750861241) is running. Independent re-review follows terminal focused proof.
+The decomposed-name regression passed in real Chromium. An existing renderer test then failed at owned profile cleanup with ENOTEMPTY. [Successor9482cd57](https://github.com/threeswordz/cinder-grind/commit/9482cd57d5eacf4f8708859f84d6fb94d9c7fd02) adds bounded removal retries. [Focused renderer45750861241](https://github.com/threeswordz/cinder-grind/actions/runs/45750861241/job/139678036698) passed all3 real Unicode PDF regressions. [Independent re-review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182014808) is pending on9482cd57.
 
 | Forecast reconciliation | Hours |
 |---|---:|
