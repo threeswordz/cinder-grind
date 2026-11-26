@@ -4980,6 +4980,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-145",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_EXACT_FULL_CI_SUCCESS_OWNER_AUTHORIZED_READY",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "20dc687a762843d7ec865c0776ac7753bf6512e1",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45836902629/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45836902629/job/139975395637",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7195754229"
+      ],
+      "basis": "Exact full PR attempt2 SUCCESS at 20dc687a, 41/41 primary validation steps, including previously failing deployment-pack, historical rehearsals, paired recovery, restored runtime and consolidated evidence. Owner-authorized Ready transition verified on unchanged head/base, no new PR CI run observed. Pre-Ready independent clean receipt #7194757733 and zero unresolved review threads. No separately priced credit for full CI; M4-08 closure remains open, headline 10.5h vs latest package sum 8h discrepancy remains unresolved. No formal acceptance or actual labor claim.",
+      "blocker": "Authentic post-Ready final independent review; specific guarded integration authorization and verified main reuse; retained non-Production upgrade/readback and requirements/package dispositions. No new full CI, source change or deployment.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [

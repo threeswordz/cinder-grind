@@ -3,16 +3,16 @@
 <!-- current-work-m4 -->
 **M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) exact `20dc687a762843d7ec865c0776ac7753bf6512e1`; [Owner Mac evidence and independent review request](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7194683266): Node24.21.0, exact three-file correction scope, rehearsal shell syntax, 35/35 focused contract tests PASS; final clean-worktree marker not shown. No actual DB/recovery or full-suite claim. Retire only 0.5h preflight rework from event143. [New Draft run45836902629](https://github.com/threeswordz/cinder-grind/actions/runs/45836902629) attempt1 blocked at admission as intended; no full authorization yet. Independent review pending; no runtime/schema/SQL change.
+[Ready PR455](https://github.com/threeswordz/cinder-grind/pull/455) exact `20dc687a762843d7ec865c0776ac7753bf6512e1`; [full PR CI45836902629 attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45836902629/attempts/2) SUCCESS 41/41 primary steps including historical rehearsals and paired recovery. [Owner-authorized Ready](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7195754229) verified unchanged source/base, no duplicate CI observed; [pre-Ready clean review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7194757733), 0 unresolved threads. Post-Ready independent receipt pending. No separately allocated CI-hour credit; headline M4 10.5h remains provisional versus 8h latest package sum (2.5h reconciliation unresolved). No merge, deployment or retained acceptance.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,733 |
+| Previous reported ERP forecast | 1,732.5 |
 | Newly identified mandatory scope | +0 |
 | Newly identified mandatory rework | +0 |
-| Verified correction rework reduction | −0.5 |
+| Verified correction rework reduction | −0 |
 | Revised remaining ERP forecast | **1,732.5** |
 
 Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
