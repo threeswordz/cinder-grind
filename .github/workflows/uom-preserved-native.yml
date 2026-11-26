@@ -1,45 +1,43 @@
-name: UOM Preserved Prototype Targeted
+name: M4 PUR14 Linked Source Authorization Targeted
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
-    paths:
-      - '.github/workflows/uom-preserved-native.yml'
-      - 'deploy/uat/prototype-uom-*.mjs'
-      - 'deploy/uat/prototype-material-run-native.mjs'
-      - 'deploy/uat/material-uom-browser.mjs'
-      - 'deploy/release-candidate/prototype-uom-upgrade.test.mjs'
+    branches: ['work-m4-pur14-linked-source-ci-20261126']
+    paths: ['.github/workflows/uom-preserved-native.yml']
 permissions:
   contents: read
 concurrency:
-  group: uom-preserved-native-${{ github.ref }}
+  group: m4-pur14-document-readback-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  uom-preserved:
+  pur14-document-readback:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     services:
       postgres:
         image: postgres:17.11-alpine
         env:
-          POSTGRES_DB: construction_erp
-          POSTGRES_USER: construction_erp
-          POSTGRES_PASSWORD: construction_erp_dev_only
+          POSTGRES_DB: erp_m4_supplier_attribution
+          POSTGRES_USER: m4_test
+          POSTGRES_PASSWORD: m4_test_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-cmd "pg_isready -U m4_test -d erp_m4_supplier_attribution"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      DATABASE_URL: postgresql://m4_test:m4_test_only@127.0.0.1:5432/erp_m4_supplier_attribution?schema=public
+      NODE_ENV: test
+      STORAGE_ROOT: /tmp/m4-pur14-documents
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
     steps:
-      - name: Checkout exact candidate
+      - name: Checkout exact correction source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
+          ref: 024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -49,17 +47,20 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.21.0
-      - name: Install locked dependencies and generate schema
+      - name: Build isolated source and database
         run: |
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2"
+          mkdir -p "$STORAGE_ROOT"
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
-      - name: Build actual API
-        run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
-        run: node deploy/uat/prototype-material-run-native.mjs
-      - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api build
+      - name: Verify native document authorization and supplier lifecycle
+        working-directory: apps/api
+        run: |
+          node --test --test-concurrency=1 dist/procurement/supplier-return-custody.native.integration.spec.js dist/procurement/supplier-delivery-case.native.integration.spec.js dist/procurement/supplier-attribution-boundary.native.integration.spec.js dist/procurement/purchase-order.pur10-finalization.integration.spec.js
+      - name: Record exact bounded proof
+        run: |
+          test "$(git rev-parse HEAD)" = "024b30c3d03bba3a3ecb513ef59a4099b9ab2cf2"
+          echo M4_PUR14_LINKED_SOURCE_TARGETED_PASS
