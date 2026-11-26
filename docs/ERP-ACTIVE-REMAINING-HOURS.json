@@ -5565,6 +5565,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-169",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_ADMISSION_PASS_AND_HISTORICAL_BACKUP_HELPER_LOCAL_PASS",
+      "beforeHours": 20.5,
+      "afterHours": 19.5,
+      "sourceSha": "0e2b419a73e4811506a66ebfff83c8fbff00a95b",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200101472",
+        "https://github.com/threeswordz/cinder-grind/commit/3a7a2801301efdda4fbea72f0203f63c7cd980d1",
+        "https://github.com/threeswordz/cinder-grind/commit/0e2b419a73e4811506a66ebfff83c8fbff00a95b"
+      ],
+      "basis": "Owner Mac exact candidate 3a7a2801301efdda4fbea72f0203f63c7cd980d1: 42/42 focused tests PASS, zero failures/skips, duration 101.612ms; M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS, processChecksPassed true, zeroActiveSessionsObserved true, migrationRowsObserved177, currentInventoryStableAcrossTwoCaptures true, historicalBaselineVerified false, milestone6Accepted false, mayMutate false. Session issue resolved without mutation. New candidate 0e2b419a73e4811506a66ebfff83c8fbff00a95b: historical migration old/new/live/SQL file name/checksum comparison, retained archive receipt SHA-256 and protected copy versus current inventory comparison, expanded baseline filename discovery and executable --inspect-preservation mode. Actual local Linux Node22.16.0 11/11 helper tests PASS, actual temporary archive bytes plus fixture inventories and migration ledgers; exact tested blobs 22811b9f57a03b0427255d7a233a3b5e2b1bf9b8 and 2e9a32d22abbfee9f8a77d32dc144890043bc7f6 match GitHub. CLI integration and actual migration plan/backup receipt and directory assumptions await Mac validation. Historical database rows and compiled artifact provenance remain unverified. No new Actions runs. Estimate credit 0.5h for native admission evidence plus 0.5h for newly implemented/tested backup helper, not measured human hours or formal acceptance. No replay, runtime mutation or lane completion.",
+      "blocker": "Actual native historical backup and migration checksum comparison plus historical row projection baseline format; no historical preservation or integrated release acceptance yet.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5594,8 +5615,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1723,
-  "currentRollingTotalSemantics": "1723h = previous 1723.5h minus 0.5h provisional verified M6-01 local native CLI wiring. M6 113h, M7 50h, M8 65h, combined228h. No measured labor, live baseline proof or formal acceptance change; all112 requirements retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1722,
+  "currentRollingTotalSemantics": "1722h = previous1723h minus 0.5h provisional native admission evidence and 0.5h newly tested historical backup helper. M6 112h, M7 50h, M8 65h, combined227h. Actual labor unknown, no formal acceptance change, all112 requirements retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
