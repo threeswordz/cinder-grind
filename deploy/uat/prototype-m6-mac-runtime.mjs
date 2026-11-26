@@ -11,6 +11,7 @@ import {validCompletedUomReceipt} from './prototype-m6-finance-configuration.mjs
 import {uomSnapshot,digest} from './prototype-uom-state.mjs';
 import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {verifyM6SiteMaterial} from './m6-site-material-preservation.mjs';
+import {verifyM6Fm02Progress} from './m6-fm02-progress-preservation.mjs';
 import {verifyM6Procurement} from './m6-procurement-preservation.mjs';
 import {verifyExactHistoricalRows} from './m6-exact-historical-rows.mjs';
 import {verifyM6HrFinalPreservation} from './m6-hr-final-preservation.mjs';
@@ -219,6 +220,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
    verifyExactHistoricalRows(snapshots.before,after);
    const rehearsalDocuments=await privateInventory(join(newStage,'preserved','documents'));
    verifyM6SubcontractRetention(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
+   verifyM6Fm02Progress(snapshots.before,after);
    verifyM6SiteMaterial(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6Procurement(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
@@ -254,6 +256,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   verifyExactHistoricalRows(snapshots.before,migrated);
   const migratedDocuments=await privateInventory(join(root,'documents'));
   verifyM6SubcontractRetention(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
+  verifyM6Fm02Progress(snapshots.before,migrated);
   verifyM6SiteMaterial(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
   verifyM6Procurement(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
   verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(db),previousSources,releaseSources);
@@ -311,6 +314,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const currentDocuments=await privateInventory(join(root,'documents'));
   originalInventoryPreserved(snapshots.files.documents,currentDocuments,[encryptedDocumentKey]);
   const subcontractProof=verifyM6SubcontractRetention(snapshots.before,latest,snapshots.files.documents,currentDocuments);
+  verifyM6Fm02Progress(snapshots.before,latest);
   const siteMaterialProof=verifyM6SiteMaterial(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const procurementProof=verifyM6Procurement(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const hrProof=verifyM6HrFinalPreservation(snapshots.before,latest,verifiedHrAttachmentId,encryptedDocumentKey);
