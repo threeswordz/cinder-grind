@@ -60,7 +60,8 @@ export async function executeOneShotM6({inputs, adapter} = {}) {
         result.materialRequestEvidencePreserved === true && result.historicalProcurementStockPreserved === true &&
         result.receivingTransferEvidencePreserved === true && result.originalPopulatedDumpPreserved === true &&
         result.previousHrKeysAndUploadsIntact === true && result.protectedHrEncryptedFileVerified === true &&
-        result.oldHistoricalSnapshotPreserved === true, 'M6_FINAL_PRESERVATION_PROOF_REQUIRED');
+        result.oldHistoricalSnapshotPreserved === true && result.historicalHrRowsPreserved === true &&
+        result.oneNewHrAttachmentVerified === true, 'M6_FINAL_PRESERVATION_PROOF_REQUIRED');
       results[name] = result;
       if (name !== 'seal') await adapter.recordPhase(name, result);
     }
