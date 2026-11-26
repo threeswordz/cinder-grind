@@ -5526,6 +5526,25 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-167",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_SCHEMA_DISCOVERY_PASS_SESSION_GUARD_BLOCKED",
+      "beforeHours": 20.5,
+      "afterHours": 20.5,
+      "sourceSha": "0d927eb2e11fb6ef445585238be8735992af4c88",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7199850056"
+      ],
+      "basis": "Owner supplied actual exact-head Mac output: M6_NATIVE_BASELINE_SCHEMA_DISCOVERED, seven receipt/schema records, followed by M6_NATIVE_INSPECTION_BLOCKED / M6_NATIVE_ACTIVE_SESSIONS. Source/receipt/checkout/process/listener/Podman/health and read-only DB identity checks necessarily passed before the session guard on this implementation. No migration-ledger or inventory comparison reached. Discovered migration plan fields additions/newLedger/oldLedger and continuation receipt fields including target and continuationBusinessRecordsUnchanged. The guard counts every unrevoked session, not just unexpired ones; canonical session.service.ts rejects revoked or expired sessions. Diagnose aggregate expired/unexpired counts read-only before any decision; preserve zero-unrevoked cutover guard and do not revoke/delete sessions or modify data. No new code, CI, or forecast deduction; actual labor unknown.",
+      "blocker": "Unrevoked sessions detected; classify expired versus unexpired with read-only aggregate, then resolve through approved session lifecycle. Historical baseline comparison incomplete.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
