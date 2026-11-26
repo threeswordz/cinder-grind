@@ -545,7 +545,8 @@ model ApprovalStepRole {
 }
 
 model ApprovalInstance {
-  movementCorrectionRequest MovementCorrectionRequest?
+  movementCorrectionRequest MovementCorrectionRequest? @relation("MovementCorrectionDecision")
+  sourceCancellationRequests MovementCorrectionRequest[] @relation("MovementCorrectionOriginalApproval")
   materialPlanIssueAuthorization MaterialPlanIssueAuthorization?
   customerBoqVersion CustomerBoqVersion?
 
@@ -4472,7 +4473,9 @@ model MovementCorrectionRequest {
   companyId String @map("company_id") @db.Uuid
   sourceKind String @map("source_kind") @db.VarChar(30)
   sourceId String @map("source_id") @db.Uuid
-  sourcePostedAt DateTime @map("source_posted_at") @db.Timestamptz(6)
+  sourcePostedAt DateTime? @map("source_posted_at") @db.Timestamptz(6)
+  sourceApprovalInstanceId String? @map("source_approval_instance_id") @db.Uuid
+  sourceSubmittedAt DateTime? @map("source_submitted_at") @db.Timestamptz(6)
   requestKey String @map("request_key") @db.VarChar(120)
   reason String @db.Text
   requestedByUserId String @map("requested_by_user_id") @db.Uuid
@@ -4481,7 +4484,8 @@ model MovementCorrectionRequest {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
   requestedBy User @relation("MovementCorrectionRequester", fields: [companyId, requestedByUserId], references: [companyId, id], onDelete: Restrict)
-  approvalInstance ApprovalInstance @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  approvalInstance ApprovalInstance @relation("MovementCorrectionDecision", fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  sourceApprovalInstance ApprovalInstance? @relation("MovementCorrectionOriginalApproval", fields: [sourceApprovalInstanceId], references: [id], onDelete: Restrict, map: "movement_correction_original_approval_fk")
 
   @@unique([companyId, sourceKind, sourceId, requestKey], map: "movement_correction_request_replay_key")
   @@index([companyId, sourceKind, sourceId], map: "movement_correction_source_idx")

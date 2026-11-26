@@ -47,6 +47,19 @@ export class MovementCorrectionController {
       requiredInventoryString(input, 'requestKey', 120), requiredInventoryString(input, 'reason', 1000)) };
   }
 
+  @Post('sources/:kind/:id/cancellation-requests')
+  @UseGuards(AuthGuard, CsrfGuard)
+  async requestCancellation(
+    @Req() request: AuthenticatedRequest,
+    @Param('kind') kind: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input = inventoryObject(body);
+    return { data: await this.corrections.request(context(request), sourceKind(kind), id,
+      requiredInventoryString(input, 'requestKey', 120), requiredInventoryString(input, 'reason', 1000), 'CANCEL_UNPOSTED') };
+  }
+
   @Post(':id/approve')
   @UseGuards(AuthGuard, CsrfGuard)
   async approve(@Req() request: AuthenticatedRequest,

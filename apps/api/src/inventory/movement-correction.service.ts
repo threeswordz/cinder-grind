@@ -16,14 +16,18 @@ const workflowCode = 'SS16_MOVEMENT_CORRECTION';
 const kinds = new Set<string>(['GOODS_RECEIPT','MATERIAL_ISSUE','MATERIAL_RETURN','STOCK_TRANSFER']);
 type Tx = Prisma.TransactionClient;
 type Context = { auth: AuthenticatedUserContext; correlationId?: string };
-type Source = { companyId: string; kind: MovementKind; projectIds: string[]; postedAt: Date | null; reversedAt: Date | null; reversalKey: string | null };
+type CorrectionMode = 'REVERSE_POSTED' | 'CANCEL_UNPOSTED';
+type Source = { companyId: string; kind: MovementKind; projectIds: string[]; postedAt: Date | null;
+  reversedAt: Date | null; reversalKey: string | null; submittedAt: Date | null;
+  approvalInstanceId: string | null; approvalInstance: { companyId: string; entityType: string; entityId: string; approvalState: string } | null;
+  stockCount: number; controlledLifecycle: boolean };
 const conflict = (code: string): never => { throw new ConflictException({ code }); };
 const deny = (): never => { throw new ForbiddenException({ code: 'SS16_CORRECTION_AUTHORITY_DENIED' }); };
 const invalid = (): never => { throw new UnprocessableEntityException({ code: 'SS16_CORRECTION_INPUT_INVALID' }); };
 const uuid = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id);
 
-// Posted-source transaction core; HTTP access must go through the scoped maker/checker methods.
-// Retained workflow grants, submitted-but-unposted cancellation and UI remain separate exits.
+// Posted reversal and bounded submitted/unposted cancellation share independent maker/checker.
+// Controlled receiving, plan issue and transfer custody cancellation require their own lifecycle transition.
 @Injectable()
 export class MovementCorrectionService {
   constructor(private readonly prisma: PrismaService, private readonly approval: ApprovalService,
@@ -35,12 +39,30 @@ export class MovementCorrectionService {
     if (kind === 'STOCK_TRANSFER') {
       const row = await this.transfers.get(auth, id, tx);
       return { companyId: row.companyId, kind, projectIds: [...new Set(row.items.flatMap(i => [i.sourceProjectId, i.destinationProjectId]))],
-        postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey };
+        postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
+        submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
+        stockCount: row.stockTransactions.length, controlledLifecycle: Boolean(row.custody) };
     }
     const row = kind === 'GOODS_RECEIPT' ? await this.receipts.get(auth, id, tx)
       : kind === 'MATERIAL_ISSUE' ? await this.issues.get(auth, id, tx)
       : await this.returns.get(auth, id, tx);
-    return { companyId: row.companyId, kind, projectIds: [row.projectId], postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey };
+    const controlledLifecycle = !row.postedAt && (
+      (kind === 'GOODS_RECEIPT' && Boolean(await tx.goodsReceipt.findFirst({ where: { id, companyId: auth.companyId, deliveryId: { not: null } }, select: { id: true } }))) ||
+      (kind === 'MATERIAL_ISSUE' && Boolean(await tx.materialPlanIssueBinding.findUnique({ where: { issueId: id }, select: { issueId: true } })))
+    );
+    return { companyId: row.companyId, kind, projectIds: [row.projectId], postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
+      submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
+      stockCount: row.stockTransactions.length, controlledLifecycle };
+  }
+
+  private cancellationPin(source: Source, id: string) {
+    if (source.controlledLifecycle) return conflict('SS16_CONTROLLED_CANCELLATION_REQUIRED');
+    const original = source.approvalInstance;
+    if (source.postedAt || source.reversedAt || source.stockCount !== 0 || !source.submittedAt ||
+        !source.approvalInstanceId || !original || original.companyId !== source.companyId ||
+        original.entityType !== source.kind || original.entityId !== id || original.approvalState !== 'SUBMITTED')
+      return conflict('SS16_UNPOSTED_SUBMITTED_SOURCE_REQUIRED');
+    return { sourceApprovalInstanceId: source.approvalInstanceId, sourceSubmittedAt: source.submittedAt };
   }
 
   private async authorize(auth: AuthenticatedUserContext, source: Source, action: CorrectionAction, tx: Tx, requesterUserId?: string) {
@@ -98,15 +120,15 @@ export class MovementCorrectionService {
           ...(reviewer ? {} : { requestedByUserId: context.auth.userId }) },
         orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
         take: 100,
-        select: { id: true, sourceKind: true, sourceId: true, reason: true,
+        select: { id: true, sourceKind: true, sourceId: true, sourcePostedAt: true, sourceSubmittedAt: true, reason: true,
           requestedByUserId: true, requestedAt: true,
           approvalInstance: { select: { approvalState: true } } },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
-  async request(context: Context, kind: MovementKind, id: string, key: string, reason: string) {
-    if (!kinds.has(kind) || !uuid(id) || typeof key !== 'string' || !key.trim() || key.length > 120 ||
+  async request(context: Context, kind: MovementKind, id: string, key: string, reason: string, mode: CorrectionMode = 'REVERSE_POSTED') {
+    if (!['REVERSE_POSTED','CANCEL_UNPOSTED'].includes(mode) || !kinds.has(kind) || !uuid(id) || typeof key !== 'string' || !key.trim() || key.length > 120 ||
         typeof reason !== 'string' || !reason.trim() || reason.length > 1000) return invalid();
     return this.prisma.$transaction(async tx => {
       await this.lock(tx, context.auth.companyId, kind, id);
@@ -117,10 +139,12 @@ export class MovementCorrectionService {
         include: { approvalInstance: true },
       });
       if (existing) {
-        if (existing.requestedByUserId !== context.auth.userId || existing.reason !== reason) return conflict('SS16_REQUEST_REPLAY_CONFLICT');
+        if (existing.requestedByUserId !== context.auth.userId || existing.reason !== reason ||
+            (existing.sourcePostedAt ? 'REVERSE_POSTED' : 'CANCEL_UNPOSTED') !== mode) return conflict('SS16_REQUEST_REPLAY_CONFLICT');
         return existing;
       }
-      if (!source.postedAt || source.reversedAt) return conflict('SS16_POSTED_SOURCE_REQUIRED');
+      const cancellation = mode === 'CANCEL_UNPOSTED' ? this.cancellationPin(source, id) : null;
+      if (mode === 'REVERSE_POSTED' && (!source.postedAt || source.reversedAt)) return conflict('SS16_POSTED_SOURCE_REQUIRED');
       await this.configured(context.auth.companyId, tx);
       const pending = await tx.movementCorrectionRequest.findFirst({ where: {
         companyId: context.auth.companyId, sourceKind: kind, sourceId: id,
@@ -129,11 +153,13 @@ export class MovementCorrectionService {
       const requestId = randomUUID();
       const approval = await this.approval.start({ companyId: context.auth.companyId, workflowCode, entityType, entityId: requestId }, tx);
       const row = await tx.movementCorrectionRequest.create({ data: {
-        id: requestId, companyId: context.auth.companyId, sourceKind: kind, sourceId: id, sourcePostedAt: source.postedAt,
+        id: requestId, companyId: context.auth.companyId, sourceKind: kind, sourceId: id, sourcePostedAt: mode === 'REVERSE_POSTED' ? source.postedAt : null,
+        ...(cancellation ?? {}),
         requestKey: key, reason, requestedByUserId: context.auth.userId, approvalInstanceId: approval.id },
         include: { approvalInstance: true } });
       await this.audit.record({ ...context, entityType, entityId: requestId, action: 'REQUEST',
-        newValues: { sourceKind: kind, sourceId: id, reason, approvalInstanceId: approval.id } }, tx);
+        newValues: { sourceKind: kind, sourceId: id, reason, mode, approvalInstanceId: approval.id,
+          sourceApprovalInstanceId: cancellation?.sourceApprovalInstanceId ?? null } }, tx);
       return row;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
@@ -155,9 +181,24 @@ export class MovementCorrectionService {
           !assignments.some(a => a.companyId === row.companyId && a.role.id === config.roleId)) return deny();
       if (row.approvalInstance.approvalState !== 'SUBMITTED') return conflict('SS16_DECISION_ALREADY_RECORDED');
       if (decision === 'APPROVE') {
-        if (!source.postedAt || source.postedAt.getTime() !== row.sourcePostedAt.getTime() || source.reversedAt)
+        const cancelling = row.sourcePostedAt === null;
+        if (cancelling) {
+          const pin = this.cancellationPin(source, row.sourceId);
+          if (pin.sourceApprovalInstanceId !== row.sourceApprovalInstanceId ||
+              pin.sourceSubmittedAt.getTime() !== row.sourceSubmittedAt?.getTime())
+            return conflict('SS16_SOURCE_CHANGED');
+        } else if (!source.postedAt || source.postedAt.getTime() !== row.sourcePostedAt!.getTime() || source.reversedAt)
           return conflict('SS16_SOURCE_CHANGED');
         await this.approval.approve(row.approvalInstanceId, context.auth, row.requestedByUserId, comment, async finalTx => {
+          if (cancelling) {
+            // The original submitted approval is terminally cancelled in this same transaction.
+            // No source/header overwrite, stock entry, reservation release or history deletion.
+            const originalId = row.sourceApprovalInstanceId!;
+            await this.approval.cancel(originalId, context.auth, finalTx);
+            await this.audit.record({ ...context, entityType: kind, entityId: row.sourceId, action: 'CANCEL',
+              newValues: { correctionRequestId: row.id, originalApprovalInstanceId: originalId, reason: row.reason } }, finalTx);
+            return;
+          }
           // Stable key derived from persisted request, never caller controlled.
           const key = 'ss16:' + row.id;
           if (kind === 'GOODS_RECEIPT') await this.receipts.reverse(context, row.sourceId, key, row.reason, finalTx);

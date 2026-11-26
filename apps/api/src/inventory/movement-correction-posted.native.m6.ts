@@ -127,6 +127,51 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(movement._sum.quantity?.toString(),'0');
     await assert.rejects(corrections.decide({auth:pm},pending.id,'APPROVE','Replay'));
     assert.equal(await stock(),2);
+
+    // New bounded unposted cancellation: original approval is retained and cancelled,
+    // never a synthetic reversal of stock that did not exist.
+    const draft = await goods.create({auth:store}, {projectId:f.project.id,purchaseOrderId:f.po.id,
+      warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal('1')}]});
+    const cancelPath = 'movement-corrections/sources/GOODS_RECEIPT/'+draft.id+'/cancellation-requests';
+    const cancelBody = {requestKey:randomUUID(),reason:'Synthetic submitted receipt correction'};
+    assert.equal((await post(cancelPath,f.store.session,cancelBody)).status,409);
+    await goods.submit({auth:store},draft.id,f.receiptWorkflow.workflowCode);
+    const originalReceipt = await db.goodsReceipt.findUniqueOrThrow({where:{id:draft.id}});
+    assert.ok(originalReceipt.approvalInstanceId);
+    const cancelledStock = () => db.stockTransaction.count({where:{goodsReceiptId:draft.id}});
+    const originalState = async () => (await db.approvalInstance.findUniqueOrThrow({where:{id:originalReceipt.approvalInstanceId!}})).approvalState;
+    assert.equal(await cancelledStock(),0);
+    const cancelResponse = await post(cancelPath,f.store.session,cancelBody);
+    const cancelText = await cancelResponse.text();
+    assert.equal(cancelResponse.status,201,cancelText);
+    const cancel = JSON.parse(cancelText).data;
+    assert.equal(cancel.sourcePostedAt,null);
+    assert.equal(cancel.sourceApprovalInstanceId,originalReceipt.approvalInstanceId);
+    assert.equal(await originalState(),'SUBMITTED');
+    await assert.rejects(corrections.request({auth:store},'GOODS_RECEIPT',draft.id,cancelBody.requestKey,cancelBody.reason));
+    assert.equal((await post('movement-corrections/'+cancel.id+'/approve',f.store.session,{comment:'Self approve'})).status,403);
+    const rejection = await post('movement-corrections/'+cancel.id+'/reject',f.pm.session,{comment:'Not justified'});
+    assert.equal(rejection.status,201,await rejection.text());
+    assert.equal(await originalState(),'SUBMITTED');
+    const approvedCancel = await corrections.request({auth:store},'GOODS_RECEIPT',draft.id,randomUUID(),cancelBody.reason,'CANCEL_UNPOSTED');
+    audit.record = async (input, tx) => {
+      if (input.entityType === 'MOVEMENT_CORRECTION' && input.action === 'APPROVE') throw new Error('Synthetic cancellation audit failure');
+      return original(input,tx);
+    };
+    try { await assert.rejects(corrections.decide({auth:pm},approvedCancel.id,'APPROVE','Reviewed'), /Synthetic cancellation audit failure/); }
+    finally { audit.record = original; }
+    assert.equal(await originalState(),'SUBMITTED');
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:approvedCancel.approvalInstanceId}})).approvalState,'SUBMITTED');
+    assert.equal(await cancelledStock(),0);
+    const cancellation = await post('movement-corrections/'+approvedCancel.id+'/approve',f.pm.session,{comment:'Reviewed and approved'});
+    assert.equal(cancellation.status,201,await cancellation.text());
+    assert.equal(await originalState(),'CANCELLED');
+    assert.equal(await cancelledStock(),0);
+    assert.deepEqual(await db.goodsReceipt.findUniqueOrThrow({where:{id:draft.id}}),originalReceipt);
+    await assert.rejects(goods.approve({auth:pm},draft.id,randomUUID()));
+    assert.equal(await cancelledStock(),0);
+    assert.equal(await db.approvalAction.count({where:{approvalInstanceId:originalReceipt.approvalInstanceId!,action:'CANCEL'}}),1);
+    await assert.rejects(corrections.decide({auth:pm},approvedCancel.id,'APPROVE','Replay'));
   } finally {
     try { await app?.close(); } finally {
       await db.$disconnect();
