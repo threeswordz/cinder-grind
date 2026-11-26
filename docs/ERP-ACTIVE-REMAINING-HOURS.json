@@ -5959,6 +5959,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-188",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_AUTHORITY_POLICY_AND_NATIVE_BATCH_PREPARED",
+      "beforeHours": 31,
+      "afterHours": 31,
+      "sourceSha": "0795baf506061b3256b5ea22edd801db2000ea74",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201155288",
+        "https://github.com/threeswordz/cinder-grind/commit/0795baf506061b3256b5ea22edd801db2000ea74",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45386319537"
+      ],
+      "basis": "SS16 continuation: isolated authority-policy implementation requires current Company assignment and active same-Company role, explicit source-specific grants held by the same role, assigned source Projects (both sides of transfer), active Employee, and distinct requester for PROJECT_MANAGER approval/rejection. Proposed request mapping STOREKEEPER view/edit and decision PROJECT_MANAGER view/approve/reverse, to be reconciled with configured grants and approval steps before activating; no grants changed. Existing transferActor now checks assignment Company as well as role Company using the tested shared filter. Local actual Node22.16.0 and TypeScript5.8.3 transpile of policy/helper tests: 10/10 PASS, 71.99458ms, exact published blobs 656d2f8a6961fdaf2b2e4da3a2182bf733530e02 and 97b2712f908c694f9024f1ab862491170d067b03. Full ERP typecheck and native transfer guard integration pending. Durable Store correction request and atomic PM decision/reversal, prevention of direct legacy bypass, UI and cancellation routes are NOT implemented yet; SS16 remains open. Historical supplier run #45349684998, #45358238789, #45371800181, #45374163626, #45386319537 independently read as SUCCESS. Current supplier service and several tests/proofs differ from #45386319537; two browser script blobs and replacement proof match, so preserve historical evidence without claiming current exact integrated workflow acceptance. New focused Mac runner 0795baf506061b3256b5ea22edd801db2000ea74: one clean pinned checkout, one API build, one new private Podman PostgreSQL container, migrate template once, six cloned disposable databases for changed issue/return/transfer regressions plus three existing supplier case/custody/replacement tests, exact source marker, no spoofed GitHub-only attribution/browser flags. Local bash -n PASS, published blob 3e3eb903e2ea0029e90bc76689bcd4351b4e1190 matches tested script. Real runner execution needs Mac; no claim of actual PG/HTTP PASS. Branch head readback exact, zero Actions runs, protected main unchanged. No independent Codex review executed; no direct Codex executor exposed in this Chat, review reserved for consolidated candidate. No forecast credit for partial implementation/rework; no additional scope allowance. SS08 result still missing.",
+      "blocker": "Mac focused native build and six test groups; durable correction approval lifecycle and legacy bypass closure; remaining supplier attribution/browser scope; independent review and release gates.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
