@@ -55,11 +55,18 @@ export async function compareHistoricalRows(tx,baseline,oldMigrationNames){
     }
     if(ok)matched++;else mismatchedTables.push(b.table);
   }
+  const nonNullAddedColumns=[];
+  for(const [table,cols] of Object.entries(addedColumns)){
+    const sql='SELECT count(*) AS rows FROM public."'+table+'" WHERE '+cols.map(c=>'"'+c+'" IS NOT NULL').join(' OR ');
+    const rows=await tx.$queryRawUnsafe(sql);
+    need(Array.isArray(rows)&&rows.length===1&&typeof rows[0]?.rows==='bigint'&&rows[0].rows>=0n,'M6_HISTORICAL_ROW_QUERY_INVALID');
+    if(rows[0].rows!==0n)nonNullAddedColumns.push(table);
+  }
   const nonEmptyAddedTables=[];
   for(const table of addedTables){
     const rows=await tx.$queryRawUnsafe('SELECT count(*) AS rows FROM public."'+table+'"');
     need(Array.isArray(rows)&&rows.length===1&&typeof rows[0]?.rows==='bigint'&&rows[0].rows>=0n,'M6_HISTORICAL_ROW_QUERY_INVALID');
     if(rows[0].rows!==0n)nonEmptyAddedTables.push(table);
   }
-  return {originalTablesCompared:168,originalTablesMatched:matched,mismatchedTables:mismatchedTables.sort(),nonEmptyAddedTables,historicalDatabaseRowsVerified:matched===168&&nonEmptyAddedTables.length===0};
+  return {originalTablesCompared:168,originalTablesMatched:matched,mismatchedTables:mismatchedTables.sort(),nonEmptyAddedTables,nonNullAddedColumns,historicalDatabaseRowsVerified:matched===168&&nonEmptyAddedTables.length===0&&nonNullAddedColumns.length===0};
 }
