@@ -4528,6 +4528,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-123",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_PUR07_CORRECTED_SOURCE_FULL_ATTEMPT2_46_STEPS_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45744331901/job/139660951083",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45744331901/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7181165380"
+      ],
+      "basis": "Specific Owner-authorized corrected-source full attempt2 SUCCESS. Validate job139660951083 passed46/46 including all eight historical upgrade predecessors, workspace and browser checks, paired recovery, isolated restore, restored-runtime authentication and consolidated evidence. Final FULL_VALIDATION_IDENTITY_CONFIRMED binds source5af60607/attempt2/PR455/base040395bc. Independent re-review clean and both P2 threads resolved. Final governed integration and retained technical readback remain open, so no final package acceptance or repeated proof credit.",
+      "blocker": "Applicable corrected-source Ready/post-Ready review evidence, separately authorized protected integration and retained technical readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
