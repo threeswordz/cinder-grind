@@ -4571,6 +4571,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-125",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_UNICODE_NFC_RUNTIME_REGRESSION_PASS_PROFILE_CLEANUP_CORRECTED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9482cd57d5eacf4f8708859f84d6fb94d9c7fd02",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750532867/job/139676965849",
+        "https://github.com/threeswordz/cinder-grind/commit/9482cd57d5eacf4f8708859f84d6fb94d9c7fd02",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750861241"
+      ],
+      "basis": "Real hosted Chromium new decomposed-name test passed for Cafe-accent and A-ring supplier names, preserving original inputs and producing searchable NFC text. Overall first focused job failed on an older renderer test's ENOTEMPTY removal of its owned Chromium profile. Applied bounded fs.rm maxRetries3/retryDelay100; local API build PASS. Focused renderer successor45750861241 running. No full retry or merge; independent re-review will follow terminal focused proof.",
+      "blocker": "Observe all exact renderer tests, independent re-review, then specific new source validation and integration authority.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
