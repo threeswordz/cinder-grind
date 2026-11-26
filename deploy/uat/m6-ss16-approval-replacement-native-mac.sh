@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate only corrected replacement fixture and new SS16 posted approval core.
+# Validate the consolidated SS16 lifecycle/API/UI compilation; optionally include old replacement group.
 # Previously successful native groups and FM02 are deliberately not repeated.
 set -euo pipefail
 umask 077
@@ -26,6 +26,12 @@ pnpm install --offline --frozen-lockfile
 pnpm --filter @construction-erp/api exec prisma validate
 pnpm prisma:generate
 pnpm build:api
+echo "===== M6 FOCUSED WEB BUILD ====="
+pnpm --filter @construction-erp/web build
+echo "M6_FOCUSED_WEB_BUILD_PASS"
+echo "===== M6 SS16 AUTHORITY POLICY ====="
+node --test apps/api/dist/inventory/movement-correction-authority.spec.js
+echo "M6_SS16_AUTHORITY_PASS"
 SUFFIX=$(openssl rand -hex 4)
 PW=$(openssl rand -hex 24)
 [[ "$SUFFIX" =~ ^[0-9a-f]{8}$ && "$PW" =~ ^[0-9a-f]{48}$ ]]
@@ -68,7 +74,7 @@ else
   echo M6_PRIOR_PUR14_REPLACEMENT_NOT_RERUN
 fi
 export M6_SS16_DISPOSABLE_DB="m6_ss16_$SUFFIX"
-run_test SS16_POSTED_APPROVAL "$M6_SS16_DISPOSABLE_DB" apps/api/dist/inventory/movement-correction-posted.native.m6.js
+run_test SS16_CONSOLIDATED "$M6_SS16_DISPOSABLE_DB" apps/api/dist/inventory/movement-correction-posted.native.m6.js
 echo "M6_FOCUSED_CANDIDATE=$expected"
 echo "M6_PRIOR_SIX_NATIVE_GROUPS_AND_FM02_NOT_RERUN"
 exit "$FAIL"
