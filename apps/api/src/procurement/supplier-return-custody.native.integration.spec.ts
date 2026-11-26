@@ -168,6 +168,32 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
   assert.equal(trace.originalDeliveryLineId,lineId);
   assert.equal(trace.warehouseId,f.warehouse.id);
   assert.equal(trace.signedHandoverDocumentId,signed.id);
+  assert.equal((trace as typeof trace & {signedHandoverChecksum:string}).signedHandoverChecksum,signedRow.checksum);
+  const assertRedacted=async(auth:NonNullable<typeof store>)=>{
+   const result=await supplier.read(auth,f.po.id);
+   const value=result.returnCustodyTrace as Record<string,unknown>;
+   assert.equal(value.signedHandoverDocumentId,null);
+   assert.equal(value.signedHandoverChecksum,null);
+   assert.equal(value.quantity,'1.0000');
+   assert.equal(result.case?.stage,'RETURN_DISPATCH_RECORDED');
+   assert.ok(!JSON.stringify(result).includes(signed.id));
+   assert.ok(!JSON.stringify(result).includes(signedRow.checksum!));
+  };
+  // Live permission revocation with the original, now stale auth context.
+  await db.rolePermission.deleteMany({where:{roleId:f.store.role.id,permissionId:docPermission.id}});
+  await assertRedacted(store);
+  await db.rolePermission.create({data:{roleId:f.store.role.id,permissionId:docPermission.id}});
+  assert.equal((await supplier.read(store,f.po.id)).returnCustodyTrace &&
+   ((await supplier.read(store,f.po.id)).returnCustodyTrace as Record<string,unknown>).signedHandoverDocumentId,signed.id);
+  // Purchasing document permission alone does not authorize receiving metadata.
+  assert.ok(jai.permissions.includes('documents.document.view'));
+  assert.ok(!jai.permissions.includes('inventory.receiving.view'));
+  await assertRedacted(jai);
+  // Archived documents cannot confer access via the old immutable event.
+  await db.document.update({where:{id:signed.id},data:{isActive:false}});
+  await assertRedacted(store);
+  await db.document.update({where:{id:signed.id},data:{isActive:true}});
+  assert.equal(((await supplier.read(store,f.po.id)).returnCustodyTrace as Record<string,unknown>).signedHandoverDocumentId,signed.id);
   assert.equal(trace.stockEffect,false);
   assert.equal(trace.financeEffect,false);
   assert.equal(read.financeResolution,'REPLACEMENT_ONLY_NO_AP_CREDIT');

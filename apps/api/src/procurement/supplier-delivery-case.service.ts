@@ -4,6 +4,7 @@ import { verifySupplierReplacementProof, SupplierReplacementProofError } from '.
 import { verifySupplierReturnCustody, SupplierReturnCustodyError } from './supplier-return-custody-proof';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
+import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import {
@@ -59,7 +60,8 @@ function invalid(code: string): never { throw new UnprocessableEntityException({
 
 @Injectable()
 export class SupplierDeliveryCaseService {
-  constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService) {}
+  constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService,
+    private readonly documents: DocumentsService) {}
 
   private async actor(auth: AuthenticatedUserContext, db: Db) {
     const session = await db.userSession.findFirst({
@@ -230,6 +232,39 @@ export class SupplierDeliveryCaseService {
     return gr.reversedAt ? 'REVERSED' : 'POSTED';
   }
 
+  // Preserve business custody history while applying current document access.
+  // Never mutate the immutable event or treat a historical link as entitlement.
+  private async visibleReturnCustodyTrace(
+    auth: AuthenticatedUserContext, projectId: string,
+    trace: Prisma.JsonValue | null,
+  ): Promise<Prisma.JsonValue | null> {
+    if (trace === null || typeof trace !== 'object' || Array.isArray(trace)) return null;
+    const { signedHandoverDocumentId, signedHandoverChecksum, ...business } = trace;
+    const redacted = { ...business, signedHandoverDocumentId: null, signedHandoverChecksum: null };
+    if (!auth.permissions.includes('documents.document.view') ||
+        !uuid(signedHandoverDocumentId) || !uuid(business.originalDeliveryId) ||
+        typeof signedHandoverChecksum !== 'string' ||
+        !/^[a-f0-9]{64}$/i.test(signedHandoverChecksum)) return redacted;
+    const doc = await this.prisma.document.findFirst({
+      where: { id: signedHandoverDocumentId, companyId: auth.companyId, isActive: true,
+        AND: [
+          { links: { some: { entityType: 'PROJECT', entityId: projectId } } },
+          { links: { some: { entityType: 'RECEIVING_DELIVERY', entityId: business.originalDeliveryId } } },
+        ],
+      },
+      select: { checksum: true, links: { select: { entityType: true, entityId: true } } },
+    });
+    if (!doc?.checksum || doc.checksum.toLowerCase() !== signedHandoverChecksum.toLowerCase()) return redacted;
+    try {
+      const visible = await this.documents.filterSourceDocuments(auth, projectId, [doc]);
+      return visible.length === 1 ? { ...business, signedHandoverDocumentId, signedHandoverChecksum } : redacted;
+    } catch (error) {
+      // A linked source may require a live grant beyond the supplier-case view.
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) return redacted;
+      throw error;
+    }
+  }
+
   async read(auth: AuthenticatedUserContext, orderId: string) {
     const actor = await this.actor(auth, this.prisma);
     const scoped = { ...auth, roleCodes: actor.roleCodes, permissions: actor.permissions };
@@ -240,7 +275,7 @@ export class SupplierDeliveryCaseService {
       approvedLatest: source.approvalInstance?.approvalState === 'APPROVED' && !source.nextRevision && !source.cancelledAt,
       case: current.state, expectedPreviousEventId: current.eventId,
       replacementTrace: current.replacementTrace,
-      returnCustodyTrace: current.returnCustodyTrace,
+      returnCustodyTrace: await this.visibleReturnCustodyTrace(scoped, source.projectId, current.returnCustodyTrace),
       financeResolution: 'REPLACEMENT_ONLY_NO_AP_CREDIT',
       nonDamagedResolution: 'DISCREPANCY_EVIDENCE_ONLY',
       replacementReceiptLiveStatus: await this.currentReplacementReceipt(source, current.replacementTrace, this.prisma),

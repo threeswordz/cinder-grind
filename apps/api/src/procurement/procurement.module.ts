@@ -4,6 +4,7 @@ import { AdministrationModule } from '../administration/administration.module';
 import { ApprovalModule } from '../approval/approval.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { DocumentsModule } from '../documents/documents.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
@@ -28,6 +29,7 @@ import { SourcingService } from './sourcing.service';
     AuditModule,
     ApprovalModule,
     AdministrationModule,
+    DocumentsModule,
   ],
   controllers: [ProcurementController, SourcingController, PurchaseOrderController, PurchaseOrderCancellationCaseController, SupplierDeliveryCaseController],
   providers: [ProcurementService, SourcingService, PurchaseOrderService, PurchaseOrderPur07Service, PurchaseOrderCancellationCaseService, SupplierDeliveryCaseService],
