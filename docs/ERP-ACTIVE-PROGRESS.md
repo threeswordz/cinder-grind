@@ -1,19 +1,19 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 11h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
+**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) exact `20dc687a762843d7ec865c0776ac7753bf6512e1`; authorized [full attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45827255690/job/139962311228) failed deployment-pack tests 488/489 on predecessor c4ae9018, subsequent gates skipped. [Three-file correction](https://github.com/threeswordz/cinder-grind/commit/20dc687a762843d7ec865c0776ac7753bf6512e1) retains strict equipment-only and combined four exact migration contracts, separately pins PO SQL before rehearsal. +0.5h provisional mandatory rework, zero credit pending Mac focused tests and independent review. [Previous Mac evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7194017067) remains bounded; no runtime/schema/SQL changes, no full rerun authorized on new candidate.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) exact `20dc687a762843d7ec865c0776ac7753bf6512e1`; [Owner Mac evidence and independent review request](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7194683266): Node24.21.0, exact three-file correction scope, rehearsal shell syntax, 35/35 focused contract tests PASS; final clean-worktree marker not shown. No actual DB/recovery or full-suite claim. Retire only 0.5h preflight rework from event143. [New Draft run45836902629](https://github.com/threeswordz/cinder-grind/actions/runs/45836902629) attempt1 blocked at admission as intended; no full authorization yet. Independent review pending; no runtime/schema/SQL change.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,732.5 |
+| Previous reported ERP forecast | 1,733 |
 | Newly identified mandatory scope | +0 |
-| Newly identified mandatory rework | +0.5 |
-| Verified correction rework reduction | −0 |
-| Revised remaining ERP forecast | **1,733** |
+| Newly identified mandatory rework | +0 |
+| Verified correction rework reduction | −0.5 |
+| Revised remaining ERP forecast | **1,732.5** |
 
 Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
 **Latest M6-01 rework:** [82b15472](https://github.com/threeswordz/cinder-grind/commit/82b15472d149b194f1b5b7194ec0113f04df5aa8) makes both final HR preservation flags mandatory at the coordinator seal gate. Actual local 7/8 before, 8/8 after. New defect +0.5h and verified rework −0.5h, net zero; M6 112h and ERP 1732.5h unchanged. [Event133](https://github.com/threeswordz/cinder-grind/commit/9f3f9da68524a8df0fcd60a18cd5191d258081f2).
