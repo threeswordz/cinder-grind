@@ -58,7 +58,7 @@ export async function inspectAdmission({observeRuntime,verifyRuntime,db,readInve
   return {status:'M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS',processChecksPassed:true,zeroActiveSessionsObserved:true,migrationRowsObserved:177,currentInventoryStableAcrossTwoCaptures:true,historicalBaselineVerified:false,milestone6Accepted:false,mayMutate:false,productionAuthorized:false};
 }
 async function main(){
-  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows'].includes(process.argv[2]))||(process.argv.length===5&&process.argv[2]==='--inspect-integrated'))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
+  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_/.test(k)),'M6_NATIVE_EXACT_MAC_REQUIRED');
   const {readCheckoutIdentity,inspectPostM4}=await import('./m6-post-m4-inspect.mjs');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),identity=await readCheckoutIdentity(source);
@@ -80,6 +80,14 @@ async function main(){
   const url='postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/proto_a_01?schema=public';
   const db=new PrismaClient({datasources:{db:{url}},log:[]});
   try{
+    if(process.argv[2]==='--inspect-artifacts'){
+      const {inspectCompiledRebuild}=await import('./m6-integrated-evidence.mjs');
+      const before=await readAdmissionDatabase(db);
+      const artifacts=await inspectCompiledRebuild({application,rebuild:process.argv[4],root,readCheckout:readCheckoutIdentity,readInventory:inventory});
+      need(same(before,await readAdmissionDatabase(db)),'M6_ARTIFACT_MIGRATION_OBSERVATION_DRIFT');
+      verifyRuntime(await observeRuntime());
+      return {status:'M6_COMPILED_REBUILD_OBSERVATIONS_COMPLETE',...artifacts,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
+    }
     if(['--inspect-rows','--inspect-integrated'].includes(process.argv[2])){
       const stage=join(root,'m4-upgrade-9417f07c');
       const baseline=await readPrivate(join(stage,'database-baseline-private.json'),33554432);
@@ -89,12 +97,16 @@ async function main(){
       const before=await readAdmissionDatabase(db);
       verifyMigrationChecksums(plan,before,await migrationSources(application));
       const rows=await readHistoricalRowEvidence({db,baseline,oldMigrationNames:plan.oldLedger.map(r=>r.migration_name),requireNoLiveSessions});
+      const lanes=[];
+      for(const observe of [(await import('./m6-lane-a-observe.mjs')).observeLane,(await import('./m6-lane-b-observe.mjs')).observeLane,(await import('./m6-lane-c-observe.mjs')).observeLane,(await import('./m6-lane-d-observe.mjs')).observeLane]){
+        lanes.push(await observe(db));
+      }
       const artifacts=process.argv[2]==='--inspect-integrated'
         ?await inspectCompiledRebuild({application,rebuild:process.argv[4],root,readCheckout:readCheckoutIdentity,readInventory:inventory})
         :{exactSourceRebuildCompared:false,compiledRebuildBytesVerified:false,historicalCompiledArtifactBytesVerified:false};
       need(same(before,await readAdmissionDatabase(db)),'M6_HISTORICAL_MIGRATION_OBSERVATION_DRIFT');
       verifyRuntime(await observeRuntime());
-      return {status:'M6_HISTORICAL_ROW_AND_ARTIFACT_OBSERVATIONS_COMPLETE',...rows,...artifacts,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
+      return {status:'M6_HISTORICAL_ROW_AND_ARTIFACT_OBSERVATIONS_COMPLETE',...rows,...artifacts,lanes,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
     }
     if(process.argv[2]==='--inspect-preservation'){
       const {verifyMigrationChecksums,migrationSources,verifyProtectedBackup}=await import('./m6-historical-backup.mjs');
