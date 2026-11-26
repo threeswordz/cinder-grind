@@ -1,9 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
+**M4 11h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) remains frozen at `0bcc355c0149197c13a90b0c652452861496578e`; exact targeted PDF proof passed, [independent review quota blocked](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182744339). Prior full46/46 at9482cd57 does not authorize current source. Retained role operator plan prepared; actual authorized target, independent review, current-source full/Ready/integration approval remain pending.
+[Ready PR455](https://github.com/threeswordz/cinder-grind/pull/455) frozen at `0bcc355c0149197c13a90b0c652452861496578e`; Owner-authorized [full attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2) in progress. New [post-Ready P2 supplier return metadata finding](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4705418570) blocks merge. Isolated [correction ae6d3678](https://github.com/threeswordz/cinder-grind/commit/ae6d3678322bacbb65ba3bb9df1f2136137d5255) staged, not tested; no new CI. M4-08 0.5→1h provisional +0.5h new rework, no verified reduction. Actual authorized target and retained-role readback pending.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 

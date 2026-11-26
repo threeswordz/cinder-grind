@@ -4771,6 +4771,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-135",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_POST_READY_PUR14_METADATA_DEFECT_CORRECTION_STAGED_UNVERIFIED",
+      "beforeHours": 0.5,
+      "afterHours": 1,
+      "sourceSha": "ae6d3678322bacbb65ba3bb9df1f2136137d5255",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4705418570",
+        "https://github.com/threeswordz/cinder-grind/commit/ae6d3678322bacbb65ba3bb9df1f2136137d5255",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2"
+      ],
+      "basis": "New independent P2 post-Ready finding exposes signed supplier-return document ID/checksum through business read despite revoked or absent document permission. Isolated three-file correction reuses canonical source document filter, current actor grants, exact active Company/Project/receiving link and checksum; redacts metadata while preserving immutable custody audit. Regression extended for positive Store read, stale permission revocation, purchasing without receiving view, and archived document. Exact remote source committed; no compile/native test or independent correction review yet. Provisional +0.5h newly identified mandatory rework allowance; no completed credit. Current Ready PR remains frozen, prior authorized full run continues against original source; no CI triggered on correction branch.",
+      "blocker": "Mac disposable PG focused test and build; independent review on corrected head; governed integration and release assurance, retained technical readback.",
+      "reductionHours": -0.5,
+      "newlyIdentifiedScopeHours": 0.5,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4793,6 +4814,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1732.5,
-  "currentRollingTotalSemantics": "1732.5h = 1847h baseline minus 117h verified baseline forecast reduction plus 2.5h supplier residual. M4 10.5h; M6 112h; formal acceptance remains false. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1733,
+  "currentRollingTotalSemantics": "1733h = previous rolling 1732.5h plus 0.5h newly identified PUR14 rework allowance, no verified completion credit. M4 11h; M6 112h; prototype 238h. Formal acceptance remains false; all 112 requirements preserved; actual labor unmeasured."
 }
