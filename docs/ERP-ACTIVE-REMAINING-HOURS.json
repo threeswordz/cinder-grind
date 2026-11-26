@@ -4895,6 +4895,28 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-141",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_BATCH_PO_COMMERCIAL_HISTORY_AND_UI_SCOPE_CORRECTIONS_STAGED",
+      "beforeHours": 0.5,
+      "afterHours": 2,
+      "sourceSha": "e2fbbc29084683a7e421b817b3b34fa0792bb8b4",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4708624975",
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4708624984",
+        "https://github.com/threeswordz/cinder-grind/commit/e2fbbc29084683a7e421b817b3b34fa0792bb8b4",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45825625367"
+      ],
+      "basis": "Comprehensive independent review on2468adef returned P1 concurrent PO header mutation and P2 stale asset scope readback; explicit five-lane coverage absent. Builder confirmed related PUR01 exception reason omitted from historic trigger, direct line mutation lacks parent locking, and related Equipment register/custody and supplier-case UI reads retained error-state cache. Isolated batch: atomically condition header update on Draft and exact scope; forward-only migration adds ten-field history guard and line-parent lock without editing existing migrations; deterministic stale PATCH/submit regression and direct DML denials; gate protected UI data on successful current query and clear editors on scope error, add real Chromium synthetic HTTP denial/retry fixture and run actual asset native HTTP separately. +1.5h provisional estimate (1h PO integrity incl related guard, 0.5h UI security family); zero verified credit before tests. Exact focused CI in progress, no new full. PR remains Draft2468adef.",
+      "blocker": "Actual targeted tests, migration rehearsal compatibility, independent batched review/coverage and four open findings, then governed release and retained readback.",
+      "reductionHours": -1.5,
+      "newlyIdentifiedScopeHours": 1.5,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4917,6 +4939,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1732.5,
-  "currentRollingTotalSemantics": "1732.5h = prior 1733h minus 0.5h verified provisional PUR07 linked-source rework. M4 10.5h, M6 112h, prototype237.5h. Formal acceptance false; elapsed labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1734,
+  "currentRollingTotalSemantics": "1734h = prior 1732.5h plus provisional 1.5h mandatory PO integrity and UI scope rework. M4 12h; M6 112h; prototype239h. Formal acceptance false; actual elapsed labor unmeasured."
 }
