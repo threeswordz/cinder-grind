@@ -1,26 +1,21 @@
 # Construction ERP — live countdown to 0 hours
 
-<!-- current-work-m4 -->
-**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
+<!-- current-work-m6 -->
+**M4 CLOSED 0h · M6 115h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 230h → 0h · Full ERP 1,725h → 0h.**
 
-[Merged PR455](https://github.com/threeswordz/cinder-grind/pull/455) → [main `9417f07c`](https://github.com/threeswordz/cinder-grind/commit/9417f07c609dbc091b5bbe2e09071c5e2c316459). Exact independent review, full PR CI, guarded integration and [actual full-main release CI 46/46](https://github.com/threeswordz/cinder-grind/actions/runs/45857511934) PASS. [Mac populated backup, separate restore, 11 additive migrations and retained synthetic cutover](https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198231627) PASS; 168 historical table projections preserved, 177 migration checksums, healthy owned API/Web, protected files intact. [Bounded 8/8 synthetic role readback](https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198315784) PASS; PORN SITE_B assignment verified from historical transfer audit, zero active sessions. Step7 bounded technical operational checks complete; Step8 technical exit/requirement reconciliation remains. First role run stopped before its final fingerprint, continuation fingerprint passed. No human UAT or Production, no repeat CI. **10.5h reconciled = eight M4 package balances 8h + standalone PUR08/PUR14 allowance 2.5h**, not unallocated work; estimates include acceptance/evidence and are not measured labor. Register contains 112 unique IDs, 70 bounded and 42 future, all formal NO. DEC-042 human UAT deferred. See [reconciliation](M4-2026-11-27-TECHNICAL-EXIT-RECONCILIATION.md).
-
-**Step8 final evidence dispositions:** [112-ID crosswalk](M4-2026-11-27-112-TECHNICAL-EXIT-CROSSWALK.csv) and [explicit Owner decision](M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md) updated. FM02 exact main auth/readback/weight tests PASS; PM13/SS01 original configuration-only, SS08/SS16 bounded proof plus unresolved exact field/authority mapping, SS17 bounded quantity/privacy plus future HR. No automatic scope transfer or closure; approval pending. M4 10.5h remains until approved reforecast; no CI, source or Mac replay.
-
-**M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
+**Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,732.5 |
-| Newly identified mandatory scope | +0 |
-| Newly identified mandatory rework | +0 |
-| Verified correction rework reduction | −0 |
-| Revised remaining ERP forecast | **1,732.5** |
+| Previous ERP forecast | 1,732.5 |
+| New scope/rework | +0 |
+| Verified completed release allowance | −0.5 |
+| Duplicate named acceptance allowance already in GL04 | −7 |
+| Transfer M4→M6 | 3 (net zero) |
+| Revised ERP forecast | **1,725** |
 
-Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
-**Latest M6-01 rework:** [82b15472](https://github.com/threeswordz/cinder-grind/commit/82b15472d149b194f1b5b7194ec0113f04df5aa8) makes both final HR preservation flags mandatory at the coordinator seal gate. Actual local 7/8 before, 8/8 after. New defect +0.5h and verified rework −0.5h, net zero; M6 112h and ERP 1732.5h unchanged. [Event133](https://github.com/threeswordz/cinder-grind/commit/9f3f9da68524a8df0fcd60a18cd5191d258081f2).
-**Latest M6-02 correction:** [0d796843](https://github.com/threeswordz/cinder-grind/commit/0d79684314fea829376492a102a61cba730ad40b) protects historical FM02 progress at rehearsal, source migration and final preservation. Actual local Node22.16.0 7/7 PASS; runtime call sites verified by source inspection, not executed. Defect +0.5h and verified rework −0.5h, net zero; M6 112h and ERP 1732.5h unchanged. [Event134](https://github.com/threeswordz/cinder-grind/commit/9bfc7da832061d3bf887668b64c9848bcbdeaf8b).
-<!-- /current-work-m4 -->
+**M6 active:** [execution baseline](M6-2026-11-27-POST-M4-EXECUTION-BASELINE.md); reconcile staged candidate against actual M4 main and Mac identity. Existing M6 local helper evidence preserved, no previous runtime journey replay. Actual human labor unmeasured. GL04/05 unchanged; specific carryovers tracked once. No new CI.
+<!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
 

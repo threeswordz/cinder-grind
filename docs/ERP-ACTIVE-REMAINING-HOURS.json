@@ -20,12 +20,15 @@
     "integratedDraftPR": 427,
     "integratedDraftHeadSha": "435bd8805d5bcd7e0a1a9941668b67860f288b78",
     "referenceLedgerBranch": "docs-erp-full-use-1900h-hourly-ledger-20261123",
-    "recordType": "PROPOSAL_NOT_PRODUCTION_CONFIG"
+    "recordType": "PROPOSAL_NOT_PRODUCTION_CONFIG",
+    "activeProtectedMainSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+    "activeMilestone": "M6",
+    "m4TechnicalClosureApproval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092"
   },
   "counts": {
     "immutableRequirements": 112,
     "rolePersonas": 8,
-    "officialPrototypeCompleted": 4,
+    "officialPrototypeCompleted": 5,
     "officialPrototypeTotal": 8,
     "officialGoLiveCompleted": 3,
     "officialGoLiveTotal": 10,
@@ -34,7 +37,12 @@
     "m4PackagesAccepted": 0,
     "m4PackagesTotal": 8,
     "formalAcceptedHistoricalHours": 0,
-    "actualLoggedHumanHours": null
+    "actualLoggedHumanHours": null,
+    "m4TechnicalPackagesClosed": 8,
+    "m4TechnicalPackagesTotal": 8,
+    "m4TechnicalClosureStagesCompleted": 8,
+    "m4TechnicalClosureStagesTotal": 8,
+    "m4TechnicalCheckpointsHistoricalNote": "20/32 legacy checkpoint count retained as historical; not equivalent to eight closure stages; no unsupported individual checkpoint pass inferred."
   },
   "stageOrder": [
     "M4",
@@ -58,7 +66,15 @@
       "baselineRemainingHours": 32,
       "optimizationTargetHours": 24,
       "requiredExit": "112 unique IDs classified; genuine gaps resolved or scoped; no inferred approval",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "M6-02"
+      }
     },
     {
       "id": "M4-02",
@@ -67,7 +83,15 @@
       "baselineRemainingHours": 8,
       "optimizationTargetHours": 6,
       "requiredExit": "Store/Khaimook approved A / returned B / correction lifecycle in actual UI",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-03",
@@ -76,7 +100,15 @@
       "baselineRemainingHours": 10,
       "optimizationTargetHours": 8,
       "requiredExit": "Three distinct authenticated scenarios and denials, with no redundant previous browser probes",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-04",
@@ -85,7 +117,15 @@
       "baselineRemainingHours": 8,
       "optimizationTargetHours": 6,
       "requiredExit": "1/2/3 suppliers by THB net total; Ben-approved reasoned exception; limits accepted",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-05",
@@ -94,7 +134,15 @@
       "baselineRemainingHours": 9,
       "optimizationTargetHours": 7,
       "requiredExit": "Company-scoped terms and source-linked immutable approvals, no implicit cross-Project",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-06",
@@ -103,7 +151,15 @@
       "baselineRemainingHours": 10,
       "optimizationTargetHours": 8,
       "requiredExit": "PDF name and recorded handoff; email/LINE sending stays external",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "M6-03/ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-07",
@@ -112,7 +168,15 @@
       "baselineRemainingHours": 6,
       "optimizationTargetHours": 5,
       "requiredExit": "New-doc format with preserved historical numbers and no cross-Company confusion",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "ROLE-01/ROLE-02/ROLE-03"
+      }
     },
     {
       "id": "M4-08",
@@ -121,7 +185,15 @@
       "baselineRemainingHours": 34,
       "optimizationTargetHours": 30,
       "requiredExit": "Exact candidate, linked evidence, independent review; owner-gated final CI/merge, no Production",
-      "formalAcceptance": false
+      "formalAcceptance": false,
+      "technicalClosure": {
+        "status": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+        "date": "2026-11-27",
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "formalBusinessAcceptance": false,
+        "carryover": "none"
+      }
     },
     {
       "id": "M6-01",
@@ -5114,6 +5186,242 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-01-151",
+      "date": "2026-11-27",
+      "packageId": "M4-01",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 0.5,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "0.5h retained as specific SS08/FМ02 site mapping reserve within M6-02; PM13/SS01/SS17 configuration allocated to existing ROLE-01, HR scope existing HR-02/03/06. SS16 operational correction verification M6-03.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0.5,
+      "duplicateAllowanceRemovedHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-02-152",
+      "date": "2026-11-27",
+      "packageId": "M4-02",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 1,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Existing ROLE-02 eight-role walkthrough and ROLE-03 all-112 human UAT budgets already cover named PM02 acceptance. Independent and technical proof done. Remove duplicate provisional allowance, not acceptance.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-03-153",
+      "date": "2026-11-27",
+      "packageId": "M4-03",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 1,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Existing role walkthrough and full UAT cover named weekly report/closeout acceptance; exact release review satisfied.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-04-154",
+      "date": "2026-11-27",
+      "packageId": "M4-04",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 1.5,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Existing role walkthrough and full UAT cover named Jai/Ben supplier comparison and exception acceptance.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-05-155",
+      "date": "2026-11-27",
+      "packageId": "M4-05",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 2.5,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Existing role walkthrough and full UAT cover named commercial/delivery fields and revision acceptance.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 2.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 2.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-06-156",
+      "date": "2026-11-27",
+      "packageId": "M4-06",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 0,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Already zero; actual renderer host/runtime and real supplier dispatch acceptance remain in existing target verification and UAT, external send stays external.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-07-157",
+      "date": "2026-11-27",
+      "packageId": "M4-07",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 1,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Existing retained Company configuration and full UAT cover actual K/T identity acceptance.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-08-158",
+      "date": "2026-11-27",
+      "packageId": "M4-08",
+      "kind": "M4_OWNER_APPROVED_TECHNICAL_EXIT_REFORECAST",
+      "beforeHours": 0.5,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Exact final CI, independent review, guarded integration, retained synthetic cutover and bounded role checks passed; explicit Owner technical decision now recorded. Retire only remaining 0.5h release/closure allowance.",
+      "blocker": "No M4 technical-stage blocker after approved disposition. Outstanding acceptance/technical work remains in destination; no formal business UAT.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "transferredHours": 0,
+      "duplicateAllowanceRemovedHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-PUR08-PUR14-159",
+      "date": "2026-11-27",
+      "packageId": "PUR08_PUR14_INTEGRATION",
+      "kind": "M4_OWNER_APPROVED_SUPPLIER_TECHNICAL_EXIT_TRANSFER",
+      "beforeHours": 2.5,
+      "afterHours": 0,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "Preserve entire provisional 2.5h as M6-03 residual integrated supplier/movement verification reserve; named-role human UAT already in GL04. Not completed effort.",
+      "reductionHours": 2.5,
+      "transferredHours": 2.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-160",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M4_APPROVED_RESIDUAL_TRANSFER_TO_M6",
+      "beforeHours": 24,
+      "afterHours": 24.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "0.5h existing M4 allowance transferred as explicitly earmarked reserve, not additional business scope, for SS08 specific BOQ/work-dimension mapping; FM02 configured plan runtime witness. Existing base M6 estimate covers generic integrated journeys; this reserve covers specific residual proof not previously itemized. Re-estimate once exact evidence found.",
+      "reductionHours": -0.5,
+      "transferredInHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-161",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M4_APPROVED_RESIDUAL_TRANSFER_TO_M6",
+      "beforeHours": 29,
+      "afterHours": 31.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md"
+      ],
+      "basis": "2.5h existing M4 allowance transferred as explicitly earmarked reserve, not additional business scope, for SS16 movement correction/cancellation authority by lifecycle; PUR08/PUR14 specific integrated supplier evidence. Existing base M6 estimate covers generic integrated journeys; this reserve covers specific residual proof not previously itemized. Re-estimate once exact evidence found.",
+      "reductionHours": -2.5,
+      "transferredInHours": 2.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5123,19 +5431,113 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 2.5,
-      "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "BOUNDED_SUPPLIER_IMPLEMENTATION_INTEGRATED_REVIEWED_FULL_MAIN_PASS;MAC_SYNTHETIC_DEPLOYMENT_AND_BOUNDED_ROLE_READBACK_PASS;REQUIREMENT_SPECIFIC_RETENTION_AND_HUMAN_UAT_NOT_ESTABLISHED",
-      "remaining": "2.5h prior provisional allowance retained pending scoped technical/acceptance reconciliation; exact independent review, CI and merge already passed, do not repeat. Retained named-role supplier-specific evidence and final prototype human UAT not demonstrated. Production authorization and separate posted-stock return/AP credit/quantitative attribution are distinct gates, not claimed complete.",
+      "hours": 0,
+      "budgetAllocation": "CLOSED_M4_TRANSFERRED_2.5H_TO_M6_03_NO_DOUBLE_COUNT",
+      "sourceStatus": "OWNER_APPROVED_BOUNDED_TECHNICAL_EXIT",
+      "remaining": "2.5h ring-fenced in M6-03 for specific integrated supplier lifecycle and SS16 movement-correction verification reserve; actual named role acceptance within existing GL04 ROLE-02/03. Posted-stock return/AP credit/quantitative attribution stay gated.",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
       "estimatedReductionFromNewSourceHours": 48.5,
       "confidence": "LOW",
-      "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
+      "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET",
+      "technicalClosure": {
+        "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+        "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "transferredHours": 2.5,
+        "to": "M6-03",
+        "formalBusinessAcceptance": false
+      }
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1732.5,
-  "currentRollingTotalSemantics": "1732.5h = 1730h sum of latest package balances plus separately priced PUR08_PUR14_INTEGRATION 2.5h. M4 10.5h = eight M4 packages 8h + supplier allowance 2.5h; M6 112h, combined prototype237.5h. Exact M4 full-main, retained synthetic upgrade and bounded 8-role checks PASS; final technical package exit reconciliation and deferred acceptance remain distinct. No actual labor measured or formal acceptance claimed."
+  "currentRollingTotalAfterPricedGapsHours": 1725,
+  "currentRollingTotalSemantics": "1725h = 1732.5h prior less 0.5h verified release allowance and 7h overlapping named acceptance estimate removed (already priced GL04 ROLE-01/02/03); 3h transferred to M6-02/03, no new scope or actual labor. M4 0h bounded technical closure; M6 115h, M7 50h, M8 65h, combined230h. Formal business acceptance remains 0/8; all 112 criteria preserved. GL04 120h and GL05 300h include residual configuration/UAT/HR scope; reserve is specific to extra integrated M6 verification not duplicated in other budget.",
+  "m4TechnicalClosure": {
+    "status": "CLOSED_OWNER_APPROVED_BOUNDED",
+    "date": "2026-11-27",
+    "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+    "approval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+    "decision": "https://github.com/threeswordz/cinder-grind/blob/5701b633035d7a6fed3d695dfb59c6a86bd0ecd6/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md",
+    "technicalPackagesClosed": 8,
+    "technicalPackagesTotal": 8,
+    "formalBusinessPackagesAccepted": 0,
+    "formalBusinessPackagesTotal": 8,
+    "remainingHours": 0,
+    "carryover": [
+      {
+        "requirements": [
+          "SS08",
+          "FM02"
+        ],
+        "packageId": "M6-02",
+        "hoursTransferred": 0.5,
+        "exit": "Representative work dimensions/BOQ mapping and actual configured confirmed weighted plan runtime; no replay existing passed tests."
+      },
+      {
+        "requirements": [
+          "SS16",
+          "PUR08",
+          "PUR14"
+        ],
+        "packageId": "M6-03",
+        "hoursTransferred": 2.5,
+        "exit": "Exact Khaimook correction/cancellation authority map by lifecycle; supplier-specific integrated source and scope proof; no posted-stock return/AP credit without policy."
+      },
+      {
+        "requirements": [
+          "PM13",
+          "SS01",
+          "SS17",
+          "FM02",
+          "PUR12"
+        ],
+        "packageId": "ROLE-01",
+        "hoursTransferred": 0,
+        "exit": "Actual authorized MKE/TCJ configuration; material change payload/routing; site warehouse assignment/cardinality (hard uniqueness separate decision); site stock/report rights; plan grants; Company PO identity."
+      },
+      {
+        "requirements": [
+          "PM02",
+          "FM01",
+          "BEN04",
+          "PM16",
+          "PUR01",
+          "PUR04",
+          "PUR07",
+          "PUR08",
+          "PUR12",
+          "PUR14",
+          "SS08",
+          "SS16",
+          "SS17",
+          "FM02"
+        ],
+        "packageId": "ROLE-02/ROLE-03",
+        "hoursTransferred": 0,
+        "duplicateAllowanceRemovedHours": 7,
+        "exit": "Named-role journeys and all 112 requirements in existing 35h+35h budgets; no intermediate human UAT; one frozen prototype UAT under DEC-042."
+      },
+      {
+        "requirements": [
+          "SS17"
+        ],
+        "packageId": "HR-02/HR-03/HR-06",
+        "hoursTransferred": 0,
+        "exit": "Salary-free worker/time/OT/leave read projection in existing GL05 HR scope, actual role privacy."
+      }
+    ],
+    "forecast": {
+      "before": 10.5,
+      "verifiedCompletedReleaseHours": 0.5,
+      "transferredHours": 3,
+      "duplicateAllowanceRemovedHours": 7,
+      "after": 0,
+      "actualLabor": null
+    },
+    "all112Preserved": true,
+    "humanUatDeferred": true,
+    "productionAuthorized": false,
+    "technicalStageCount": 5
+  }
 }
