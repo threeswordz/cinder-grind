@@ -5090,6 +5090,30 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-01-150",
+      "date": "2026-11-27",
+      "packageId": "M4-01",
+      "kind": "M4_FINAL_SIX_WITNESS_DISPOSITIONS_OWNER_TECHNICAL_CLOSURE_PROPOSED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/03-khaimook.md",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/06-foreman.md",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/scheduling/project-progress-plan-auth.spec.ts",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/material-issue.service.ts"
+      ],
+      "basis": "Exact current logs verify FM02 service/weight/readback/authority tests and prior preservation. Original role requirements identify PM13/SS01 configuration-only; SS08 and SS16 bounded source/test proofs with specific residual mapping/authority, SS17 current quantity/privacy plus later HR boundary. Updated 112-ID crosswalk; propose explicit Owner scope disposition and bounded technical closure, retain all outstanding technical and business acceptance work, no repeat CI or self approval. No unsupported hours reduction.",
+      "blocker": "Owner approval of bounded package closures and explicit remaining-work lane disposition, then reforecast and update milestone; unresolved technical criteria not waived.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [

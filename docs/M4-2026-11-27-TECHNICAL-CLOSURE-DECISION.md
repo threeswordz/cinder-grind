@@ -1,45 +1,30 @@
-# M4 Step 8 — technical closure decision packet
+# M4 final technical closure proposal — 27 November 2026 SGT
 
-Status: Builder recommendation, not Owner acceptance. Exact main 9417f07c609dbc091b5bbe2e09071c5e2c316459; Mac operational evidence from Owner transcript. Source register preserved without modification. [112-ID crosswalk](M4-2026-11-27-112-TECHNICAL-EXIT-CROSSWALK.csv).
+Exact integrated main `9417f07c609dbc091b5bbe2e09071c5e2c316459`; [full main evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016), [Mac cutover](https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198231627), [8/8 bounded synthetic readback](https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198315784). This is a Builder proposal, not Owner signoff. No new tests, no Production, no grants, no real MKE/TCJ activation.
 
-## Results
+## Final six evidence dispositions
 
-- BOUNDED_TECHNICAL_EVIDENCE_MAPPED: 58
+| ID | Disposition | Residual obligation |
+|---|---|---|
+| FM02 | BOUNDED_TECHNICAL_EVIDENCE_MAPPED | Exact main log at 16:22:05Z: Ben live same-Company MANAGEMENT/permission and stale session denials, plan preparation scope, confirmed plan/BOQ/UOM pins, stale version denial, 60%*50%+40%*25%=40.00. Unit/service tests and migration preservation, not a newly executed retained work plan journey. |
+| PM13 | CONFIGURATION_EXIT_PROPOSED_GL04 | Original requirement explicitly configuration-only, desired old/new specification/quantity/price/cost, drawings/photos/schedule impact and routing Jai vs Ben vs Ben→Nancy VO. Current variation/approval controls exist, exact configured routing and full payload/operational actor witness not established. GL04 configuration disposition proposed; confirm any missing functionality before final UAT, no inferred approval. |
+| SS01 | CONFIGURATION_EXIT_PROPOSED_GL04 | Original requirement explicitly configuration-only; keep one site warehouse and separately authorized central. Exact warehouse migration enforces Company/Project identity, unique Company+warehouse code, NOT one active warehouse per Project. Do not add global constraint or claim uniqueness; validate actual site assignment/cardinality in GL04, Owner decision if hard DB uniqueness required. |
+| SS08 | BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL | Exact source MaterialIssueItem/RequestLine WBS/CostCode/Activity, scoped validation and posting; plan allocation→plan line→budgetRevisionLineId; request link→receipt actual recipient/issuer. Exact main MP-AC-07–13, MR-AC-01–07 and P0 integrated request→approved plan issue→signed receipt→stock/reports PASS. Specific operational work type/building/floor/work area and direct BOQ mapping on each authorized site must be verified against representative fixtures; standalone general issue has optional dimensions, no claim every field mandatory. |
+| SS16 | BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL | Exact main canonical return/reversal preserves prior usage, V0.4-D return ceilings, DEC-050 B receipt and transfer original-rate reversal PASS. Source rejects editing submitted issue/return, creates linked reversing entries with reason/history and explicit reversal permission. Exact Khaimook correction/cancellation decision routing for received/issued/returned/transferred lifecycle including pending submitted documents still requires configuration/policy crosswalk, not demonstrated by generic reversal capability. No new bypass or overwrite authorized. |
+| SS17 | BOUNDED_TECHNICAL_EVIDENCE_MAPPED | Original requirement explicitly later HR time/OT/leave outside HR1-A. Exact stock balance query quantity-only scoped, budget disclosure restricts cost reports, exact main BOQ public HTTP quantity/action/report/export denial and salary/private-free Project operational projections PASS. Existing safe role read scope only; named warehouse/report rights GL04, time/OT/leave salary-free projection GL05. No wage disclosure or implicit mutation grant. |
+
+## Explicit Owner decision required
+
+Approve bounded technical exits M4-02 through M4-08 and PUR08/PUR14, and M4-01 crosswalk completion subject to the following scope disposition: PM13 and SS01 configuration/actual role and warehouse setup to GL04; SS08 representative work dimension/BOQ mapping and SS16 per-document correction/cancellation authority map to M6 integrated technical verification (not waived or reclassified as human UAT); SS17 operational configuration GL04 and HR time/OT/leave GL05; FM02 bounded technical evidence accepted, configured work-plan runtime proof in M6/GL04. Any discovered missing functionality is tracked and priced there before freeze. Preserve prior six approved boundaries, 42 future IDs and all 112 acceptance criteria; comprehensive human UAT DEC-042. No expansion of grants, no hard uniqueness constraint without distinct decision, no unverified workflow labeled PASS.
+
+With explicit Owner authorization, mark bounded technical M4 complete (5/8 technical prototype stages), not all 112 requirements accepted. All eight formal business package flags remain false until applicable acceptance. The existing ledger prohibits package zero without independent+Owner acceptance where applicable: record technical closure separately and keep deferred evidence/acceptance in receiving packages without double-counting. Proposed remaining-hour disposition: retire only verified completed release and engineering allowances, retain/reallocate any remaining work to M6/GL04/GL05 according to a documented estimate; do not claim a 10.5h actual reduction or remove unverified work. If Owner declines scope disposition, M4 remains open for targeted technical work. No full CI or deployment repeated.
+
+## Crosswalk counts
+
+- BOUNDED_TECHNICAL_EVIDENCE_MAPPED: 60
 - OWNER_BOUNDARY_PRESERVED: 6
 - FUTURE_SCOPE_PRESERVED: 42
-- SPECIFIC_TECHNICAL_WITNESS_UNRESOLVED: 5
-- HISTORICAL_BOUNDED_EVIDENCE_RETAINED: 1
+- CONFIGURATION_EXIT_PROPOSED_GL04: 2
+- BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL: 2
 
-17 targeted run metadata rechecked SUCCESS: 45623304729, 45626721473, 45622912802, 45616676458, 45621618196, 45619654984, 45626946379, 45617599765, 45618250092, 45571472031, 45665277240, 45826890738, 45822516895, 45820461137, 45566487068, 45615060550, 45555913363. Earlier focused evidence is historical, not asserted as exact current execution; exact main [full logs](https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016) independently inspected for actual approval, BOQ disclosure, workflow, browser and historical recovery witnesses. No fresh tests triggered. All 112 IDs preserved, no formal acceptance changed.
-
-## Package exits
-
-| Exit | Recommendation | Remaining boundary |
-|---|---|---|
-| M4-01 | Crosswalk prepared; conditional | Five specific witnesses below, FM02 historical evidence limit; no fabricated real-role acceptance |
-| M4-02 | Bounded technical exit supported | Actual mixed PR browser + live revoked authority, exact main rollback proof; human UAT deferred |
-| M4-03 | Bounded technical exit supported | Prior real browser/HTTP distinct scenarios + exact main FM01, real retained acceptance deferred |
-| M4-04 | Bounded technical exit supported | Actual supplier thresholds/exception and independent Ben audit; retained role acceptance deferred |
-| M4-05 | Bounded technical exit supported | Exact main native commercial/immutable revision and concurrency, earlier real HTTP/browser; retained acceptance deferred |
-| M4-06 | Bounded technical exit supported | Prior Thai PDF, manual send and scope proof; external send/real host acceptance separate |
-| M4-07 | Bounded technical exit supported | Prior independent Company numbering and direct scope proof; retained Company configuration separate |
-| M4-08 | Release/cutover/role gates PASS | Owner decision, no self approval |
-| PUR08/PUR14 | Bounded lifecycle technical exit supported | Supplier-specific actual business acceptance and external/Finance boundaries separate |
-
-## Unresolved specificity — no demonstrated new code defect
-
-- **PM13:** V0.5-E approved subcontract variation and V0.7-D Project variation controls exist; specific material/work-method change rule and actor workflow not established by these proofs.
-- **SS01:** V0.4-A Warehouse Company/Project lifecycle and audit proof exists; explicit one-warehouse-per-site business rule not established by cited test.
-- **SS08:** Material issue/plan/request controls and dimensions tests exist; complete named Store work-dimension field/actor witness not established.
-- **SS16:** V0.4-D issue/return reversal and transfer/receipt controls exist; exact submitted movement document correction workflow not established across document types.
-- **SS17:** Scoped selector and Store readback establish limited visibility; full site operational visibility and financial-field exclusions not demonstrated for every intended screen.
-
-FM02 historical technical evidence retained; no separate exact current FM02 runtime marker claimed. Historical SS02 native evidence is not a real retained React journey. PM15/SS14 daily demand and external supplier confirmation/notification, SS11 worker identity/liability and PUR14 posted-stock reversal/credit/attribution retain their existing policy/feature limits. No new scope waiver. First role readback stopped before final fingerprint; continuation fingerprint passed, cutover preservation PASS. 8/8 synthetic roles does not imply real-role permissions or 70/70 functional journeys.
-
-## Decision proposed
-
-Accept the bounded technical release, operational deployment and mapped package evidence as the M4 technical baseline; authorize progression to M6 under DEC-042 without repeating passed gates. Preserve the five unresolved specific technical witnesses for explicit source/test disposition (not automatically human UAT); confirm FM02 evidence limit. Do not mark any unverified technical criterion PASS or transfer new business scope silently. Owner may approve package-level technical exit where supported; formal 5/8 and zero M4 balance require the remaining technical criteria to be resolved or explicitly scoped under existing governance, with human UAT retained for frozen prototype. No Production or actual MKE/TCJ authorization.
-
-## Forecast
-
-Current official 10.5h = 8h package balances + 2.5h supplier allowance. These historical allowances combine previously completed release gates and deferred acceptance; re-estimate at approved package disposition rather than claim elapsed work or arbitrary reduction. New scope +0, confirmed new defects +0, credited reduction 0. M6 112h, M7 50h, M8 65h; combined 237.5h; ERP 1732.5h. Formal prototype4/8, M4 packages0/8 until decision. No additional Mac/CI required to review this packet.
+All 112 IDs preserved, formal NO. Current official forecast unchanged pending decision: M4 10.5h, M6 112h, M7 50h, M8 65h, combined 237.5h, ERP 1732.5h. Prior remaining balances are low-confidence evidence/acceptance estimates rather than measured labor. No newly confirmed defect or new scope priced. [Prior packet](https://github.com/threeswordz/cinder-grind/blob/46e9e43a4f4d040c41d5c3f54eb82dfe268f3c92/docs/M4-2026-11-27-TECHNICAL-CLOSURE-DECISION.md).
