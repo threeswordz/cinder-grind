@@ -5877,6 +5877,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-184",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_FM02_NATIVE_REGRESSION_PREPARED_SYNTAX_ONLY",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "b4ddb641302ac448b7becb2093dbc62a2f8f866e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200713970",
+        "https://github.com/threeswordz/cinder-grind/commit/b4ddb641302ac448b7becb2093dbc62a2f8f866e"
+      ],
+      "basis": "FM02 native coverage gap: retained lane A observations showed zero confirmed weighted plans and zero quantity source lines. Existing service pins approved BOQ and UOM, checks live permission and MANAGEMENT confirmation, and records exact plan/version quantity evidence; prior focused tests are mocked. New standalone synthetic native integration test b4ddb641302ac448b7becb2093dbc62a2f8f866e, based on preceding SS08 test branch, uses real persisted roles and sessions, approved budget via canonical BudgetService, scoped HTTP preparation and independent confirmation, CSRF/unassigned actor/stale plan or version denials, missing-source states, quantity provenance, and mixed 60% quantity/40% assessed progress (50% and 25% complete, 40.00% expected weighted result). Explicit disposable DB name and temporary storage guards; no retained-runtime writes. Actual local TypeScript 5.8.3 transpileModule diagnostics [] and output 10757 bytes, Git hash-object 7ea13266dad51abe1d15ff5f146c051b00de1553 matched published blob. Syntax-only, not full typecheck or actual API/DB/browser PASS. Current isolated lane branch head verified, only two added test files relative to successor, zero Actions runs, protected main unchanged. No credit for unexecuted test or new scope. Next batch SS08 and FM02 focused native execution with isolated database setup and matching application build; shared Mac auth and rebuild validation remain outstanding.",
+      "blocker": "Execute SS08 and FM02 against separate disposable databases using exact application dependencies and seeded permission catalog; full typecheck and deployed browser proof pending. Shared auth and compiled artifact checks need actual Mac.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
