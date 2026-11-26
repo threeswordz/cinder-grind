@@ -6,6 +6,9 @@ import {
   ConflictException, ForbiddenException, NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { DocumentsService } from '../documents/documents.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -631,7 +634,9 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     await prisma.documentLink.create({data:{documentId:doc.id,entityType:'PROJECT',entityId:project.id,linkedByUserId:jai.user.id}});
     const dispatch=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:linked.po.id,kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic reported external dispatch',recordedByUserId:jai.user.id}});
     const ack=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:linked.po.id,kind:'ACKNOWLEDGMENT',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic reported supplier acknowledgement',acknowledgesEventId:dispatch.id,recordedByUserId:jai.user.id}});
-    const supplierCases=new SupplierDeliveryCaseService(prisma,scope);
+    const documents=new DocumentsService(prisma,scope,new AuditService(prisma),
+      new LocalDocumentStorage(),new DocumentPolicyService());
+    const supplierCases=new SupplierDeliveryCaseService(prisma,scope,documents);
     const event=await supplierCases.transition({auth:buyer},linked.po.id,{
       action:'ACKNOWLEDGE',expectedVersion:0,expectedPreviousEventId:null,evidenceDocumentId:doc.id,note:'Reported supplier acknowledgment',recordedPoAcknowledgmentEventId:ack.id,
     });
