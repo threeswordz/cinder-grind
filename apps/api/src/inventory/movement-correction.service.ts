@@ -10,6 +10,7 @@ import { MaterialIssueService } from './material-issue.service';
 import { MaterialReturnService } from './material-return.service';
 import { StockTransferService } from './stock-transfer.service';
 import { recordTransferCustodyEvent } from './transfer-custody.service';
+import { lockMaterialPlanIssues } from './material-plan-issue-locks';
 import { correctionAuthority, type CorrectionAction, type MovementKind } from './movement-correction-authority';
 
 const entityType = 'MOVEMENT_CORRECTION';
@@ -21,7 +22,7 @@ type CorrectionMode = 'REVERSE_POSTED' | 'CANCEL_UNPOSTED';
 type Source = { companyId: string; kind: MovementKind; projectIds: string[]; postedAt: Date | null;
   reversedAt: Date | null; reversalKey: string | null; submittedAt: Date | null;
   approvalInstanceId: string | null; approvalInstance: { companyId: string; entityType: string; entityId: string; approvalState: string } | null;
-  stockCount: number; controlledLifecycle: boolean; transferCustody: boolean };
+  stockCount: number; controlledLifecycle: boolean; transferCustody: boolean; planAuthorizationId: string | null; terminalCancelled: boolean };
 const conflict = (code: string): never => { throw new ConflictException({ code }); };
 const deny = (): never => { throw new ForbiddenException({ code: 'SS16_CORRECTION_AUTHORITY_DENIED' }); };
 const invalid = (): never => { throw new UnprocessableEntityException({ code: 'SS16_CORRECTION_INPUT_INVALID' }); };
@@ -29,7 +30,7 @@ const uuid = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a
 
 // Posted reversal and bounded submitted/unposted cancellation share independent maker/checker.
 // Submitted receiving GR and undispatched, still-submitted custody transfers use their own lifecycle guards.
-// Material-plan overage and already-approved undispatched transfers remain separate exits.
+// An approved-undispatched transfer keeps its historical approval; a linked cancellation is terminal.
 @Injectable()
 export class MovementCorrectionService {
   constructor(private readonly prisma: PrismaService, private readonly approval: ApprovalService,
@@ -44,26 +45,39 @@ export class MovementCorrectionService {
         postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
         submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
         stockCount: row.stockTransactions.length, controlledLifecycle: Boolean(row.custody?.dispatch),
-        transferCustody: Boolean(row.custody) };
+        transferCustody: Boolean(row.custody), planAuthorizationId: null,
+        terminalCancelled: Boolean(row.custody?.cancelled) };
     }
     const row = kind === 'GOODS_RECEIPT' ? await this.receipts.get(auth, id, tx)
       : kind === 'MATERIAL_ISSUE' ? await this.issues.get(auth, id, tx)
       : await this.returns.get(auth, id, tx);
+    const binding = kind === 'MATERIAL_ISSUE' && !row.postedAt
+      ? await tx.materialPlanIssueBinding.findFirst({ where: { issueId: id, policy: { companyId: auth.companyId } },
+        select: { authorizationId: true } }) : null;
+    const plan = binding && !binding.authorizationId
+      ? await tx.materialPlanIssueAuthorization.findFirst({ where: { issueId: id }, orderBy: { sequence: 'desc' }, include: { approval: true } }) : null;
     const controlledLifecycle = !row.postedAt && (
       (kind === 'GOODS_RECEIPT' && Boolean(await tx.receivingDelivery.findFirst({ where: { companyId: auth.companyId, goodsReceipt: { is: { id } }, status: 'VOID' }, select: { id: true } }))) ||
-      (kind === 'MATERIAL_ISSUE' && Boolean(await tx.materialPlanIssueBinding.findUnique({ where: { issueId: id }, select: { issueId: true } })))
+      Boolean(binding && (!plan || plan.mode !== 'OVERAGE' || !plan.approvalInstanceId))
     );
+    const terminalCancelled = Boolean(binding && await tx.movementCorrectionRequest.findFirst({ where: {
+      companyId: auth.companyId, sourceKind: kind, sourceId: id, sourcePostedAt: null,
+      approvalInstance: { approvalState: 'APPROVED' } }, select: { id: true } }));
     return { companyId: row.companyId, kind, projectIds: [row.projectId], postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
-      submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
-      stockCount: row.stockTransactions.length, controlledLifecycle, transferCustody: false };
+      submittedAt: row.submittedAt, approvalInstanceId: plan?.approvalInstanceId ?? row.approvalInstanceId, approvalInstance: plan?.approval ?? row.approvalInstance,
+      stockCount: row.stockTransactions.length, controlledLifecycle, transferCustody: false,
+      planAuthorizationId: plan?.id ?? null, terminalCancelled };
   }
 
   private cancellationPin(source: Source, id: string) {
+    if (source.terminalCancelled) return conflict('SS16_SOURCE_CANCELLED');
     if (source.controlledLifecycle) return conflict('SS16_CONTROLLED_CANCELLATION_REQUIRED');
     const original = source.approvalInstance;
     if (source.postedAt || source.reversedAt || source.stockCount !== 0 || !source.submittedAt ||
         !source.approvalInstanceId || !original || original.companyId !== source.companyId ||
-        original.entityType !== source.kind || original.entityId !== id || original.approvalState !== 'SUBMITTED')
+        original.entityType !== (source.planAuthorizationId ? 'MATERIAL_PLAN_OVERAGE' : source.kind) ||
+        original.entityId !== (source.planAuthorizationId ?? id) ||
+        !(original.approvalState === 'SUBMITTED' || (source.transferCustody && original.approvalState === 'APPROVED')))
       return conflict('SS16_UNPOSTED_SUBMITTED_SOURCE_REQUIRED');
     return { sourceApprovalInstanceId: source.approvalInstanceId, sourceSubmittedAt: source.submittedAt };
   }
@@ -101,7 +115,8 @@ export class MovementCorrectionService {
 
   private async lock(tx: Tx, companyId: string, kind: MovementKind, id: string) {
     await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'ss16:' + companyId + ':' + kind + ':' + id);
-    // Same row locks used by canonical custody approval, dispatch and receiving commands.
+    // Same locks used by canonical plan posting, custody approval, dispatch and receiving commands.
+    if (kind === 'MATERIAL_ISSUE') await lockMaterialPlanIssues(tx, [id]);
     if (kind === 'STOCK_TRANSFER')
       await tx.$queryRaw`SELECT transfer_id FROM transfer_custodies WHERE transfer_id=${id}::uuid AND company_id=${companyId}::uuid FOR UPDATE`;
     if (kind === 'GOODS_RECEIPT')
@@ -200,10 +215,11 @@ export class MovementCorrectionService {
           return conflict('SS16_SOURCE_CHANGED');
         await this.approval.approve(row.approvalInstanceId, context.auth, row.requestedByUserId, comment, async finalTx => {
           if (cancelling) {
-            // The original submitted approval is terminally cancelled in this same transaction.
+            // Cancel pending original approvals; retain completed transfer approval as historical fact.
             // No source/header overwrite, stock entry, reservation release or history deletion.
             const originalId = row.sourceApprovalInstanceId!;
-            await this.approval.cancel(originalId, context.auth, finalTx);
+            if (source.approvalInstance?.approvalState === 'SUBMITTED')
+              await this.approval.cancel(originalId, context.auth, finalTx);
             if (source.transferCustody) await recordTransferCustodyEvent(context, finalTx, this.audit, row.sourceId, 'CANCEL', row.reason);
             await this.audit.record({ ...context, entityType: kind, entityId: row.sourceId, action: 'CANCEL',
               newValues: { correctionRequestId: row.id, originalApprovalInstanceId: originalId, reason: row.reason } }, finalTx);

@@ -290,7 +290,7 @@ export class StockTransferService {
     ]) {
       await this.access.assertAccess(auth, projectId, db);
     }
-    return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) } : null };
+    return { ...row, custody: custody ? { cancelled: Boolean(await db.transferCustodyEvent.findFirst({where:{transferId:id,action:'CANCEL'},select:{id:true}})), ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) } : null };
   }
 
   async create(
