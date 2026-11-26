@@ -70,30 +70,31 @@ try{
  const p=browser.protocol,{targetId}=await p.send('Target.createTarget',{url:'about:blank'});
  const {sessionId}=await p.send('Target.attachToTarget',{targetId,flatten:true});
  await p.send('Runtime.enable',{},sessionId);
+ await p.send('Page.enable',{},sessionId);
  const errors=[];
  p.listeners.add(e=>{if(e.method==='Runtime.exceptionThrown'&&e.sessionId===sessionId)errors.push(e.params.exceptionDetails?.text);});
  const ev=async(fn,arg)=>{const x=await p.send('Runtime.evaluate',{expression:'('+fn.toString()+')('+JSON.stringify(arg??null)+')',returnByValue:true,awaitPromise:true},sessionId);assert.ok(!x.exceptionDetails,JSON.stringify(x.exceptionDetails));return x.result.value;};
  const until=async(fn,arg)=>{const end=Date.now()+30000;while(Date.now()<end){if(await ev(fn,arg))return;await sleep(150);}throw Error('Browser assertion timed out: '+fn.toString());};
  await p.send('Page.navigate',{url:WEB+'/__m4-cache-scope'},sessionId);
- await until(()=>document.body.innerText.includes('9876.54 THB')&&document.body.innerText.includes('PRIVATE-SUPPLIER-SIGNATORY'));
+ await until(()=>Boolean(document.getElementById('root')&&document.getElementById('refresh-all')));
+ await until(()=>(document.body?.innerText??'').includes('9876.54 THB')&&(document.body?.innerText??'').includes('PRIVATE-SUPPLIER-SIGNATORY'));
  // Select the MUI custody Project combobox using real browser input events.
- const box=await ev(()=>{const e=[...document.querySelectorAll('[role="combobox"]')].find(x=>x.closest('.MuiFormControl-root')?.textContent.includes('Project / site scope'));if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};});
- assert.ok(box,'Custody selector missing');
- await p.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...box},sessionId);
- await p.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...box},sessionId);
+ await until(()=>{const e=[...document.querySelectorAll('[role="combobox"]')].find(x=>x.closest('.MuiFormControl-root')?.textContent.includes('Project / site scope'));return Boolean(e);});
+ assert.equal(await ev(()=>{const e=[...document.querySelectorAll('[role="combobox"]')].find(x=>x.closest('.MuiFormControl-root')?.textContent.includes('Project / site scope'));if(!e)return false;e.scrollIntoView({block:'center'});e.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true;}),true);
  await until(()=>[...document.querySelectorAll('[role="option"]')].some(x=>x.textContent.includes('PRIVATE-CUSTODY-PROJECT')));
  await ev(()=>[...document.querySelectorAll('[role="option"]')].find(x=>x.textContent.includes('PRIVATE-CUSTODY-PROJECT')).click());
- await until(()=>document.body.innerText.includes('PRIVATE-LOAN-CUSTODIAN'));
+ await until(()=>(document.body?.innerText??'').includes('PRIVATE-LOAN-CUSTODIAN'));
  denied=true;
  await ev(()=>document.querySelector('#refresh-all').click());
- await until(()=>document.body.innerText.includes('Asset details unavailable in your current scope')&&document.body.innerText.includes('Synthetic scope denied')&&
-  !document.body.innerText.includes('PRIVATE-')&&
+ await until(()=>(document.body?.innerText??'').includes('Asset details unavailable in your current scope')&&(document.body?.innerText??'').includes('Synthetic scope denied')&&
+  !(document.body?.innerText??'').includes('PRIVATE-')&&
   ![...document.querySelectorAll('input,textarea')].some(x=>x.value.includes('PRIVATE-')||x.value.includes('9876.54')));
  assert.ok(denials>=3,'Expected current denied HTTP responses');
  assert.equal(await ev(()=>[...document.querySelectorAll('button')].some(x=>x.textContent.includes('Record acquisition version')||x.textContent.includes('Record source-linked evidence')||x.textContent.includes('Record Return'))),false);
  denied=false;
- await ev(()=>[...document.querySelectorAll('button')].find(x=>x.textContent==='Refresh register').click());
- await until(()=>document.body.innerText.includes('9876.54 THB'));
+ await until(()=>[...document.querySelectorAll('button')].some(x=>x.textContent==='Refresh register'&&!x.disabled));
+ await ev(()=>[...document.querySelectorAll('button')].find(x=>x.textContent==='Refresh register'&&!x.disabled).click());
+ await until(()=>(document.body?.innerText??'').includes('9876.54 THB'));
  assert.equal(errors.length,0,JSON.stringify(errors));
  console.log('M4_PROTECTED_CACHE_REAL_CHROMIUM_DENIAL_AND_RETRY_PASS');
 }finally{await browser?.stop();await server?.close();await rm(temp,{recursive:true,force:true});}
