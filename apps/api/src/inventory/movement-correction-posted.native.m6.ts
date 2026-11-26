@@ -172,6 +172,20 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(await cancelledStock(),0);
     assert.equal(await db.approvalAction.count({where:{approvalInstanceId:originalReceipt.approvalInstanceId!,action:'CANCEL'}}),1);
     await assert.rejects(corrections.decide({auth:pm},approvedCancel.id,'APPROVE','Replay'));
+    const sameCancellation = await corrections.request({auth:store},'GOODS_RECEIPT',draft.id,cancelBody.requestKey,cancelBody.reason,'CANCEL_UNPOSTED');
+    assert.equal(sameCancellation.id,cancel.id,'Original rejected request remains the exact replay result');
+    await assert.rejects(corrections.request({auth:store},'GOODS_RECEIPT',draft.id,randomUUID(),cancelBody.reason,'CANCEL_UNPOSTED'));
+    const staleDraft = await goods.create({auth:store}, {projectId:f.project.id,purchaseOrderId:f.po.id,
+      warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal('1')}]});
+    await goods.submit({auth:store},staleDraft.id,f.receiptWorkflow.workflowCode);
+    const staleRequest = await corrections.request({auth:store},'GOODS_RECEIPT',staleDraft.id,randomUUID(),cancelBody.reason,'CANCEL_UNPOSTED');
+    await goods.approve({auth:pm},staleDraft.id,randomUUID());
+    await assert.rejects(corrections.decide({auth:pm},staleRequest.id,'APPROVE','Source already posted'),
+      (err: any) => err.getResponse?.()?.code === 'SS16_UNPOSTED_SUBMITTED_SOURCE_REQUIRED');
+    assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:staleDraft.id}}),1);
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:staleRequest.approvalInstanceId}})).approvalState,'SUBMITTED');
+    await corrections.decide({auth:pm},staleRequest.id,'REJECT','Source already posted; correction must be a separate reversal');
+    assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:staleDraft.id}}),1);
   } finally {
     try { await app?.close(); } finally {
       await db.$disconnect();
