@@ -6063,6 +6063,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-193",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_PUR14_REPLACEMENT_AND_SS16_POSTED_APPROVAL_NATIVE_PASS",
+      "beforeHours": 26,
+      "afterHours": 24,
+      "sourceSha": "88ac733b93bebfec8e7c5fcd2c88b30f043994a3",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201916078",
+        "https://github.com/threeswordz/cinder-grind/commit/88ac733b93bebfec8e7c5fcd2c88b30f043994a3"
+      ],
+      "basis": "Owner exact detached Mac transcript: valid Prisma schema, generated client, API build, 178 disposable migrations, PUR14 replacement 1/1 and SS16 posted GR correction approval 1/1 PASS. One provisional remaining validation hour each; prior six groups and FM02 not repeated. No separate implementation/rework credit, formal acceptance, or actual labor claim.",
+      "blocker": "HTTP routes/UI, legacy reversal bypass closure, submitted/unposted cancellation, actual configured workflow and grants, other three movement-type native approvals, DB binding/concurrency/security independent review, integrated release/preservation.",
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6092,8 +6112,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1707.5,
-  "currentRollingTotalSemantics": "1707.5h = previous1713.5h minus 6h provisional verified native workflow validation. M6 97.5h, M7 50h, M8 65h, combined212.5h. Actual labor unknown; all112 requirements retained; no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1705.5,
+  "currentRollingTotalSemantics": "1705.5h = previous1707.5h minus 2h provisional verified replacement and posted GR approval native validation. M6 95.5h, M7 50h, M8 65h, combined210.5h. Actual labor unknown; all112 requirements retained; no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
