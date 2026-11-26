@@ -4424,6 +4424,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-118",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_OWNER_AUTHORIZED_READY_TRANSITION_POST_READY_REVIEW_RUNNING",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451"
+      ],
+      "basis": "Owner explicitly authorized the exact Ready transition and required post-Ready independent review. Rechecked open draft head 82df55d/base040395bc and full46/46 PASS before marking Ready. GitHub returned draft=false on the same head. Codex eyes reaction689994016 at2026-11-26T02:37:24Z acknowledges the resulting review. No duplicate review request issued. Existing final integration allocation remains open.",
+      "blocker": "Obtain trusted clean Codex reaction after Ready and verify all integration proof, then request separate protected merge authorization. Retained technical readback remains.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
