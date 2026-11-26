@@ -4,12 +4,12 @@
 
 | Package | Estimate | First execution objective |
 |---|---:|---|
-| M6-01 | 22 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
+| M6-01 | 21.5 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
 | M6-02 | 24.5 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
 | M6-03 | 31.5 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
 | M6-04 | 18.5 | Physical acceptance/certification history |
 | M6-05 | 18 | HR private file/history and keys |
-| Total | 114.5 | Low confidence estimates, no actual labor |
+| Total | 114 | Low confidence estimates, no actual labor |
 
 Earlier exact M6 local helper regressions preserved; integration against current M4 runtime not assumed. First reconcile candidate branch and guard against duplicate old journeys/receipt identity. Use focused validation, independent review for changed candidate and specific #384 release authority; no full CI until appropriate. DEC-042 human UAT at frozen prototype, GL04/05 carryover as approved. Existing synthetic login checks are not comprehensive role acceptance.
 
@@ -33,3 +33,7 @@ All lanes must use the same accepted main 9417f07c and successor custody adapter
 | D | M6-05 | HR private history, key/byte custody and access denial; no grant or salary exposure. |
 
 Report exact source, affected requirement IDs, tests/actual output, remaining evidence and any shared-file conflict to coordinator. Use one common source integration, no duplicate completed journey, no separately triggered full CI, no human UAT before freeze. Independent DEC-022 review remains at stable candidate. No new policy or deployment authority.
+
+## Read-only runtime evidence core (event164)
+
+Source 43b7bb2b534e303154d2a1edc0b97be970ba33fa. Local Node22.16.0 actual 20/20 focused tests: native temporary filesystem and fixture DB/client and process observations only. Exact published source/test blob IDs match tested local files. Checks require normalized expected process receipts, loopback-only listeners, correct database/user/read-only/isolation and zero active sessions, exact public table-set and SQL row text hashes, private protected file and compiled artifact byte inventories, two complete captures and final process identity. Does not grant mutation or claim live runtime verification. No native PostgreSQL or Mac proof. No workflow or schema change. M6-01 22→21.5h, M6 114h. Next bind the actual M4 private post-role baseline formats and native container/process observation to the read-only successor; no fabricated receipt conversion or replay. Parallel lane contracts unchanged, no new worker or lane completion.
