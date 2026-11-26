@@ -6001,6 +6001,48 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-190",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_SS08_NATIVE_DIMENSIONED_WORKFLOW_PASS",
+      "beforeHours": 23,
+      "afterHours": 22,
+      "sourceSha": "9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201626345",
+        "https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+        "https://github.com/threeswordz/cinder-grind/commit/b1bc13f8c012b1c92a6fe4778bf50828245327ec"
+      ],
+      "basis": "SS08 exact request/issue/stock dimensions and scope/replay native 1/1 PASS at exact integrated candidate. One provisional hour; no duplicate FM02 or earlier credit.",
+      "blocker": "Remaining deployed browser/role integration, final acceptance.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-191",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_AND_SUPPLIER_NATIVE_GROUPS_PASS_WITH_REPLACEMENT_BLOCKED",
+      "beforeHours": 31,
+      "afterHours": 26,
+      "sourceSha": "9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201626345",
+        "https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48",
+        "https://github.com/threeswordz/cinder-grind/commit/b1bc13f8c012b1c92a6fe4778bf50828245327ec"
+      ],
+      "basis": "Three distinct movement groups (1+12+12) and two supplier groups (1+1) actual PASS. Five hours provisional focused validation only. Replacement blocked; test-only fixture correction published, not yet validated. No credit for helper/policy reruns or unimplemented approval lifecycle.",
+      "blocker": "Replacement-only native rerun; durable SS16 request/decision, atomic reversal and bypass closure; integration/review.",
+      "reductionHours": 5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6030,8 +6072,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1713.5,
-  "currentRollingTotalSemantics": "1713.5h = previous1714.5h minus 1h provisional focused native FM02 verification. M6 103.5h, M7 50h, M8 65h, combined218.5h. Actual labor unknown, all112 requirements retained; no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1707.5,
+  "currentRollingTotalSemantics": "1707.5h = previous1713.5h minus 6h provisional verified native workflow validation. M6 97.5h, M7 50h, M8 65h, combined212.5h. Actual labor unknown; all112 requirements retained; no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",

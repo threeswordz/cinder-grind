@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 103.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 218.5h → 0h · Full ERP 1,713.5h → 0h.**
+**M4 CLOSED 0h · M6 97.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 212.5h → 0h · Full ERP 1,707.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -55,6 +55,8 @@
 **Event188 — M6-03:** [Authority policy, transfer guard and focused native runner](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201155288), [exact isolated candidate](https://github.com/threeswordz/cinder-grind/commit/0795baf506061b3256b5ea22edd801db2000ea74). 10/10 actual local policy tests, Bash syntax PASS, exact published hashes verified. Existing transfer guard filters assignment Company; separate SS16 request/decision is not wired, durable lifecycle/legacy bypass remains open. Earlier supplier success preserved, changed service/tests require focused current-source native evidence. Six isolated native test groups ready for Mac; no new CI, no forecast credit. M6-03 31h; M6 103.5h.
 
 **Event189 — accelerated execution:** [exact integrated candidate](https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48), [evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201398570), [plan](M6-ACCELERATED-EXECUTION-2026-11-27.md). Both existing lanes consolidated with exact blob verification, one seven-group native runner syntax PASS, prior full-main browser evidence confirmed. M6 103.5h remains; optimization target89h and stretch65h explicitly not earned. No new CI, no duplicate savings, no formal acceptance.
+
+**Events190–191 — native batch 6/7 PASS:** [Owner evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201626345), [exact tested candidate](https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48), [replacement fixture correction](https://github.com/threeswordz/cinder-grind/commit/b1bc13f8c012b1c92a6fe4778bf50828245327ec). API build, 177 migrations, policy16/16, SS08, three SS16 groups, supplier case and custody PASS; combined44/45 tests. Replacement403 remains blocked pending targeted rerun. M6-02 23→22h, M6-03 31→26h, M6 103.5→97.5h; ERP1707.5h. Six hours provisional validation credit only; no repeat of successful groups or FM02, no approval lifecycle closure or new full CI.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
