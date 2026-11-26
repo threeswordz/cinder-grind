@@ -4714,6 +4714,25 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M6-05-132",
+      "date": "2026-11-26",
+      "packageId": "M6-05",
+      "kind": "M6_HR_FINAL_RECOVERY_COMBINED_CONTRACT_LOCAL_PASS",
+      "beforeHours": 18.5,
+      "afterHours": 18,
+      "sourceSha": "097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9"
+      ],
+      "basis": "Distinct final HR/recovery integration regression absent from earlier five-helper suite. Actual Node22.16.0 5/5 local PASS: synthetic 11-table HR snapshots and real temp filesystem copy; valid new HR attachment with preserved original, old metadata drift despite intact copy, altered key placeholder and dump despite valid HR successor, wrong-company new document. Three exact existing helper blobs b33f5866c3a95c07d675d2ab778d7d0fdc8941dd,10b33c485adcc8c6abbd652750045ea756b9a7bc,f4e0c493d26894fa6f8d7de59d9ce89367a2bab4 locally matched; new test blob 2d02e41b84b052b6373b1189cc7132c57ce56320 read back remotely. Retire provisional 0.5h integration test preparation only; not actual PG, encryption, Mac or review. No duplicate individual helper credit.",
+      "blocker": "Actual authorized deployed HR API/browser and private-key custody evidence; native rehearsal and exact independent review; M4 release first.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4736,6 +4755,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1733,
-  "currentRollingTotalSemantics": "1733h = 1847h baseline minus 116.5h verified baseline forecast reduction plus 2.5h supplier residual. M4 10.5h; M6 112.5h; formal acceptance remains false. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1732.5,
+  "currentRollingTotalSemantics": "1732.5h = 1847h baseline minus 117h verified baseline forecast reduction plus 2.5h supplier residual. M4 10.5h; M6 112h; formal acceptance remains false. All 112 requirements preserved. Actual labor unmeasured."
 }
