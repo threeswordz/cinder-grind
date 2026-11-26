@@ -23,7 +23,7 @@ function error(code: string) {
 }
 
 function clean(value: string | null | undefined): string {
-  const text = (value ?? 'NOT SPECIFIED').normalize('NFC');
+  const text = (value ?? 'NOT SPECIFIED').normalize('NFC').replace(/\r\n?/gu, '\n');
   if (text.length > 20000 ||
       /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u202A-\u202E\u2066-\u2069]/u.test(text)) {
     throw error('UNICODE_TEXT_INVALID');
@@ -58,16 +58,17 @@ export function approvedPoUnicodeHtml(input: ApprovedPoPdfText): string {
     '<title>' + escapeHtml(input.number) + '</title>' +
     '<style>' +
     '@page{size:A4;margin:14mm}' +
-    'html,body{padding:0;margin:0;color:#16212a}' +
+    'html,body{padding:0;margin:0;color:#16212a;overflow-wrap:anywhere}' +
     'body{font:10.5pt/1.5 "Noto Sans Thai",Tahoma,Arial,sans-serif}' +
     'h1{font-size:18pt;margin:0 0 12px}' +
     '.head{border-bottom:2px solid #283647;padding:0 0 12px;margin-bottom:12px}' +
-    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}' +
+    '.meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 18px}' +
+    '.meta>div{min-width:0;white-space:pre-wrap}' +
     'h2{font-size:12pt;margin:16px 0 6px}' +
-    'table{border-collapse:collapse;width:100%;font-size:9pt}' +
+    'table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:9pt}' +
     'thead{display:table-header-group}' +
     'th,td{padding:5px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}' +
-    'th{background:#f2f4f7}.money{text-align:right;white-space:nowrap}' +
+    'th{background:#f2f4f7}.money{text-align:right;white-space:normal}' +
     'tr{break-inside:avoid}' +
     '.foot{border-top:1px solid #ddd;margin-top:15px;padding-top:9px;font-size:9pt}' +
     '</style></head><body>' +
@@ -79,6 +80,7 @@ export function approvedPoUnicodeHtml(input: ApprovedPoPdfText): string {
     text('Supplier legal name', input.supplierLegalName) +
     text('Currency', input.currency) +
     text('Delivery location', input.deliveryLocation) +
+    text('Delivery contact', input.deliveryContact ?? null) +
     text('Delivery terms', input.deliveryTerms) + '</div>' +
     '<h2>Approved PO lines / รายการสั่งซื้อ</h2><table>' +
     '<thead><tr><th>#</th><th>Description / รายละเอียด</th><th>Quantity / Unit</th><th>Unit price</th><th>Amount</th></tr></thead>' +

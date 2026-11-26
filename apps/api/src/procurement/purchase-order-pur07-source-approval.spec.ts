@@ -55,7 +55,7 @@ test('PUR07 preserves contractual rate and rounds only monetary presentation', a
       lines: [{ lineNo: 1, description: 'Concrete', quantity: D(quantity!), uomCodeSnapshot: 'EA',
         unitPrice: D(unitPrice!), amount: D(amount!), quotationAward: { supplierNameSnapshot: 'ABC Ltd' } }],
       discountAmount: D('0'), freightAmount: D('0'), additionalChargeAmount: D('0'), vatRatePercent: D('7'),
-      deliveryLocation: null, deliveryTerms: null, paymentTerms: null, creditTerms: null,
+      deliveryContact: 'APPROVED CONTACT', deliveryLocation: null, deliveryTerms: null, paymentTerms: null, creditTerms: null,
     };
     const sut = new PurchaseOrderPur07Service({} as never, {} as never, {} as never,
       { getOrder: async () => order } as never);
@@ -63,6 +63,7 @@ test('PUR07 preserves contractual rate and rounds only monetary presentation', a
     assert.equal(exported.fileName, 'K-PO2611-001 A_B.pdf');
     const pdf = exported.bytes.toString('ascii');
     assert.ok(pdf.includes('K-PO2611-001 A&B'));
+    assert.ok(pdf.includes('Delivery contact: APPROVED CONTACT'));
     assert.equal(order.displayNumber, 'K-PO2611-001 A&B');
     assert.ok(pdf.includes(unitPrice + ' | ' + shownAmount), 'approved rate must not be rounded to satang');
     assert.ok(pdf.includes('Subtotal: ' + shownAmount));

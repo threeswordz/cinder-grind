@@ -68,3 +68,21 @@ test('PUR07: supplementary legal names and descriptions must reach Unicode rende
     assert.throws(() => renderApprovedPoAsciiPdf({...sample,lines:[{...sample.lines[0]!,description:'Material ' + character}]}), PoPdfUnsupportedTextError);
   }
 });
+
+test('PUR07: wide ASCII fields wrap without dropping approved characters', () => {
+  const wide = 'W'.repeat(80);
+  const bytes = renderApprovedPoAsciiPdf({...sample,supplierLegalName:wide,lines:[{...sample.lines[0]!,description:wide}]});
+  const pdf = bytes.toString('ascii');
+  assert.ok(!pdf.includes(wide));
+  assert.equal([...pdf.matchAll(/W/gu)].length,160);
+});
+
+test('PUR07: preflight source controls before wrapping and retain the approved contact', () => {
+  const prefix = 'Supplier (legal): ';
+  for (const control of ['\t','\n','\r']) {
+    const supplierLegalName = 'W'.repeat(54-prefix.length) + control + 'Suffix';
+    assert.throws(()=>renderApprovedPoAsciiPdf({...sample,supplierLegalName}),PoPdfUnsupportedTextError);
+  }
+  const pdf = renderApprovedPoAsciiPdf({...sample,deliveryContact:'APPROVED CONTACT'}).toString('ascii');
+  assert.ok(pdf.includes('Delivery contact: APPROVED CONTACT'));
+});

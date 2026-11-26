@@ -47,7 +47,10 @@ function safePdfText(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
-function wrap(line: string, width = 90): string[] {
+// At 9pt the widest printable ASCII Helvetica advance is 1.015em (@).
+// This conservative bound keeps every emitted row inside both 48pt margins.
+const asciiRowCharacters = Math.floor((595 - 2 * 48) / (9 * 1.015));
+function wrap(line: string, width = asciiRowCharacters): string[] {
   if (line.length <= width) return [line];
   const result: string[] = [];
   let rest = line;
@@ -72,6 +75,7 @@ export type ApprovedPoPdfText = {
   currency: string;
   lines: Array<{number: number; description: string; quantity: string; uom: string; unitPrice: string; amount: string}>;
   deliveryLocation: string | null;
+  deliveryContact?: string | null;
   deliveryTerms: string | null;
   paymentTerms: string | null;
   creditTerms: string | null;
@@ -87,7 +91,7 @@ export type ApprovedPoPdfText = {
 // Intentionally refuses unsupported non-ASCII glyphs rather than generating a
 // misleading supplier document. No use of untrusted raw PDF operators.
 export function renderApprovedPoAsciiPdf(input: ApprovedPoPdfText): Buffer {
-  const rows = [
+  const sourceRows = [
     'PURCHASE ORDER - APPROVED',
     'Document: ' + input.number + ' | Revision: ' + input.revision,
     'Company: ' + input.company,
@@ -110,17 +114,19 @@ export function renderApprovedPoAsciiPdf(input: ApprovedPoPdfText): Buffer {
     'VAT rate (%): ' + (input.vatPercent ?? 'NOT SPECIFIED'),
     'Total incl VAT: ' + (input.total ?? 'NOT CALCULATED (missing commercial inputs)'),
     'Delivery location: ' + (input.deliveryLocation ?? 'NOT SPECIFIED'),
+    'Delivery contact: ' + (input.deliveryContact ?? 'NOT SPECIFIED'),
     'Delivery terms: ' + (input.deliveryTerms ?? 'NOT SPECIFIED'),
     'Payment terms: ' + (input.paymentTerms ?? 'NOT SPECIFIED'),
     'Credit terms: ' + (input.creditTerms ?? 'NOT SPECIFIED'),
     'This document reflects one approved PO revision. External sending is manual.',
-  ].flatMap(line => wrap(line));
+  ];
+  // Validate the original text before wrapping can consume any whitespace.
+  sourceRows.forEach(safePdfText);
+  const rows = sourceRows.flatMap(line => wrap(line));
 
   if (rows.length === 0 || rows.length > 5500) {
     throw new Error('PO_PDF_PAGE_LIMIT');
   }
-  // Validate every glyph BEFORE writing any bytes, including all line text.
-  rows.forEach(safePdfText);
   const perPage = 54;
   const pages: string[][] = [];
   for (let i = 0; i < rows.length; i += perPage) pages.push(rows.slice(i, i + perPage));

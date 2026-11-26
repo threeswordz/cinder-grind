@@ -130,6 +130,7 @@ export class PurchaseOrderPur07Service {
           amount: line.amount.toFixed(2, Prisma.Decimal.ROUND_HALF_UP),
         })),
         deliveryLocation: order.deliveryLocation,
+        deliveryContact: order.deliveryContact,
         deliveryTerms: order.deliveryTerms,
         paymentTerms: order.paymentTerms,
         creditTerms: order.creditTerms,

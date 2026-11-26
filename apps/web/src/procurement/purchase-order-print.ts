@@ -68,13 +68,14 @@ export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
 <title>${escape(suggestedFileName.replace(/\.pdf$/u,''))}</title>
 <style>
 @page { size:A4; margin:14mm; }
-body { font: 11pt/1.45 'Noto Sans Thai','Tahoma','Arial',sans-serif; color:#1f2937; }
+body { font: 11pt/1.45 'Noto Sans Thai','Tahoma','Arial',sans-serif; color:#1f2937; overflow-wrap:anywhere; }
 h1 {font-size:20pt; margin:0 0 12px;} h2 {font-size:12pt;}
 .header {border-bottom:2px solid #333; padding-bottom:12px; margin-bottom:15px;}
-.meta {display:grid; grid-template-columns:1fr 1fr; gap:7px 20px;}
-table {border-collapse:collapse; width:100%; margin-top:15px; font-size:9pt;}
-th,td {padding:6px; border-bottom:1px solid #ddd; text-align:left; vertical-align:top;}
-th {background:#f5f5f5;} .number {text-align:right; white-space:nowrap;}
+.meta {display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px 20px;}
+.meta>div {min-width:0; white-space:pre-wrap;}
+table {border-collapse:collapse; width:100%; table-layout:fixed; margin-top:15px; font-size:9pt;}
+th,td {padding:6px; border-bottom:1px solid #ddd; text-align:left; vertical-align:top; overflow-wrap:anywhere; white-space:pre-wrap;}
+th {background:#f5f5f5;} .number {text-align:right; white-space:normal;}
 tr {break-inside:avoid;} .footer{border-top:1px solid #777; margin-top:22px; padding-top:10px;}
 .warning {font-size:8pt;color:#555;}
 </style></head><body>

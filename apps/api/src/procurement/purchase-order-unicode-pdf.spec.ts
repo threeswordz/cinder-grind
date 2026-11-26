@@ -13,7 +13,7 @@ import type { AuditService } from '../audit/audit.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { ProjectAccessService } from '../projects/project-access.service';
 import type { PurchaseOrderService } from './purchase-order.service';
-import type { ApprovedPoPdfText } from './purchase-order-pdf';
+import { renderApprovedPoAsciiPdf, type ApprovedPoPdfText } from './purchase-order-pdf';
 import { approvedPoUnicodeHtml, renderApprovedPoUnicodePdf } from './purchase-order-unicode-pdf';
 import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
 
@@ -141,18 +141,64 @@ test('PUR07 real Chromium readiness accepts canonically equivalent supplier name
   assert.equal(process.env.M4_NON_PRODUCTION_CONFIRMED,'YES');
   const directory = await mkdtemp(join(tmpdir(),'pur07-normalized-name-'));
   try {
-    for (const supplierLegalName of ['Cafe\u0301 Supplier', 'A\u030a Supplier']) {
+    for (const [supplierLegalName, expected] of [['Cafe\u0301 Supplier','Café Supplier'], ['A\u030a Supplier','Å Supplier'], ['Supplier\rName','Supplier\nName'], ['Supplier\r\nName','Supplier\nName']] as const) {
       const input = {...sample,supplierLegalName};
       const html = approvedPoUnicodeHtml(input);
-      assert.ok(html.includes(supplierLegalName.normalize('NFC')));
+      assert.ok(html.includes(expected));
       assert.ok(!html.includes(supplierLegalName));
       const bytes = await renderApprovedPoUnicodePdf(input);
       const file = join(directory,'normalized.pdf');
       await writeFile(file,bytes);
       const extracted = spawnSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:15000});
       assert.equal(extracted.status,0);
-      assert.ok(extracted.stdout.includes(supplierLegalName.normalize('NFC')));
+      for (const word of expected.split('\n')) assert.ok(extracted.stdout.includes(word));
       assert.equal(input.supplierLegalName,supplierLegalName);
     }
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});
+
+test('PUR07 real PDF bounds retain wide ASCII supplier and description text on the page', async () => {
+  assert.equal(process.env.GITHUB_ACTIONS,'true','Disposable CI proof only');
+  assert.equal(process.env.M4_NON_PRODUCTION_CONFIRMED,'YES');
+  const directory = await mkdtemp(join(tmpdir(),'pur07-ascii-bounds-'));
+  try {
+    const wide = 'W'.repeat(80);
+    const input = {...sample,number:'K-PO2611-001 ABC',company:'MKE',project:'Site',supplierLegalName:wide,
+      deliveryLocation:null,deliveryTerms:null,paymentTerms:null,
+      lines:[{...sample.lines[0]!,description:wide}]};
+    const file = join(directory,'wide.pdf');
+    await writeFile(file,renderApprovedPoAsciiPdf(input));
+    const extracted = spawnSync('pdftotext',['-bbox',file,'-'],{encoding:'utf8',timeout:15000});
+    assert.equal(extracted.status,0);
+    const words = [...extracted.stdout.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/gu)];
+    assert.ok(words.length > 0);
+    for (const word of words) {
+      assert.ok(Number(word[1]) >= 48 && Number(word[3]) <= 547,'Every approved field must fit within horizontal page margins');
+      assert.ok(Number(word[2]) >= 0 && Number(word[4]) <= 794,'Every approved field must remain on the page');
+    }
+    assert.equal(words.reduce((sum,word)=>sum+[...word[5]!.matchAll(/W/gu)].length,0),160);
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});
+
+test('PUR07 real Unicode PDF keeps long approved metadata, contact and line text inside the page', async () => {
+  assert.equal(process.env.GITHUB_ACTIONS,'true','Disposable CI proof only');
+  assert.equal(process.env.M4_NON_PRODUCTION_CONFIRMED,'YES');
+  const directory = await mkdtemp(join(tmpdir(),'pur07-unicode-bounds-'));
+  try {
+    const input = {...sample,number:'K-PO2611-001 ' + 'N'.repeat(100),supplierLegalName:'S'.repeat(200),
+      deliveryLocation:'L'.repeat(490)+'LOCATION',deliveryContact:'C'.repeat(190)+'CONTACT',
+      lines:[{...sample.lines[0]!,description:'W'.repeat(490)+'MATERIAL'}]};
+    const file = join(directory,'long-unicode.pdf');
+    await writeFile(file,await renderApprovedPoUnicodePdf(input));
+    const extracted = spawnSync('pdftotext',['-bbox',file,'-'],{encoding:'utf8',timeout:15000});
+    assert.equal(extracted.status,0);
+    const words = [...extracted.stdout.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/gu)];
+    assert.ok(words.length > 0);
+    for (const word of words) {
+      assert.ok(Number(word[1]) >= 39 && Number(word[3]) <= 556,'Unicode metadata and line fields must fit page margins');
+      assert.ok(Number(word[2]) >= 0 && Number(word[4]) <= 803,'Unicode fields must remain inside page bounds');
+    }
+    const text = words.map(word=>word[5]).join('');
+    for(const marker of ['LOCATION','CONTACT','MATERIAL']) assert.ok(text.includes(marker));
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
