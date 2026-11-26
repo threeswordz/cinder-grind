@@ -1,45 +1,42 @@
-name: UOM Preserved Prototype Targeted
+name: M4 PUR07 PDF Compatibility Targeted
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
-    paths:
-      - '.github/workflows/uom-preserved-native.yml'
-      - 'deploy/uat/prototype-uom-*.mjs'
-      - 'deploy/uat/prototype-material-run-native.mjs'
-      - 'deploy/uat/material-uom-browser.mjs'
-      - 'deploy/release-candidate/prototype-uom-upgrade.test.mjs'
+    branches: ['work-m4-pur07-pdf-compat-20261126']
+    paths: ['.github/workflows/uom-preserved-native.yml']
 permissions:
   contents: read
 concurrency:
-  group: uom-preserved-native-${{ github.ref }}
+  group: m4-pur07-pdf-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  uom-preserved:
+  pdf-compatibility:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     services:
       postgres:
         image: postgres:17.11-alpine
         env:
-          POSTGRES_DB: construction_erp
+          POSTGRES_DB: erp_m4_pur07_native
           POSTGRES_USER: construction_erp
           POSTGRES_PASSWORD: construction_erp_dev_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur07_native"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_native?schema=public
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
+          ref: 5af60607d31bc6d7f53ba55a4b483a4e1904cfbb
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -51,15 +48,30 @@ jobs:
           node-version: 24.21.0
       - name: Install locked dependencies and generate schema
         run: |
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb"
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
-      - name: Build actual API
-        run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
-        run: node deploy/uat/prototype-material-run-native.mjs
-      - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+      - name: Build API and typecheck web
+        run: |
+          pnpm --filter @construction-erp/api build
+          pnpm --filter @construction-erp/web typecheck
+      - name: Verify PDF export and supplementary Unicode regressions
+        run: |
+          node --test apps/api/dist/procurement/purchase-order-pdf.spec.js apps/api/dist/procurement/purchase-order-pur07-source-approval.spec.js
+          pnpm --filter @construction-erp/web exec node --test src/role-ui/purchase-order-print-filename.test.mjs src/role-ui/purchase-order-print-money.test.mjs
+      - name: Prepare local Chromium PDF tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-core fonts-noto-cjk poppler-utils
+          fc-cache -f
+      - name: Verify real Unicode PDF service rendering
+        run: node --test apps/api/dist/procurement/purchase-order-unicode-pdf.spec.js
+      - name: Verify PostgreSQL dispatch and approved PDF service
+        run: |
+          pnpm prisma:migrate:deploy
+          node --test apps/api/dist/procurement/purchase-order.pur07.integration.spec.js
+      - name: Confirm targeted proof
+        run: |
+          test "$(git rev-parse HEAD)" = "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb"
+          echo 'M4_PUR07_PDF_COMPATIBILITY_TARGETED_PASS'
