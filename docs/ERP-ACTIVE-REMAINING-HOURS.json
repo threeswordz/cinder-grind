@@ -5627,6 +5627,110 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-172",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_HISTORICAL_ROWS_AND_COMPILED_REBUILD_HELPERS_LOCAL_PASS",
+      "beforeHours": 18,
+      "afterHours": 17,
+      "sourceSha": "a75f7132d8098ff4c88fab539e7f9bc4d7606689",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689"
+      ],
+      "basis": "Consolidated candidate a75f7132d8098ff4c88fab539e7f9bc4d7606689. Historical SQL projection fingerprints for 168 original tables (including old migration scope, only exact migration-added permission-code alternatives, explicit non-null added-column and nonempty new-table checks); report mismatches without accepting session/business drift. Exact-source isolated rebuild comparator for API/web files, rejects alias/same runtime root, wrong source, changing or different bytes; no original compiled-byte manifest exists in available evidence, historical byte claim remains false. Actual local Node22.16.0 combined 16/16 focused helper tests PASS (122.965772ms), real temporary artifact fixture bytes and mocked database/checkout responses; published four blobs match local hash-object. Four disjoint lane branches at A:bfe033de9ed26e33c163fa030ec29e4b3d4c865b, B:7aae68feba3f91321d1504d73101364a9b95eb60, C:cc418881d7d5b85390d48d239c76bd552fbffe3d, D:ed568f46c5d0874e938d65ebcf1b712ad4b32992 implement guarded aggregate-only SQL observations; actual local 16/16 tests PASS (109.104201ms), mocked database, eight exact published blobs and common session helper hash verified. All eight lane blobs integrated verbatim and native CLI wired; actual new CLI execution and native SQL/rebuild proof pending. No actual agents launched, no business action, no full CI (zero runs on new head), no deployment. Retire 1h provisional shared implementation allowance and 0.25h per lane for bounded evidence-preparation code/tests only; no acceptance or measured labor. Branch creation itself receives no credit.",
+      "blocker": "Native historical row comparison, actual exact-source rebuild bytes, new integrated CLI and release gates remain pending; no historical compiled-byte manifest.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-173",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_ISOLATED_LANE_AGGREGATE_EVIDENCE_HELPER_LOCAL_PASS",
+      "beforeHours": 24.5,
+      "afterHours": 24.25,
+      "sourceSha": "bfe033de9ed26e33c163fa030ec29e4b3d4c865b",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729",
+        "https://github.com/threeswordz/cinder-grind/commit/bfe033de9ed26e33c163fa030ec29e4b3d4c865b",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689"
+      ],
+      "basis": "Isolated lane A SS08 request/issue dimensions and FM02 confirmed weighted-plan/source counts. Four focused local fixture tests PASS, exact two source/test hashes match and integrated unchanged into successor. 0.25h provisional evidence-preparation work only; no workflow completion or credit for branch creation.",
+      "blocker": "Native aggregate result and actual workflow/authorization/role evidence pending; no business execution authorized by this helper.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-174",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_ISOLATED_LANE_AGGREGATE_EVIDENCE_HELPER_LOCAL_PASS",
+      "beforeHours": 31.5,
+      "afterHours": 31.25,
+      "sourceSha": "7aae68feba3f91321d1504d73101364a9b95eb60",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729",
+        "https://github.com/threeswordz/cinder-grind/commit/7aae68feba3f91321d1504d73101364a9b95eb60",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689"
+      ],
+      "basis": "Isolated lane B PO-linked delivery, receiving/transfer document binding differences, correction-linked PR lines. Four focused local fixture tests PASS, exact two source/test hashes match and integrated unchanged into successor. 0.25h provisional evidence-preparation work only; no workflow completion or credit for branch creation.",
+      "blocker": "Native aggregate result and actual workflow/authorization/role evidence pending; no business execution authorized by this helper.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-04-175",
+      "date": "2026-11-27",
+      "packageId": "M6-04",
+      "kind": "M6_ISOLATED_LANE_AGGREGATE_EVIDENCE_HELPER_LOCAL_PASS",
+      "beforeHours": 18.5,
+      "afterHours": 18.25,
+      "sourceSha": "cc418881d7d5b85390d48d239c76bd552fbffe3d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729",
+        "https://github.com/threeswordz/cinder-grind/commit/cc418881d7d5b85390d48d239c76bd552fbffe3d",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689"
+      ],
+      "basis": "Isolated lane C physical claims/decisions, certification scope and retention counts. Four focused local fixture tests PASS, exact two source/test hashes match and integrated unchanged into successor. 0.25h provisional evidence-preparation work only; no workflow completion or credit for branch creation.",
+      "blocker": "Native aggregate result and actual workflow/authorization/role evidence pending; no business execution authorized by this helper.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-05-176",
+      "date": "2026-11-27",
+      "packageId": "M6-05",
+      "kind": "M6_ISOLATED_LANE_AGGREGATE_EVIDENCE_HELPER_LOCAL_PASS",
+      "beforeHours": 18,
+      "afterHours": 17.75,
+      "sourceSha": "ed568f46c5d0874e938d65ebcf1b712ad4b32992",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729",
+        "https://github.com/threeswordz/cinder-grind/commit/ed568f46c5d0874e938d65ebcf1b712ad4b32992",
+        "https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689"
+      ],
+      "basis": "Isolated lane D HR private/employment revision and attachment counts, Company-scope attachment binding. Four focused local fixture tests PASS, exact two source/test hashes match and integrated unchanged into successor. 0.25h provisional evidence-preparation work only; no workflow completion or credit for branch creation.",
+      "blocker": "Native aggregate result and actual workflow/authorization/role evidence pending; no business execution authorized by this helper.",
+      "reductionHours": 0.25,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.25,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5656,8 +5760,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1720.5,
-  "currentRollingTotalSemantics": "1720.5h = previous1721.5h minus 1h provisional native archive and protected-file evidence. M6 110.5h, M7 50h, M8 65h, combined225.5h. Actual labor unknown, all112 requirements retained, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1718.5,
+  "currentRollingTotalSemantics": "1718.5h = previous1720.5h minus 1h local shared historical rows/rebuild implementation and 1h four local lane evidence preparations (0.25 each). M6 108.5h, M7 50h, M8 65h, combined223.5h. Actual labor unknown, no formal acceptance change, all112 IDs retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",

@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 110.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 225.5h → 0h · Full ERP 1,720.5h → 0h.**
+**M4 CLOSED 0h · M6 108.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 223.5h → 0h · Full ERP 1,718.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -35,6 +35,8 @@
 **M6-01 19.5→19h (event170):** [Native evidence and correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200152088). Native migration name/checksum comparison passed by execution order; capture receipt guard stopped before archive/files. New helper requires separate capture and restore receipts and original manifest comparison; actual 15/15 local tests PASS, exact blob match; integration tests/native proof pending. 0.5h credit only for native migration evidence; no credit for correction. M6 111.5h, full ERP1,721.5h. No new CI.
 
 **M6-01 19→18h (event171):** [Owner native evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200204517). 26/26 Mac focused tests PASS; historical backup native PASS, archive checksum and protected copies match original saved manifest and live bytes. Historical database rows and compiled artifact provenance remain unverified. 1h provisional credit for archive and protected file native verification; no repeated migration credit. M6 110.5h, full ERP1,720.5h.
+
+**M6 110.5→108.5h (events172–176):** [evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729). [Candidate a75f7132](https://github.com/threeswordz/cinder-grind/commit/a75f7132d8098ff4c88fab539e7f9bc4d7606689), 16/16 local shared helper tests and 16/16 lane fixture tests passed, exact published blobs matched; read-only row/rebuild and aggregate lane CLI wiring awaiting actual Mac proof. M6-01 18→17h; lane A24.5→24.25, B31.5→31.25, C18.5→18.25, D18→17.75. No worker sessions, actual business execution, new CI or acceptance. Prior full ERP1720.5−2=1718.5h, provisional forecast only.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

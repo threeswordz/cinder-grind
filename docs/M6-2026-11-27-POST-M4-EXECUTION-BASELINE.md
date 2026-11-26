@@ -4,12 +4,12 @@
 
 | Package | Estimate | First execution objective |
 |---|---:|---|
-| M6-01 | 18 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
-| M6-02 | 24.5 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
-| M6-03 | 31.5 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
-| M6-04 | 18.5 | Physical acceptance/certification history |
-| M6-05 | 18 | HR private file/history and keys |
-| Total | 110.5 | Low confidence estimates, no actual labor |
+| M6-01 | 17 | Reconcile current isolated candidate vs integrated M4; exact source/migration and preserved data adapter |
+| M6-02 | 24.25 | Site/plan/request/issue; SS08 field and FM02 runtime proof |
+| M6-03 | 31.25 | Procurement/receiving/transfers and SS16/PUR08/PUR14 specific residual verification |
+| M6-04 | 18.25 | Physical acceptance/certification history |
+| M6-05 | 17.75 | HR private file/history and keys |
+| Total | 108.5 | Low confidence estimates, no actual labor |
 
 Earlier exact M6 local helper regressions preserved; integration against current M4 runtime not assumed. First reconcile candidate branch and guard against duplicate old journeys/receipt identity. Use focused validation, independent review for changed candidate and specific #384 release authority; no full CI until appropriate. DEC-042 human UAT at frozen prototype, GL04/05 carryover as approved. Existing synthetic login checks are not comprehensive role acceptance.
 
@@ -63,3 +63,9 @@ M6-01 19.5→19h; M6 111.5h. [Evidence](https://github.com/threeswordz/cinder-gr
 Owner supplied exact-head Mac output 13d1b48d0e25b9ec57e4b96fb800b480e64cd8b4: 26/26 focused backup tests PASS, no failures or skips, 51.058708ms. Native M6_HISTORICAL_BACKUP_CHECKS_PASS: 166 historical and 177 live migration checksums matched, additive migration count11, retained archive SHA-256 matched and protected copies match current and original saved manifest. Historical database row and compiled artifact provenance flags remain false; mayMutate=false, productionAuthorized=false. No new migration credit (already recorded event170). Provisional 0.5h each for native archive and protected-file checks completed, 1h total, not measured labor; no new scope or formal acceptance. Next reconstruct exact historical SQL row fingerprint projection from original operator, reconcile session/permission exceptions and additive columns, then prove compiled artifact provenance and integrate successor release. No repeat of unchanged tests required.
 
 M6-01 19→18h; M6 110.5h. [Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200204517).
+
+## Consolidated read-only successor and isolated lane development (events172–176)
+
+Consolidated candidate a75f7132d8098ff4c88fab539e7f9bc4d7606689. Historical SQL projection fingerprints for 168 original tables (including old migration scope, only exact migration-added permission-code alternatives, explicit non-null added-column and nonempty new-table checks); report mismatches without accepting session/business drift. Exact-source isolated rebuild comparator for API/web files, rejects alias/same runtime root, wrong source, changing or different bytes; no original compiled-byte manifest exists in available evidence, historical byte claim remains false. Actual local Node22.16.0 combined 16/16 focused helper tests PASS (122.965772ms), real temporary artifact fixture bytes and mocked database/checkout responses; published four blobs match local hash-object. Four disjoint lane branches at A:bfe033de9ed26e33c163fa030ec29e4b3d4c865b, B:7aae68feba3f91321d1504d73101364a9b95eb60, C:cc418881d7d5b85390d48d239c76bd552fbffe3d, D:ed568f46c5d0874e938d65ebcf1b712ad4b32992 implement guarded aggregate-only SQL observations; actual local 16/16 tests PASS (109.104201ms), mocked database, eight exact published blobs and common session helper hash verified. All eight lane blobs integrated verbatim and native CLI wired; actual new CLI execution and native SQL/rebuild proof pending. No actual agents launched, no business action, no full CI (zero runs on new head), no deployment. Retire 1h provisional shared implementation allowance and 0.25h per lane for bounded evidence-preparation code/tests only; no acceptance or measured labor. Branch creation itself receives no credit.
+
+[Evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200360729). Native execution and isolated rebuild proof outstanding; independent review and governed release unchanged.
