@@ -1,6 +1,7 @@
 // Compare retained historical backup custody, never restore or alter the runtime.
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
+import {verifyBackupReceipts,verifyProtectedInventories} from './m6-backup-receipts.mjs';
 import {lstat,open,realpath,readdir} from 'node:fs/promises';
 import {join} from 'node:path';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
@@ -39,14 +40,16 @@ export async function migrationSources(application){
   need(dirs.length===177&&dirs.every(d=>name.test(d.name)),'M6_HISTORICAL_SQL_SOURCE_COUNT_INVALID');
   return Promise.all(dirs.map(async d=>({migration_name:d.name,checksum:await hashFile(join(path,d.name,'migration.sql'),false)})));
 }
-export async function verifyProtectedBackup({root,stage,receipt,readInventory}){
-  need(stage===join(root,'m4-upgrade-9417f07c')&&receipt?.source==='5535dd890fd84489d76b611929e70e3422c746e8'&&receipt.target==='9417f07c609dbc091b5bbe2e09071c5e2c316459'&&receipt.databaseTables===168&&receipt.historicalMigrations===166&&receipt.isolatedRestoreVerified===true&&receipt.protectedFilesVerified===true&&receipt.sourceUnchanged===true&&receipt.productionAuthorized===false&&sha.test(receipt.databaseArchiveSha256??''),'M6_HISTORICAL_BACKUP_RECEIPT_INVALID');
+export async function verifyProtectedBackup({root,stage,receipt,rehearsal,baseline,readInventory}){
+  need(stage===join(root,'m4-upgrade-9417f07c'),'M6_HISTORICAL_BACKUP_ROOT_UNSAFE');
+  verifyBackupReceipts(receipt,rehearsal);
+  need(baseline&&Object.keys(baseline).sort().join(',')==='documents,hrkeys,uploads','M6_HISTORICAL_INVENTORY_INVALID');
   const preserved=join(stage,'preserved'),s=await lstat(preserved);
   need(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===process.getuid()&&!(s.mode&0o077)&&await realpath(preserved)===preserved,'M6_HISTORICAL_BACKUP_ROOT_UNSAFE');
   need(await hashFile(join(preserved,'postgresql.custom'),true)===receipt.databaseArchiveSha256,'M6_HISTORICAL_ARCHIVE_CHECKSUM_DRIFT');
   for(const kind of ['documents','uploads','hrkeys']){
     const original=await readInventory(join(preserved,kind)),current=await readInventory(join(root,kind));
-    need(Array.isArray(original)&&same(original[0],['','directory'])&&same(original,current),'M6_HISTORICAL_PROTECTED_COPY_DRIFT');
+    verifyProtectedInventories(baseline[kind],original,current);
   }
   return {retainedArchiveChecksumMatched:true,protectedCopiesMatchCurrent:true,historicalDatabaseRowsVerified:false,historicalCompiledArtifactBytesVerified:false};
 }

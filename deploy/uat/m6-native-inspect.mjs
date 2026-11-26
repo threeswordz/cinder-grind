@@ -84,10 +84,12 @@ async function main(){
       const {verifyMigrationChecksums,migrationSources,verifyProtectedBackup}=await import('./m6-historical-backup.mjs');
       const stage=join(root,'m4-upgrade-9417f07c');
       const receipt=await readPrivate(join(stage,'backup-ready.json'));
+      const rehearsal=await readPrivate(join(stage,'rehearsal','rehearsal-ready.json'));
+      const baseline=await readPrivate(join(stage,'file-baseline-private.json'),33554432);
       const plan=await readPrivate(join(stage,'rehearsal','migration-plan-private.json'),33554432);
       const before=await readAdmissionDatabase(db),sources=await migrationSources(application);
       const migration=verifyMigrationChecksums(plan,before,sources);
-      const backup=await verifyProtectedBackup({root,stage,receipt,readInventory:inventory});
+      const backup=await verifyProtectedBackup({root,stage,receipt,rehearsal,baseline,readInventory:inventory});
       need(same(before,await readAdmissionDatabase(db)),'M6_HISTORICAL_MIGRATION_OBSERVATION_DRIFT');
       verifyRuntime(await observeRuntime());
       return {status:'M6_HISTORICAL_BACKUP_CHECKS_PASS',...migration,...backup,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
