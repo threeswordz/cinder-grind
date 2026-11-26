@@ -4,9 +4,9 @@ import {mkdtemp,mkdir,writeFile,rm,symlink,link,chmod,realpath} from 'node:fs/pr
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {inventory,readDatabaseEvidence,verifyDatabaseEvidence,verifyRuntimePair,inspectEvidence} from './m6-runtime-evidence.mjs';
-function client({raw='{"amount":9007199254740993}',sessions=0,wrong=false,tables=['ledger'],ro='on'}={}){
+function client({raw='{"amount":9007199254740993}',sessions=0,expired=0,wrong=false,tables=['ledger'],ro='on'}={}){
   const calls=[];
-  const tx={async $executeRawUnsafe(sql){calls.push(sql);assert.equal(sql,'SET TRANSACTION READ ONLY');},async $queryRawUnsafe(sql){calls.push(sql);if(sql.includes('current_database'))return [{db:wrong?'production':'proto_a_01',role:'proto_runtime',ro,isolation:'repeatable read'}];if(sql.includes('pg_tables'))return tables.map(tablename=>({tablename}));assert.equal(sql,'SELECT row_to_json(t)::text AS raw FROM public."ledger" AS t');return [{raw}];},userSession:{async count(q){assert.deepEqual(q,{where:{revokedAt:null}});return sessions;}}};
+  const tx={async $executeRawUnsafe(sql){calls.push(sql);assert.equal(sql,'SET TRANSACTION READ ONLY');},async $queryRawUnsafe(sql){calls.push(sql);if(sql.includes('current_database'))return [{db:wrong?'production':'proto_a_01',role:'proto_runtime',ro,isolation:'repeatable read'}];if(sql.includes('FROM public.user_sessions'))return [{unrevoked:BigInt(sessions+expired),active:BigInt(sessions),expired:BigInt(expired)}];if(sql.includes('pg_tables'))return tables.map(tablename=>({tablename}));assert.equal(sql,'SELECT row_to_json(t)::text AS raw FROM public."ledger" AS t');return [{raw}];}};
   return {calls,async $transaction(fn,opts){assert.equal(opts.isolationLevel,'RepeatableRead');return fn(tx);}};
 }
 async function fixture(t){
@@ -31,3 +31,5 @@ test('reject unsafe SQL identifiers before database access',async()=>{const db=c
 for(const delta of [{pid:123},{born:'different'},{uid:0},{command:'bad'},{listenerPids:[100,200]},{listenAddresses:['*:33071']}])test('reject process drift '+JSON.stringify(delta),async t=>{const f=await fixture(t);Object.assign(f.observed.api,delta);assert.throws(()=>verifyRuntimePair(f.baseline.runtime,f.observed,f.application,f.nodePath,f.uid),{message:'M6_RUNTIME_PROCESS_DRIFT'});});
 test('reject symlink, hardlink and writable private tree',async t=>{const f=await fixture(t),dir=join(f.root,'documents');await symlink(join(dir,'a'),join(dir,'b'));await assert.rejects(inventory(dir));await rm(join(dir,'b'));await link(join(dir,'a'),join(dir,'b'));await assert.rejects(inventory(dir));await rm(join(dir,'b'));await chmod(dir,0o755);await assert.rejects(inventory(dir));});
 test('reject runtime drift after both captures',async t=>{const f=await fixture(t);let n=0;f.observeRuntime=async()=>{const o=structuredClone(f.observed);if(++n===2)o.api.born='changed';return o;};await assert.rejects(inspectEvidence(f),{message:'M6_RUNTIME_PROCESS_DRIFT'});});
+
+test('expired-only session history does not block read-only snapshot',async()=>assert.ok((await readDatabaseEvidence(client({expired:1}),['ledger'])).ledger));

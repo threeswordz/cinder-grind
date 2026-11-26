@@ -2,6 +2,7 @@
 // by the Mac adapter. Never treats a supplied observation as release authority.
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
+import {requireNoLiveSessions} from './m6-read-only-sessions.mjs';
 import {lstat,open,readdir,realpath} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 const SHA=/^[a-f0-9]{64}$/;
@@ -51,14 +52,15 @@ export function verifyRuntimePair(expected,current,application,nodePath,uid){
   need(pids[0]!==pids[1]&&current.health?.status==='ok'&&current.health.database==='ok'&&current.health.documentStorage==='ok','M6_RUNTIME_HEALTH_OR_IDENTITY_INVALID');
   return true;
 }
-// Full public-table snapshot, not a JS-number projection. Caller owns client lifetime.
+// Read-only full public-table snapshot, not a JS-number projection. Caller owns client lifetime.
+// This is not a cutover/drain admission gate.
 export async function readDatabaseEvidence(db,expectedTables){
   need(Array.isArray(expectedTables)&&expectedTables.length>0&&expectedTables.every(t=>name.test(t))&&new Set(expectedTables).size===expectedTables.length,'M6_DB_TABLE_BASELINE_INVALID');
   return db.$transaction(async tx=>{
     await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
     const id=await tx.$queryRawUnsafe("SELECT current_database() AS db,current_user AS role,current_setting('transaction_read_only') AS ro,current_setting('transaction_isolation') AS isolation");
     need(id.length===1&&id[0].db==='proto_a_01'&&id[0].role==='proto_runtime'&&id[0].ro==='on'&&id[0].isolation==='repeatable read','M6_DB_IDENTITY_INVALID');
-    need(await tx.userSession.count({where:{revokedAt:null}})===0,'M6_DB_ACTIVE_SESSIONS');
+    await requireNoLiveSessions(tx);
     const tableRows=await tx.$queryRawUnsafe("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' ORDER BY tablename");
     const tables=tableRows.map(x=>x.tablename).sort();
     need(same(tables,[...expectedTables].sort()),'M6_DB_TABLE_SET_DRIFT');
