@@ -135,3 +135,24 @@ test('PUR07 new server Chromium: searchable Thai real PDF and actual approvedPdf
     await rm(tmp,{recursive:true,force:true});
   }
 });
+
+test('PUR07 real Chromium readiness accepts canonically equivalent supplier names', async () => {
+  assert.equal(process.env.GITHUB_ACTIONS,'true','Disposable CI proof only');
+  assert.equal(process.env.M4_NON_PRODUCTION_CONFIRMED,'YES');
+  const directory = await mkdtemp(join(tmpdir(),'pur07-normalized-name-'));
+  try {
+    for (const supplierLegalName of ['Cafe\u0301 Supplier', 'A\u030a Supplier']) {
+      const input = {...sample,supplierLegalName};
+      const html = approvedPoUnicodeHtml(input);
+      assert.ok(html.includes(supplierLegalName.normalize('NFC')));
+      assert.ok(!html.includes(supplierLegalName));
+      const bytes = await renderApprovedPoUnicodePdf(input);
+      const file = join(directory,'normalized.pdf');
+      await writeFile(file,bytes);
+      const extracted = spawnSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',timeout:15000});
+      assert.equal(extracted.status,0);
+      assert.ok(extracted.stdout.includes(supplierLegalName.normalize('NFC')));
+      assert.equal(input.supplierLegalName,supplierLegalName);
+    }
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});

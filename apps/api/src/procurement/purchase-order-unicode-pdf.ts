@@ -277,8 +277,9 @@ export async function renderApprovedPoUnicodePdf(input: ApprovedPoPdfText): Prom
   active++;
   try {
     const html = approvedPoUnicodeHtml(input);
+    const supplierName = clean(input.supplierLegalName);
     try {
-      return await chromePdf(html, input.supplierLegalName);
+      return await chromePdf(html, supplierName);
     } catch (failure) {
       // A failed ephemeral Chromium process may be replaced once. Both
       // attempts still enforce the same sandbox, no-network and PDF guards.
@@ -287,7 +288,7 @@ export async function renderApprovedPoUnicodePdf(input: ApprovedPoPdfText): Prom
         'PO_PDF_UNICODE_CHROMIUM_COMMAND_TIMEOUT',
         'PO_PDF_UNICODE_CHROMIUM_PIPE_CLOSED',
       ].includes(failure.message)) throw failure;
-      return await chromePdf(html, input.supplierLegalName);
+      return await chromePdf(html, supplierName);
     }
   } finally {
     active--;
