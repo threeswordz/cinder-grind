@@ -5065,6 +5065,31 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M4-01-149",
+      "date": "2026-11-27",
+      "packageId": "M4-01",
+      "kind": "M4_STEP8_112_ID_TECHNICAL_CROSSWALK_AND_OWNER_DECISION_PREPARED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+        "https://github.com/threeswordz/cinder-grind/issues/384#issuecomment-7198315784",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45623304729",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45626721473",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45622912802",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45621618196",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45619654984"
+      ],
+      "basis": "112-ID immutable effective gate register crosswalk prepared, 42 future and six explicit boundaries retained, five unresolved specific technical witnesses PM13/SS01/SS08/SS16/SS17, FM02 historical only; 17 targeted SUCCESS metadata rechecked, exact full main log inspected. Bounded package exit recommendation and Owner technical decision packet. No formal acceptance, no new CI, no actual labor or unsupported forecast deduction.",
+      "blocker": "Resolve five specific technical witness limits and FM02 evidence scope; Owner package-level decision, defer human UAT under DEC-042 only. No repeat CI or cutover.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
