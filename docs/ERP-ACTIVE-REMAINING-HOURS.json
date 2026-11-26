@@ -4508,6 +4508,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-122",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_CORRECTED_SOURCE_SPECIFIC_FULL_ATTEMPT_OWNER_AUTHORIZED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7181247685",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45744331901/attempts/2"
+      ],
+      "basis": "Owner approved one exact failed-jobs rerun of45744331901 for corrected head5af60607/base040395bc after hosted focused PG/Chromium proof and clean independent re-review. Fresh PR readback matched Draft/head/base. Rerun request accepted once and job139660951083 is executing actual full validation. Outcome remains pending.",
+      "blocker": "Terminal full result, applicable Ready/post-Ready review/integration authority and retained technical readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
