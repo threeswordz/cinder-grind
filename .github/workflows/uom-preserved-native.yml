@@ -1,65 +1,30 @@
-name: UOM Preserved Prototype Targeted
+name: M4 Commercial Scope Browser-only Fixture Verification
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
-    paths:
-      - '.github/workflows/uom-preserved-native.yml'
-      - 'deploy/uat/prototype-uom-*.mjs'
-      - 'deploy/uat/prototype-material-run-native.mjs'
-      - 'deploy/uat/material-uom-browser.mjs'
-      - 'deploy/release-candidate/prototype-uom-upgrade.test.mjs'
+    branches: ['work-m4-commercial-scope-browser-only-ci-20261126']
+    paths: ['.github/workflows/uom-preserved-native.yml']
 permissions:
   contents: read
-concurrency:
-  group: uom-preserved-native-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  uom-preserved:
+  browser-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
-    services:
-      postgres:
-        image: postgres:17.11-alpine
-        env:
-          POSTGRES_DB: construction_erp
-          POSTGRES_USER: construction_erp
-          POSTGRES_PASSWORD: construction_erp_dev_only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 10
     env:
-      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
-      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
     steps:
-      - name: Checkout exact candidate
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth: 0
-          ref: ${{ github.sha }}
-      - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+          ref: c4ae90180248696fab36c24164d10f9a407e308e
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
           version: 12.6.0
           run_install: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.21.0
-      - name: Install locked dependencies and generate schema
+      - name: Verify only changed browser fixture against identical runtime
         run: |
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "c4ae90180248696fab36c24164d10f9a407e308e"
           pnpm install --frozen-lockfile
-          pnpm prisma:generate
-          pnpm prisma:validate
-      - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
-      - name: Build actual API
-        run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
-        run: node deploy/uat/prototype-material-run-native.mjs
-      - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+          node deploy/uat/m4-protected-cache-denial-browser.mjs
+          echo M4_COMMERCIAL_SCOPE_BROWSER_ONLY_TARGETED_PASS
