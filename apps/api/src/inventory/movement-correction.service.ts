@@ -9,6 +9,7 @@ import { GoodsReceiptService } from './goods-receipt.service';
 import { MaterialIssueService } from './material-issue.service';
 import { MaterialReturnService } from './material-return.service';
 import { StockTransferService } from './stock-transfer.service';
+import { recordTransferCustodyEvent } from './transfer-custody.service';
 import { correctionAuthority, type CorrectionAction, type MovementKind } from './movement-correction-authority';
 
 const entityType = 'MOVEMENT_CORRECTION';
@@ -20,14 +21,15 @@ type CorrectionMode = 'REVERSE_POSTED' | 'CANCEL_UNPOSTED';
 type Source = { companyId: string; kind: MovementKind; projectIds: string[]; postedAt: Date | null;
   reversedAt: Date | null; reversalKey: string | null; submittedAt: Date | null;
   approvalInstanceId: string | null; approvalInstance: { companyId: string; entityType: string; entityId: string; approvalState: string } | null;
-  stockCount: number; controlledLifecycle: boolean };
+  stockCount: number; controlledLifecycle: boolean; transferCustody: boolean };
 const conflict = (code: string): never => { throw new ConflictException({ code }); };
 const deny = (): never => { throw new ForbiddenException({ code: 'SS16_CORRECTION_AUTHORITY_DENIED' }); };
 const invalid = (): never => { throw new UnprocessableEntityException({ code: 'SS16_CORRECTION_INPUT_INVALID' }); };
 const uuid = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id);
 
 // Posted reversal and bounded submitted/unposted cancellation share independent maker/checker.
-// Controlled receiving, plan issue and transfer custody cancellation require their own lifecycle transition.
+// Submitted receiving GR and undispatched, still-submitted custody transfers use their own lifecycle guards.
+// Material-plan overage and already-approved undispatched transfers remain separate exits.
 @Injectable()
 export class MovementCorrectionService {
   constructor(private readonly prisma: PrismaService, private readonly approval: ApprovalService,
@@ -41,18 +43,19 @@ export class MovementCorrectionService {
       return { companyId: row.companyId, kind, projectIds: [...new Set(row.items.flatMap(i => [i.sourceProjectId, i.destinationProjectId]))],
         postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
         submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
-        stockCount: row.stockTransactions.length, controlledLifecycle: Boolean(row.custody) };
+        stockCount: row.stockTransactions.length, controlledLifecycle: Boolean(row.custody?.dispatch),
+        transferCustody: Boolean(row.custody) };
     }
     const row = kind === 'GOODS_RECEIPT' ? await this.receipts.get(auth, id, tx)
       : kind === 'MATERIAL_ISSUE' ? await this.issues.get(auth, id, tx)
       : await this.returns.get(auth, id, tx);
     const controlledLifecycle = !row.postedAt && (
-      (kind === 'GOODS_RECEIPT' && Boolean(await tx.goodsReceipt.findFirst({ where: { id, companyId: auth.companyId, deliveryId: { not: null } }, select: { id: true } }))) ||
+      (kind === 'GOODS_RECEIPT' && Boolean(await tx.receivingDelivery.findFirst({ where: { companyId: auth.companyId, goodsReceipt: { is: { id } }, status: 'VOID' }, select: { id: true } }))) ||
       (kind === 'MATERIAL_ISSUE' && Boolean(await tx.materialPlanIssueBinding.findUnique({ where: { issueId: id }, select: { issueId: true } })))
     );
     return { companyId: row.companyId, kind, projectIds: [row.projectId], postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey,
       submittedAt: row.submittedAt, approvalInstanceId: row.approvalInstanceId, approvalInstance: row.approvalInstance,
-      stockCount: row.stockTransactions.length, controlledLifecycle };
+      stockCount: row.stockTransactions.length, controlledLifecycle, transferCustody: false };
   }
 
   private cancellationPin(source: Source, id: string) {
@@ -98,6 +101,12 @@ export class MovementCorrectionService {
 
   private async lock(tx: Tx, companyId: string, kind: MovementKind, id: string) {
     await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'ss16:' + companyId + ':' + kind + ':' + id);
+    // Same row locks used by canonical custody approval, dispatch and receiving commands.
+    if (kind === 'STOCK_TRANSFER')
+      await tx.$queryRaw`SELECT transfer_id FROM transfer_custodies WHERE transfer_id=${id}::uuid AND company_id=${companyId}::uuid FOR UPDATE`;
+    if (kind === 'GOODS_RECEIPT')
+      await tx.$queryRaw`SELECT d.id FROM receiving_deliveries d JOIN goods_receipts g ON g.delivery_id=d.id
+        WHERE g.id=${id}::uuid AND d.company_id=${companyId}::uuid AND g.company_id=${companyId}::uuid FOR UPDATE OF d`;
   }
 
   // Source-scoped read projection: Store sees only own requests; a live PM
@@ -195,6 +204,7 @@ export class MovementCorrectionService {
             // No source/header overwrite, stock entry, reservation release or history deletion.
             const originalId = row.sourceApprovalInstanceId!;
             await this.approval.cancel(originalId, context.auth, finalTx);
+            if (source.transferCustody) await recordTransferCustodyEvent(context, finalTx, this.audit, row.sourceId, 'CANCEL', row.reason);
             await this.audit.record({ ...context, entityType: kind, entityId: row.sourceId, action: 'CANCEL',
               newValues: { correctionRequestId: row.id, originalApprovalInstanceId: originalId, reason: row.reason } }, finalTx);
             return;

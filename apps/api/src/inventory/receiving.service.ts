@@ -176,7 +176,12 @@ export class ReceivingService{
  });}
  async void(context:Context,id:string,value:unknown){const input=receivingAction(value);return this.command(context,id,'VOID',input,async(tx,auth,row)=>{
   if(row.createdByUserId!==auth.userId)denied();const gr=row.goodsReceipt;
-  if(gr&&(gr.postedAt||gr.reversedAt||gr.submittedAt&&gr.approvalInstance?.approvalState!=='REJECTED'))conflict('RECEIVING_SOURCE_FROZEN');
+  if(gr&&(gr.postedAt||gr.reversedAt))conflict('RECEIVING_SOURCE_FROZEN');
+  if(gr?.submittedAt&&gr.approvalInstance?.approvalState!=='REJECTED'){
+   if(gr.approvalInstance?.approvalState!=='CANCELLED')conflict('RECEIVING_SOURCE_FROZEN');
+   const [proof]=await tx.$queryRaw<Array<{approved:boolean}>>`SELECT erp_ss16_approved_unposted_cancellation('GOODS_RECEIPT',${gr.id}::uuid,${row.companyId}::uuid) AS approved`;
+   if(!proof?.approved)conflict('RECEIVING_SOURCE_FROZEN');
+  }
   await this.bump(tx,row,{status:'VOID',voidReason:input.reason,checkedAt:null,checkedByUserId:null,checkNote:null});
  });}
  async beforeReceiptCreate(context:Context,input:ReceiptInput,tx:Tx):Promise<ReceiptPin|null>{
