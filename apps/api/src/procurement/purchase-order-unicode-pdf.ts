@@ -268,7 +268,7 @@ async function chromePdf(html: string, supplierName: string): Promise<Buffer> {
     }
     p.close();
     // Exclusive profile owned by this request. No saved supplier document.
-    await rm(profile, { recursive: true, force: true });
+    await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
 }
 
