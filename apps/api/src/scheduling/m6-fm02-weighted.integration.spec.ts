@@ -1,0 +1,116 @@
+import 'reflect-metadata';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { NestFactory } from '@nestjs/core';
+import { Prisma } from '@prisma/client';
+import { AppModule } from '../app.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { SessionService } from '../auth/session.service';
+import { BudgetService } from '../budget/budget.service';
+import { ProblemDetailsFilter } from '../common/problem-details.filter';
+
+// Standalone synthetic native test, never part of retained-runtime execution.
+test('M6 FM02: approved BOQ, independent confirmation, measured and assessed progress', async () => {
+  const expected = process.env.M6_FM02_DISPOSABLE_DB;
+  assert.match(expected ?? '', /^m6_fm02_[a-f0-9]{8}$/);
+  const db = new PrismaService();
+  await db.$connect();
+  const previous = process.env.STORAGE_ROOT;
+  let storage: string | undefined;
+  let app: Awaited<ReturnType<typeof NestFactory.create>> | undefined;
+  try {
+    const identity = await db.$queryRaw<Array<{name: string}>>`SELECT current_database() AS name`;
+    assert.equal(identity[0]?.name, expected, 'disposable database required');
+    storage = await mkdtemp(join(tmpdir(), 'm6-fm02-'));
+    process.env.STORAGE_ROOT = storage;
+    app = await NestFactory.create(AppModule, {logger: false});
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalFilters(new ProblemDetailsFilter());
+    await app.listen(0, '127.0.0.1');
+    const suffix = randomUUID().slice(0, 8);
+    const company = await db.company.create({data: {companyCode: 'FM02-' + suffix, companyName: 'Synthetic progress Company'}});
+    const customer = await db.customer.create({data: {companyId: company.id, customerCode: 'FM02', customerName: 'Synthetic customer'}});
+    const project = await db.project.create({data: {companyId: company.id, customerId: customer.id, projectCode: 'FM02', projectName: 'Synthetic project', contractValue: '1000', contractCurrencyCode: 'THB', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2027-01-01')}});
+    const sessions = new SessionService(db);
+    const actor = async (label: string, roleCode: string, codes: string[], assigned = true) => {
+      const employee = await db.employee.create({data: {companyId: company.id, employeeCode: label, employeeName: label}});
+      const user = await db.user.create({data: {companyId: company.id, employeeId: employee.id, email: label + '-' + suffix + '@example.invalid', displayName: label, passwordHash: 'synthetic-session-only'}});
+      const role = await db.role.create({data: {companyId: company.id, roleCode, roleName: label}});
+      const permissions = await db.permission.findMany({where: {permissionCode: {in: codes}}});
+      assert.equal(permissions.length, codes.length, 'seeded permission catalog required');
+      await db.rolePermission.createMany({data: permissions.map(p => ({roleId: role.id, permissionId: p.id}))});
+      await db.userRole.create({data: {companyId: company.id, userId: user.id, roleId: role.id}});
+      if (assigned) await db.projectMember.create({data: {projectId: project.id, employeeId: employee.id, projectRole: label}});
+      const session = await sessions.create(user.id);
+      const auth = await sessions.resolve(session.sessionToken);
+      assert.ok(auth);
+      return {user, role, session, auth};
+    };
+    const view = 'schedule.programme.view';
+    const ben = await actor('Ben', 'MANAGEMENT', [view, 'schedule.work_plan.confirm', 'budget.boq.view', 'budget.boq.manage', 'budget.revision.view', 'budget.revision.submit']);
+    const pm = await actor('PM', 'PROJECT_MANAGER', [view, 'schedule.work_plan.prepare', 'budget.revision.view', 'budget.revision.approve']);
+    const foreman = await actor('Foreman', 'PROJECT_ENGINEER', [view, 'schedule.progress.record']);
+    const outsider = await actor('Outsider', 'UNASSIGNED', [view], false);
+    const wbs = await db.wbsElement.create({data: {projectId: project.id, wbsCode: '01', wbsName: 'Groundworks'}});
+    const uom = await db.unitOfMeasure.create({data: {companyId: company.id, uomCode: 'EA', uomName: 'Each', decimalPlaces: 4}});
+    const calendar = await db.workingCalendar.create({data: {companyId: company.id, projectId: project.id, calendarName: 'Synthetic calendar', timezoneName: 'Asia/Bangkok'}});
+    const activity = async (code: string) => db.activity.create({data: {companyId: company.id, projectId: project.id, wbsId: wbs.id, workingCalendarId: calendar.id, activityCode: code, activityName: code, plannedDurationWorkDays: '1', plannedStartDate: new Date('2026-11-02'), plannedFinishDate: new Date('2026-11-02')}});
+    const quantity = await activity('QUANTITY'), milestone = await activity('ASSESSMENT');
+    await db.numberSequence.create({data: {companyId: company.id, entityType: 'BUDGET_REVISION', sequenceCode: 'BUDGET_REVISION', formatTemplate: 'BRYY-###', resetRule: 'YEARLY'}});
+    const workflow = await db.approvalWorkflow.create({data: {companyId: company.id, workflowCode: 'FM02-BUDGET', entityType: 'BUDGET_REVISION', workflowName: 'Synthetic cost budget approval', steps: {create: [{stepNo: 1, stepName: 'Independent PM', requiredApprovals: 1, stepRoles: {create: [{roleId: pm.role.id}]}}]}}});
+    const budget = app.get(BudgetService);
+    const boq = await budget.createBoq({auth: ben.auth}, project.id, 'Synthetic cost BOQ');
+    const section = await budget.createSection({auth: ben.auth}, boq.id, {sectionCode: 'A', sectionName: 'Work', description: null, sortOrder: 10});
+    await budget.createItem({auth: ben.auth}, boq.id, {sectionId: section.id, itemCode: 'A01', description: 'Measured work', quantity: new Prisma.Decimal('20'), uomId: uom.id, rate: new Prisma.Decimal('5'), wbsId: wbs.id, costCodeId: null, sortOrder: 10});
+    const draft = await budget.createRevisionDraft({auth: ben.auth}, project.id, 'Synthetic approved source');
+    await budget.submitRevision({auth: ben.auth}, draft.id, workflow.workflowCode);
+    const approved = await budget.approveRevision({auth: pm.auth}, draft.id, 'Independent synthetic approval');
+    assert.equal(approved.approvalInstance?.approvalState, 'APPROVED');
+    const source = approved.lines[0]!;
+    const root = '/project-progress-plans', current = root + '/current?projectId=' + project.id;
+    const base = await app.getUrl() + '/api/v1';
+    const call = async (a: typeof ben, path: string, status: number, body?: unknown, csrf = true) => {
+      const r = await fetch(base + path, {method: body === undefined ? 'GET' : 'POST', headers: {Cookie: 'erp_session=' + a.session.sessionToken, 'Content-Type': 'application/json', ...(csrf ? {'x-csrf-token': a.session.csrfToken} : {})}, ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+      assert.equal(r.status, status, 'unexpected synthetic FM02 HTTP status');
+      return (await r.json() as any).data;
+    };
+    assert.equal((await call(foreman, current, 200)).status, 'NO_CONFIRMED_WORK_PLAN');
+    await call(outsider, current, 403);
+    const input = {projectId: project.id, reason: 'Synthetic weights', lines: [{activityId: quantity.id, weightPercent: '60.00', sourceKind: 'QUANTITY', approvedBudgetRevisionLineId: source.id}, {activityId: milestone.id, weightPercent: '40.00', sourceKind: 'MILESTONE'}]};
+    await call(pm, root + '/prepare', 403, input, false);
+    const options = await call(pm, root + '/options?projectId=' + project.id, 200);
+    assert.ok(options.quantityLines.some((line: {id: string}) => line.id === source.id));
+    assert.doesNotMatch(JSON.stringify(options), /"(?:rate|amount|lineAmount|totalAmount|unitPrice)"\s*:/);
+    const plan = await call(pm, root + '/prepare', 201, input);
+    assert.equal((await call(foreman, current, 200)).status, 'NO_CONFIRMED_WORK_PLAN');
+    const confirm = root + '/' + plan.id + '/confirm';
+    await call(pm, confirm, 403, {expectedVersion: plan.versionNo});
+    await call(ben, confirm, 409, {expectedVersion: plan.versionNo + 1});
+    await call(ben, confirm, 201, {expectedVersion: plan.versionNo});
+    assert.equal((await call(foreman, current, 200)).status, 'BLOCKED_MISSING_SOURCE');
+    const measurement = {progressDate: '2026-11-02', completedQuantity: '10.0000', note: 'Synthetic measured work', expectedPlanId: plan.id, expectedPlanVersion: plan.versionNo};
+    const measurementPath = root + '/activity/' + quantity.id + '/quantity';
+    await call(foreman, measurementPath, 409, {...measurement, expectedPlanId: randomUUID()});
+    assert.equal(await db.activityProgress.count({where: {projectId: project.id}}), 0);
+    const measured = await call(foreman, measurementPath, 201, measurement);
+    assert.equal(measured.sourceEntityId, plan.id);
+    assert.equal(measured.sourceBudgetRevisionLineId, source.id);
+    assert.equal(measured.sourceUomId, uom.id);
+    assert.equal((await call(foreman, current, 200)).status, 'BLOCKED_MISSING_SOURCE');
+    await call(foreman, '/activity-progress/' + milestone.id, 201, {progressDate: '2026-11-02', percentComplete: '25.00', note: 'Synthetic milestone inspection'});
+    const final = await call(foreman, current, 200);
+    assert.equal(final.status, 'CALCULATED_TECHNICAL_ONLY');
+    assert.equal(final.percentComplete, '40.00');
+    assert.equal(await db.activityProgress.count({where: {projectId: project.id}}), 2);
+  } finally {
+    try { await app?.close(); } finally {
+      await db.$disconnect();
+      if (previous === undefined) delete process.env.STORAGE_ROOT; else process.env.STORAGE_ROOT = previous;
+      if (storage) await rm(storage, {recursive: true, force: true});
+    }
+  }
+});
