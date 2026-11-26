@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One isolated build and one migrated template; never touch retained databases.
+# One isolated build and one migrated template for outstanding integrated tests only.
+# FM02 already passed on its unchanged test/service files; do not replay it here.
 set -euo pipefail
 umask 077
 expected=${1:-}
@@ -22,6 +23,8 @@ echo "===== M6 FOCUSED API BUILD ====="
 pnpm install --offline --frozen-lockfile
 pnpm prisma:generate
 pnpm build:api
+echo "===== M6 FOCUSED POLICY REGRESSIONS ====="
+node --test apps/api/dist/inventory/movement-reversal-replay.spec.js apps/api/dist/inventory/movement-correction-authority.spec.js
 SUFFIX=$(openssl rand -hex 4)
 PW=$(openssl rand -hex 24)
 [[ "$SUFFIX" =~ ^[0-9a-f]{8}$ && "$PW" =~ ^[0-9a-f]{48}$ ]]
@@ -58,6 +61,8 @@ run_test() {
     FAIL=1
   fi
 }
+export M6_SS08_DISPOSABLE_DB="m6_ss08_$SUFFIX"
+run_test SS08 "$M6_SS08_DISPOSABLE_DB" apps/api/dist/inventory/m6-ss08-dimensions.integration.spec.js
 run_test SS16_ISSUE "m6_issue_$SUFFIX" apps/api/dist/inventory/prototype-material-journey.integration.spec.js
 run_test SS16_RETURN "m6_return_$SUFFIX" apps/api/dist/inventory/material-plan-issue.integration.spec.js
 # Existing native transfer guard admits this name; this database exists only in CID.
@@ -66,4 +71,5 @@ run_test PUR0814_CASE "m6_case_$SUFFIX" apps/api/dist/procurement/supplier-deliv
 run_test PUR14_CUSTODY "m6_custody_$SUFFIX" apps/api/dist/procurement/supplier-return-custody.native.integration.spec.js
 run_test PUR14_REPLACEMENT "m6_replacement_$SUFFIX" apps/api/dist/procurement/supplier-replacement-posted.native.integration.spec.js
 echo "M6_FOCUSED_CANDIDATE=$expected"
+echo "M6_FM02_PRIOR_NATIVE_PASS_RETAINED_NOT_RERUN"
 exit "$FAIL"
