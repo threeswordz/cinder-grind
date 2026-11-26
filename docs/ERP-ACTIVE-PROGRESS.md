@@ -1,18 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 10.5h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
+**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
 
-[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) at `0bcc355c0149197c13a90b0c652452861496578e` corrects post-Ready [P2 page clipping](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703866900), preserves delivery contact and bounds ASCII/Unicode/browser export. [Exact targeted proof](https://github.com/threeswordz/cinder-grind/actions/runs/45755656135/job/139693546793) SUCCESS: API build, web typecheck, real PDF page bounds and browser print; workflow-only child excluded. [Independent re-review requested](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182741761); layout thread remains open pending review. Full 46/46 at [9482cd57](https://github.com/threeswordz/cinder-grind/actions/runs/45750831129/attempts/2) is prior-source evidence only; new [draft run](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615) stopped at admission. Previous conditional authorization does not transfer to changed source. No further full CI, Ready or merge initiated.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) remains frozen at `0bcc355c0149197c13a90b0c652452861496578e`; exact targeted PDF proof passed, [independent review quota blocked](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182744339). Prior full46/46 at9482cd57 does not authorize current source. Retained role operator plan prepared; actual authorized target, independent review, current-source full/Ready/integration approval remain pending.
+
+**M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 
 | Forecast reconciliation | Hours |
 |---|---:|
 | Previous reported ERP forecast | 1,733 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −0 |
-| Revised remaining ERP forecast | **1,733** |
+| Verified remaining-effort reduction | −0.5 |
+| Revised remaining ERP forecast | **1,732.5** |
 
-Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. Next: exact independent review; fresh source-specific release authorization; governed integration and retained technical readback. [Event129](https://github.com/threeswordz/cinder-grind/commit/167fff602d4100ffeab6515218a080421160545a).
+Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
 <!-- /current-work-m4 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
