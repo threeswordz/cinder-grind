@@ -15,6 +15,7 @@
 | Revised remaining ERP forecast | **1,732.5** |
 
 Prototype4/8 · Go-live3/10 · M4 formal packages0/8 · All112 requirement IDs and six approved boundaries preserved. [Event132](https://github.com/threeswordz/cinder-grind/commit/4b74589595b101a2dc84357ef20eaebc952e46b9). M4 release first; continue isolated M6 work only.
+**Latest M6-01 rework:** [82b15472](https://github.com/threeswordz/cinder-grind/commit/82b15472d149b194f1b5b7194ec0113f04df5aa8) makes both final HR preservation flags mandatory at the coordinator seal gate. Actual local 7/8 before, 8/8 after. New defect +0.5h and verified rework −0.5h, net zero; M6 112h and ERP 1732.5h unchanged. [Event133](https://github.com/threeswordz/cinder-grind/commit/9f3f9da68524a8df0fcd60a18cd5191d258081f2).
 <!-- /current-work-m4 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
