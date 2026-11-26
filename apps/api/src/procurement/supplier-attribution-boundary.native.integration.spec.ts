@@ -51,7 +51,7 @@ test('PUR14 actual PG17: non-damaged claim is evidence-only and document-only ca
       companyId: company.id, supplierCode: 'SUP-'+key, supplierName: 'Synthetic supplier',
     } });
     const permissions = ['procurement.po.view', 'documents.document.view',
-      'inventory.receipt.view', 'inventory.receiving.view'];
+      'inventory.receipt.view', 'inventory.receiving.view', 'finance.supplier_invoice.view'];
     const permIds = new Map<string,string>();
     for (const code of permissions) {
       const row = await db.permission.upsert({
@@ -92,7 +92,7 @@ test('PUR14 actual PG17: non-damaged claim is evidence-only and document-only ca
         userId:user.id,tokenHash:randomUUID().replaceAll('-',''),
         csrfTokenHash:'1'.repeat(64),expiresAt:new Date(Date.now()+60*60*1000),
       }});
-      return {user,employee,session,auth:{
+      return {user,employee,session,role,auth:{
         companyId,userId:user.id,sessionId:session.id,email:user.email,
         displayName:user.displayName, roleCodes:[roleCode],permissions:grants,
         csrfTokenHash:'1'.repeat(64),
@@ -166,7 +166,38 @@ test('PUR14 actual PG17: non-damaged claim is evidence-only and document-only ca
     }
 
     const counters=async()=>({stock:await db.stockTransaction.count({where:{companyId:company.id}}),invoice:await db.supplierInvoice.count({where:{companyId:company.id}}),payment:await db.payment.count({where:{companyId:company.id}}),finance:await db.directCostPosting.count({where:{companyId:company.id}})});
+    // A genuine Finance source with a generic Project alias must not let a
+    // purchasing actor without the owning-source grant advance the case.
+    const invoice=await db.supplierInvoice.create({data:{companyId:company.id,projectId:project.id,
+      supplierId:supplier.id,supplierInvoiceNumber:'SEC-'+key,supplierReference:'SEC-'+key,
+      invoiceDate:new Date('2026-11-01'),currencyCode:'THB',createKey:randomUUID(),
+      createPayloadHash:'1'.repeat(64),createdByUserId:jai.user.id}});
+    const protectedDoc=await document(project.id);
+    await db.documentLink.create({data:{documentId:protectedDoc,entityType:'SUPPLIER_INVOICE',
+      entityId:invoice.id,linkedByUserId:jai.user.id}});
     const before=await counters();
+    const protectedOrder=await po('PROTECTED');
+    const p=await service.transition(ctx(store.auth),protectedOrder.id,input('REPORT_DISCREPANCY',0,null,{discrepancyKind:'SHORT'}) as never);
+    const v=await service.transition(ctx(pm.auth),protectedOrder.id,input('PM_REVIEW_DISCREPANCY',1,p.expectedPreviousEventId,{pmDecision:'REQUEST_RETURN'}) as never);
+    const claimInput=input('JAI_RECORD_CLAIM',2,v.expectedPreviousEventId,{evidenceDocumentId:protectedDoc}) as never;
+    const snapshot=await service.read(jai.auth,protectedOrder.id);
+    const denied='SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED';
+    await expectCode(service.transition(ctx(jai.auth),protectedOrder.id,claimInput),denied);
+    const financePermissionId=permIds.get('finance.supplier_invoice.view')!;
+    const financeAuth={...jai.auth,permissions:[...jai.auth.permissions,'finance.supplier_invoice.view']};
+    // A stale caller context cannot substitute for a current DB grant.
+    await db.rolePermission.create({data:{roleId:jai.role.id,permissionId:financePermissionId}});
+    await db.rolePermission.deleteMany({where:{roleId:jai.role.id,permissionId:financePermissionId}});
+    await expectCode(service.transition(ctx(financeAuth),protectedOrder.id,claimInput),denied);
+    assert.deepEqual(await service.read(jai.auth,protectedOrder.id),snapshot);
+    assert.equal(await db.auditLog.count({where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:protectedOrder.id}}),2);
+    assert.deepEqual(await counters(),before);
+    // Positive control: the identical source is permitted with the actual grant.
+    await db.rolePermission.create({data:{roleId:jai.role.id,permissionId:financePermissionId}});
+    assert.equal((await service.transition(ctx(financeAuth),protectedOrder.id,claimInput)).case.stage,'CLAIM_RECORDED');
+    await db.rolePermission.deleteMany({where:{roleId:jai.role.id,permissionId:financePermissionId}});
+    assert.deepEqual(await counters(),before);
+    console.log('M4_PUR14_LINKED_FINANCE_SOURCE_AUTHORIZATION_AND_ATOMIC_DENIAL_PASS');
     for(const kind of ['SHORT','WRONG_ITEM','EXCESS'] as const){
       const order=await po(kind);
       const reported=await service.transition(ctx(store.auth),order.id,input('REPORT_DISCREPANCY',0,null,{discrepancyKind:kind}) as never);

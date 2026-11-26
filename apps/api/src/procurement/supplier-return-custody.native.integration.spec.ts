@@ -110,7 +110,7 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
    input('PM_REVIEW_DISCREPANCY',1,reported.expectedPreviousEventId,
     {pmDecision:'REQUEST_RETURN'}) as never);
   const claimed=await supplier.transition(ctx(jai),f.po.id,
-   input('JAI_RECORD_CLAIM',2,reviewed.expectedPreviousEventId) as never);
+   input('JAI_RECORD_CLAIM',2,reviewed.expectedPreviousEventId,{evidenceDocumentId:projectOnly.id}) as never);
   const valid=()=>input('STORE_RECORD_RETURN_DISPATCH',3,claimed.expectedPreviousEventId,{
    evidenceDocumentId:signed.id,originalReceivingDeliveryLineId:lineId,
    returnQuantity:'1.0000',supplierSignatory:'Supplier receiving representative',

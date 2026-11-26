@@ -328,10 +328,21 @@ export class SupplierDeliveryCaseService {
         where: { id: input.evidenceDocumentId, companyId: order.companyId, isActive: true,
           links: { some: { entityType: 'PROJECT', entityId: order.projectId } } },
         select: { id: true, checksum: true,
-          links: { where: { entityType: 'RECEIVING_DELIVERY' }, select: { entityId: true } } },
+          links: { select: { entityType: true, entityId: true } } },
       });
       if (!doc || !actor.permissions.includes('documents.document.view'))
         return denied('SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
+      // A Project alias is not entitlement to a protected owning source.
+      // Apply the same policy as listing/download with the live scoped actor
+      // and this serializable transaction, before any case event is appended.
+      try {
+        if ((await this.documents.filterSourceDocuments(scoped, order.projectId, [doc], tx)).length !== 1)
+          return denied('SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
+      } catch (error) {
+        if (error instanceof ForbiddenException || error instanceof NotFoundException)
+          return denied('SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
+        throw error;
+      }
       if (input.action === 'ACKNOWLEDGE') {
         // Prior PUR07 recorded acknowledgment MUST point to an actual reported
         // external dispatch of THIS approved PO. No substitute synthetic ack.
@@ -434,7 +445,7 @@ export class SupplierDeliveryCaseService {
                 Boolean(doc.checksum && originDoc?.checksum &&
                   doc.checksum.toLowerCase() !== originDoc.checksum.toLowerCase()),
               documentLinkedToOriginalDelivery: doc.links.some(link =>
-                link.entityId === original.delivery.id),
+                link.entityType === 'RECEIVING_DELIVERY' && link.entityId === original.delivery.id),
             },
           });
         } catch (error) {
