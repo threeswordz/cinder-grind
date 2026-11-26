@@ -10,9 +10,6 @@ export class PoPdfUnsupportedTextError extends Error {
   }
 }
 
-const forbiddenFilename = /[\\/<>:"|?*\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u;
-const approvedFilenameChar = /^[\p{L}\p{M}\p{N} .()_-]+$/u;
-
 export function approvedPoPdfFilename(
   poNumber: string,
   displayNumber: string | null,
@@ -22,20 +19,28 @@ export function approvedPoPdfFilename(
     throw new Error('PO_PDF_REVISION_INVALID');
   }
   const value = (displayNumber ?? poNumber).normalize('NFKC').trim();
-  if (!value || value === '.' || value === '..' ||
-      forbiddenFilename.test(value) || !approvedFilenameChar.test(value) ||
-      !/^([TK]-)?PO\d{4}-\d{3,}/u.test(value)) {
+  if (!/^([TK]-)?PO\d{4}-\d{3,}(?: |$)/u.test(value)) {
     throw new Error('PO_PDF_FILENAME_INVALID');
   }
-  const filename = value + (revisionNo ? '-rev' + String(revisionNo).padStart(2, '0') : '') + '.pdf';
-  if (Buffer.byteLength(filename, 'utf8') > 210) {
-    throw new Error('PO_PDF_FILENAME_TOO_LONG');
+  const suffix = (revisionNo ? '-rev' + String(revisionNo).padStart(2, '0') : '') + '.pdf';
+  // Keep the immutable document identity in its content. This derived label
+  // removes filesystem controls and reserves room for the revision suffix.
+  const safe = value.replace(/[^\p{L}\p{M}\p{N} .()_-]/gu, '_');
+  const limit = 210 - Buffer.byteLength(suffix, 'utf8');
+  let label = '';
+  let bytes = 0;
+  for (const character of safe) {
+    const size = Buffer.byteLength(character, 'utf8');
+    if (bytes + size > limit) break;
+    label += character;
+    bytes += size;
   }
+  const filename = label.replace(/[ .]+$/u, '') + suffix;
   return filename;
 }
 
 function safePdfText(value: string): string {
-  if (/[\x00-\x1f\x7f-\uffff]/u.test(value)) {
+  if (/[^\x20-\x7e]/u.test(value)) {
     throw new PoPdfUnsupportedTextError();
   }
   // Every caller must use PDF-string escaping, not HTML or URL escaping.

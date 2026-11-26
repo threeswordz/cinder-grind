@@ -50,7 +50,7 @@ test('PUR07 preserves contractual rate and rounds only monetary presentation', a
     const order = {
       lifecycleState: 'APPROVED', cancelledAt: null,
       approvalInstance: { approvalState: 'APPROVED', completedAt: new Date('2026-11-24T00:00:00Z') },
-      currencyCode: 'THB', poNumber: 'PO2611-001', displayNumber: 'K-PO2611-001 ABC',
+      currencyCode: 'THB', poNumber: 'PO2611-001', displayNumber: 'K-PO2611-001 A&B',
       revisionNo: 0, companyId: 'synthetic-company', project: { projectCode: 'P1', projectName: 'Site' },
       lines: [{ lineNo: 1, description: 'Concrete', quantity: D(quantity!), uomCodeSnapshot: 'EA',
         unitPrice: D(unitPrice!), amount: D(amount!), quotationAward: { supplierNameSnapshot: 'ABC Ltd' } }],
@@ -59,7 +59,11 @@ test('PUR07 preserves contractual rate and rounds only monetary presentation', a
     };
     const sut = new PurchaseOrderPur07Service({} as never, {} as never, {} as never,
       { getOrder: async () => order } as never);
-    const pdf = (await sut.approvedPdf({} as never, 'synthetic-order')).bytes.toString('ascii');
+    const exported = await sut.approvedPdf({} as never, 'synthetic-order');
+    assert.equal(exported.fileName, 'K-PO2611-001 A_B.pdf');
+    const pdf = exported.bytes.toString('ascii');
+    assert.ok(pdf.includes('K-PO2611-001 A&B'));
+    assert.equal(order.displayNumber, 'K-PO2611-001 A&B');
     assert.ok(pdf.includes(unitPrice + ' | ' + shownAmount), 'approved rate must not be rounded to satang');
     assert.ok(pdf.includes('Subtotal: ' + shownAmount));
     assert.ok(pdf.includes('Total incl VAT: ' + total));

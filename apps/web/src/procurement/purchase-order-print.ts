@@ -10,6 +10,29 @@ const escape = (value: string): string =>
     '"': '&quot;', "'": '&#39;',
   })[match]!);
 
+export function approvedPoPrintFilename(poNumber: string, displayNumber: string | null, revisionNo: number): string {
+  if (!Number.isSafeInteger(revisionNo) || revisionNo < 0 || revisionNo > 9999) {
+    throw new Error('PO_PDF_REVISION_INVALID');
+  }
+  const value = (displayNumber ?? poNumber).normalize('NFKC').trim();
+  if (!/^([TK]-)?PO\d{4}-\d{3,}(?: |$)/u.test(value)) {
+    throw new Error('PO_PDF_FILENAME_INVALID');
+  }
+  const suffix = (revisionNo ? '-rev' + String(revisionNo).padStart(2, '0') : '') + '.pdf';
+  const safe = value.replace(/[^\p{L}\p{M}\p{N} .()_-]/gu, '_');
+  const encoder = new TextEncoder();
+  const limit = 210 - encoder.encode(suffix).length;
+  let label = '';
+  let bytes = 0;
+  for (const character of safe) {
+    const size = encoder.encode(character).length;
+    if (bytes + size > limit) break;
+    label += character;
+    bytes += size;
+  }
+  return label.replace(/[ .]+$/u, '') + suffix;
+}
+
 export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   html: string; suggestedFileName: string;
 } {
@@ -19,17 +42,8 @@ export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   if (!order.lines.length || order.currencyCode !== 'THB') {
     throw new Error('PO_PRINT_SOURCE_CURRENCY_OR_LINES_UNVERIFIED');
   }
-  const label = (order.displayNumber ?? order.poNumber).trim().normalize('NFKC');
-  if (!/^([TK]-)?PO\d{4}-\d{3,}/u.test(label) ||
-      /[\\/<>:"|?*\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(label) ||
-      !/^[\p{L}\p{M}\p{N} .()_-]+$/u.test(label)) {
-    throw new Error('PO display identity is not safe as a filename.');
-  }
-  const suffix = order.revisionNo > 0 ? '-rev' + String(order.revisionNo).padStart(2, '0') : '';
-  const suggestedFileName = label + suffix + '.pdf';
-  if (new TextEncoder().encode(suggestedFileName).length > 210) {
-    throw new Error('PO_PRINT_FILENAME_TOO_LONG');
-  }
+  const label = order.displayNumber ?? order.poNumber;
+  const suggestedFileName = approvedPoPrintFilename(order.poNumber, order.displayNumber, order.revisionNo);
   const totals = approvedPrintTotals(order);
   const verified = order.approvalInstance?.approvalState === 'APPROVED' &&
     Boolean(order.approvalInstance.completedAt);

@@ -26,9 +26,9 @@ test('PUR07: stable exact short-name filenames, no path traversal or colliding r
   assert.equal(approvedPoPdfFilename('PO2611-001',null,0),'PO2611-001.pdf');
   assert.equal(approvedPoPdfFilename('PO2611-001','T-PO2611-001 บริษัท ทดสอบ',0),
     'T-PO2611-001 บริษัท ทดสอบ.pdf');
-  assert.throws(() => approvedPoPdfFilename('PO2611-001','T-PO2611-001 ../secret',0));
-  assert.throws(() => approvedPoPdfFilename('PO2611-001','T-PO2611-001 A/B',0));
-  assert.throws(() => approvedPoPdfFilename('PO2611-001','T-PO2611-001 A\u202EEXE',0));
+  assert.equal(approvedPoPdfFilename('PO2611-001','T-PO2611-001 ../secret',0),'T-PO2611-001 .._secret.pdf');
+  assert.equal(approvedPoPdfFilename('PO2611-001','T-PO2611-001 A/B',0),'T-PO2611-001 A_B.pdf');
+  assert.equal(approvedPoPdfFilename('PO2611-001','T-PO2611-001 A\u202EEXE',0),'T-PO2611-001 A_EXE.pdf');
   assert.throws(() => approvedPoPdfFilename('PO2611-001','T-PO2611-001 ABC',-1));
 });
 
@@ -50,4 +50,21 @@ test('PUR07: Thai/Unicode legal names must fail closed rather than disappear fro
   assert.throws(() => renderApprovedPoAsciiPdf({
     ...sample,lines:[{...sample.lines[0]!,description:'คอนกรีต'}],
   }), PoPdfUnsupportedTextError);
+});
+
+test('PUR07: accepted punctuation and long Thai names produce bounded safe filenames', () => {
+  assert.equal(approvedPoPdfFilename('PO2611-001','K-PO2611-001 A&B',0),'K-PO2611-001 A_B.pdf');
+  const display = 'T-PO2611-001 ' + 'ท'.repeat(100);
+  const filename = approvedPoPdfFilename('PO2611-001',display,2);
+  assert.ok(Buffer.byteLength(filename,'utf8') <= 210);
+  assert.ok(filename.endsWith('-rev02.pdf'));
+  assert.ok(!filename.includes('�'));
+  assert.equal(display,'T-PO2611-001 ' + 'ท'.repeat(100));
+});
+
+test('PUR07: supplementary legal names and descriptions must reach Unicode rendering', () => {
+  for (const character of ['𠮷', '😀', '\u{10000}', '\u{10ffff}']) {
+    assert.throws(() => renderApprovedPoAsciiPdf({...sample,supplierLegalName:'Supplier ' + character}), PoPdfUnsupportedTextError);
+    assert.throws(() => renderApprovedPoAsciiPdf({...sample,lines:[{...sample.lines[0]!,description:'Material ' + character}]}), PoPdfUnsupportedTextError);
+  }
 });
