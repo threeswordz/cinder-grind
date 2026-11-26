@@ -5857,6 +5857,26 @@
       "verifiedCompletedScopeHours": 0.25,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-183",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_SS08_NATIVE_REGRESSION_PREPARED_SYNTAX_ONLY",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "47fc399ff1a95e54fb197dbc2ef0459336669f8c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200638292",
+        "https://github.com/threeswordz/cinder-grind/commit/47fc399ff1a95e54fb197dbc2ef0459336669f8c"
+      ],
+      "basis": "SS08 native evidence gap isolated: previous material journey uses null WBS/Cost Code/Activity, and native lane A observed zero fully dimensioned links. Existing material request and issue API supports all three dimensions; service filters eligible posted issue choices and linkage by exact matching dimensions. Added standalone native integration regression 47fc399ff1a95e54fb197dbc2ef0459336669f8c on isolated work-m6-lane-a-ss08-native-20261127 based on current successor 71ee0822. Covers all three dimensions on request and posted stock effect, mismatched posted item rejection, foreign Company cost code rejection, unassigned actor denial, linkage/replay without additional stock effects, quantity readback and no implicit acknowledgment. Requires explicit m6_ss08_<8 hex> database identity before fixture writes, private temporary storage; not wired to routine suite or retained runtime. Actual local TypeScript transpileModule syntax diagnostics 0; Git hash-object 7ad3a26e1f0385c65d72873e6dc846805abb456a matches published blob. Full typecheck, native PostgreSQL/HTTP execution and browser proof not run (container has no PG or ERP dependency workspace). One added file, zero Actions runs, protected main unchanged. No forecast credit for unexecuted native test. Previous authentication and compiled artifact Mac inspection still outstanding, no authorization for retained mutation.",
+      "blocker": "Execute in separately provisioned disposable PostgreSQL with correct build/seed/permissions, then real browser evidence. Shared auth history and compiled artifact proof pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
