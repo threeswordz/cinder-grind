@@ -1,9 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 11h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
+**M4 10.5h → 0h · M6 112h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 237.5h → 0h · Full ERP 1,732.5h → 0h.**
 
-[Ready PR455](https://github.com/threeswordz/cinder-grind/pull/455) frozen at `0bcc355c0149197c13a90b0c652452861496578e`; Owner-authorized [full attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2) in progress. New [post-Ready P2 supplier return metadata finding](https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4705418570) blocks merge. Isolated [correction ae6d3678](https://github.com/threeswordz/cinder-grind/commit/ae6d3678322bacbb65ba3bb9df1f2136137d5255) staged, not tested; no new CI. M4-08 0.5→1h provisional +0.5h new rework, no verified reduction. Actual authorized target and retained-role readback pending.
+[Draft PR455](https://github.com/threeswordz/cinder-grind/pull/455) now exact `73386f4bab1e76228f055728c87a26c71559c52a`; [targeted native PASS4/4](https://github.com/threeswordz/cinder-grind/actions/runs/45783466686/job/139784315444), [original full46/46](https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2) applies only to predecessor0bcc355c. Draft-before-forward update verified. [Independent review requested](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7187121989); P2 remains open. M4-08 1→0.5h, verified provisional rework reduction0.5h. No new expensive full CI authorized; retained target/readback pending.
 
 **M6-05 18.5→18h:** [Exact new combined HR/recovery regression](https://github.com/threeswordz/cinder-grind/commit/097783c18d1265b0b1df1eb07ea10ce1bc6ba0f9) actual local Node22.16.0 5/5 PASS; synthetic HR snapshots and real temporary file copies only. All three helper blobs and new test blob matched remote. No runtime/PG/Mac/real encryption or independent review claim. No CI or M4 change.
 

@@ -4792,6 +4792,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-136",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_PUR14_CORRECTION_NATIVE_PASS_DRAFT_INDEPENDENT_REVIEW_REQUESTED",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "73386f4bab1e76228f055728c87a26c71559c52a",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45783466686/job/139784315444",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45755597615/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7187121989"
+      ],
+      "basis": "Actual targeted disposable PG17.11 exact application73386f4b API build, migrations, four native tests PASS4/4, terminal M4_PUR14_DOCUMENT_READBACK_TARGETED_PASS, job13/13. Workflow-only child fe05155c excluded. Original exact predecessor0bcc355c full46/46 incl recovery and FULL_VALIDATION_IDENTITY_CONFIRMED against unchanged base040395bc; no transfer of full verdict. Six-file forward delta reviewed structurally, PR converted to Draft before guarded nonforced fast-forward, exact new head confirmed, independent Codex review requested once. Verified priced rework completed −0.5h; no acceptance or actual labor claimed.",
+      "blocker": "Independent review and P2 reconciliation, corrected exact full CI specific Owner authorization, guarded integration and retained technical readback.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4814,6 +4835,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1733,
-  "currentRollingTotalSemantics": "1733h = previous rolling 1732.5h plus 0.5h newly identified PUR14 rework allowance, no verified completion credit. M4 11h; M6 112h; prototype 238h. Formal acceptance remains false; all 112 requirements preserved; actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1732.5,
+  "currentRollingTotalSemantics": "1732.5h = previous 1733h minus 0.5h verified provisional PUR14 rework. M4 10.5h; M6 112h; prototype237.5h. Formal acceptance false; all112 requirements preserved; actual labor unmeasured."
 }
