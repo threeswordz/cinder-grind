@@ -9,6 +9,7 @@ import { NestFactory } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
 import { AppModule } from '../app.module';
 import { AuditService } from '../audit/audit.service';
+import { ApprovalService } from '../approval/approval.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from './goods-receipt.service';
 import { MovementCorrectionService } from './movement-correction.service';
@@ -347,6 +348,21 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(overAuth.approval?.approvalState,'SUBMITTED');
     const overReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',over.id,randomUUID(),'Incorrect overage source','CANCEL_UNPOSTED');
     assert.equal(overReq.sourceApprovalInstanceId,overAuth.approvalInstanceId);
+    // A PM without Store posting capability cannot cancel through the generic
+    // approval service; only the exact in-transaction SS16 proof permits it.
+    assert.equal(mpPm.permissions.includes('inventory.material_plan.issue.post'),false);
+    await assert.rejects(db.$transaction(tx=>app!.get(ApprovalService).cancel(overAuth.approvalInstanceId!,mpPm,tx),
+      {isolationLevel:Prisma.TransactionIsolationLevel.Serializable}), /Material plan issue actor authority invalid/);
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overAuth.approvalInstanceId}})).approvalState,'SUBMITTED');
+    audit.record = async (input, tx) => {
+      if (input.entityType === 'MOVEMENT_CORRECTION' && input.action === 'APPROVE') throw new Error('Synthetic plan cancellation audit failure');
+      return original(input,tx);
+    };
+    try { await assert.rejects(corrections.decide({auth:mpPm},overReq.id,'APPROVE','Cancel submitted overage'), /Synthetic plan cancellation audit failure/); }
+    finally { audit.record=original; }
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overAuth.approvalInstanceId}})).approvalState,'SUBMITTED');
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overReq.approvalInstanceId}})).approvalState,'SUBMITTED');
+    assert.equal(await db.stockTransaction.count({where:{materialIssueId:over.id}}),0);
     await corrections.decide({auth:mpPm},overReq.id,'APPROVE','Cancel submitted overage');
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overAuth.approvalInstanceId}})).approvalState,'CANCELLED');
     assert.equal(await db.materialPlanIssueAuthorization.count({where:{issueId:over.id}}),1);
