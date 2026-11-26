@@ -59,7 +59,7 @@ export async function inspectAdmission({observeRuntime,verifyRuntime,db,readInve
   return {status:'M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS',processChecksPassed:true,zeroActiveSessionsObserved:true,migrationRowsObserved:177,currentInventoryStableAcrossTwoCaptures:true,historicalBaselineVerified:false,milestone6Accepted:false,mayMutate:false,productionAuthorized:false};
 }
 async function main(){
-  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history','--inspect-rate-history'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
+  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history','--inspect-rate-history','--inspect-retained-site'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_/.test(k)),'M6_NATIVE_EXACT_MAC_REQUIRED');
   const {readCheckoutIdentity,inspectPostM4}=await import('./m6-post-m4-inspect.mjs');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),identity=await readCheckoutIdentity(source);
@@ -81,6 +81,19 @@ async function main(){
   const url='postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/proto_a_01?schema=public';
   const db=new PrismaClient({datasources:{db:{url}},log:[]});
   try{
+    if(process.argv[2]==='--inspect-retained-site'){
+      const {SOURCE}=await import('./prototype-actors.mjs');
+      const {validActorReceipt,validPrivateActors}=await import('./prototype-browser-operator.mjs');
+      const {validateSiteBinding,observeRetainedSiteMaterial}=await import('./m6-retained-site-material.mjs');
+      const receipt=await readPrivate(join(root,'actors-ready.json')),actors=await readPrivate(join(root,'actors-private.json'));
+      const ready=await readPrivate(join(root,'material-ready.json'));
+      need(validActorReceipt(receipt)&&validPrivateActors(actors)&&ready.status==='MATERIAL_AUTHENTICATED_API_JOURNEY_VERIFIED'&&ready.sourceSha===SOURCE&&ready.apiSessionsRevoked===true&&ready.financeUnchanged===true&&ready.productionAuthorized===false,'M6_SITE_HISTORICAL_RECEIPT');
+      const binding=validateSiteBinding({sourceSha:SOURCE,actors,fixture:await readPrivate(join(root,'actors-fixture-private.json')),initial:await readPrivate(join(root,'actors-http-evidence-private.json')),journey:await readPrivate(join(root,'material-journey-private.json'))});
+      const before=await readAdmissionDatabase(db),result=await observeRetainedSiteMaterial(db,binding);
+      need(same(before,await readAdmissionDatabase(db)),'M6_SITE_MIGRATION_DRIFT');
+      verifyRuntime(await observeRuntime());
+      return {...result,inspectorSha:identity.sha};
+    }
     if(['--inspect-auth-history','--inspect-rate-history'].includes(process.argv[2])){
       const {execFile}=await import('node:child_process');
       const {promisify}=await import('node:util');
