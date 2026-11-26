@@ -6123,6 +6123,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-196",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_CONTROLLED_SUBMITTED_CANCELLATION_DRAFT",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "sourceSha": "cfce7c6b1663a6eaac81d3693773327bb71041ba",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7202153092",
+        "https://github.com/threeswordz/cinder-grind/commit/cfce7c6b1663a6eaac81d3693773327bb71041ba"
+      ],
+      "basis": "Controlled submitted linked receiving GR and undispatched still-submitted transfer cancellation draft with canonical row locks, original approval retention, separate physical VOID/replacement and custody event SQL proof. Seven changed paths verified. Disposable native regression assertions authored, not executed; no forecast credit.",
+      "blocker": "Material-plan overage and approved-but-undispatched transfer cancellation remain fail-closed; shared Store/PM UI cutover, legacy regression conversion, actual workflow/grants, API/web compile, migration and native HTTP coverage, independent review, integration/preservation pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
