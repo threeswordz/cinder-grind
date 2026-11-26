@@ -9,7 +9,7 @@ import { GoodsReceiptService } from './goods-receipt.service';
 import { MaterialIssueService } from './material-issue.service';
 import { MaterialReturnService } from './material-return.service';
 import { StockTransferService } from './stock-transfer.service';
-import { correctionAuthority, type MovementKind } from './movement-correction-authority';
+import { correctionAuthority, type CorrectionAction, type MovementKind } from './movement-correction-authority';
 
 const entityType = 'MOVEMENT_CORRECTION';
 const workflowCode = 'SS16_MOVEMENT_CORRECTION';
@@ -43,7 +43,7 @@ export class MovementCorrectionService {
     return { companyId: row.companyId, kind, projectIds: [row.projectId], postedAt: row.postedAt, reversedAt: row.reversedAt, reversalKey: row.reversalKey };
   }
 
-  private async authorize(auth: AuthenticatedUserContext, source: Source, action: 'REQUEST'|'APPROVE'|'REJECT', tx: Tx, requesterUserId?: string) {
+  private async authorize(auth: AuthenticatedUserContext, source: Source, action: CorrectionAction, tx: Tx, requesterUserId?: string) {
     const session = await tx.userSession.findFirst({
       where: { id: auth.sessionId, userId: auth.userId, revokedAt: null, expiresAt: { gt: new Date() },
         user: { companyId: auth.companyId, isActive: true, company: { isActive: true } } },
@@ -76,6 +76,33 @@ export class MovementCorrectionService {
 
   private async lock(tx: Tx, companyId: string, kind: MovementKind, id: string) {
     await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'ss16:' + companyId + ':' + kind + ':' + id);
+  }
+
+  // Source-scoped read projection: Store sees only own requests; a live PM
+  // with source-specific checker grants can see all requests for that source.
+  // No read action confers a right to decide or bypass maker/checker separation.
+  async listForSource(context: Context, kind: MovementKind, id: string) {
+    if (!kinds.has(kind) || !uuid(id)) return invalid();
+    return this.prisma.$transaction(async tx => {
+      const source = await this.source(context.auth, kind, id, tx);
+      let reviewer = false;
+      try {
+        await this.authorize(context.auth, source, 'READ_REVIEW', tx);
+        reviewer = true;
+      } catch (error) {
+        if (!(error instanceof ForbiddenException)) throw error;
+        await this.authorize(context.auth, source, 'READ_OWN', tx);
+      }
+      return tx.movementCorrectionRequest.findMany({
+        where: { companyId: context.auth.companyId, sourceKind: kind, sourceId: id,
+          ...(reviewer ? {} : { requestedByUserId: context.auth.userId }) },
+        orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
+        take: 100,
+        select: { id: true, sourceKind: true, sourceId: true, reason: true,
+          requestedByUserId: true, requestedAt: true,
+          approvalInstance: { select: { approvalState: true } } },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async request(context: Context, kind: MovementKind, id: string, key: string, reason: string) {

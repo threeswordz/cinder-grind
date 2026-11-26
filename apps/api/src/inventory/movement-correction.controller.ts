@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { CsrfGuard } from '../auth/csrf.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
@@ -26,6 +26,14 @@ export class MovementCorrectionController {
 
   // The service enforces live, source-specific, same-role permissions and
   // Project membership, not a caller-provided Company, actor, or workflow.
+  @Get('sources/:kind/:id/requests')
+  @UseGuards(AuthGuard)
+  async list(@Req() request: AuthenticatedRequest,
+    @Param('kind') kind: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+    return { data: await this.corrections.listForSource(context(request), sourceKind(kind), id) };
+  }
+
   @Post('sources/:kind/:id/requests')
   @UseGuards(AuthGuard, CsrfGuard)
   async request(

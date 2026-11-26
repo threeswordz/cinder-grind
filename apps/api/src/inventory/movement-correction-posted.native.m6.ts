@@ -34,6 +34,8 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
       fetch(origin + '/inventory/' + path, { method:'POST', headers:{'content-type':'application/json',
         ...(session ? {cookie:'erp_session='+session.sessionToken} : {}),
         ...(session && csrf ? {'x-csrf-token':session.csrfToken} : {})}, body:JSON.stringify(body) });
+    const get = (path: string, session: {sessionToken:string} | null) =>
+      fetch(origin + '/inventory/' + path, {headers:session ? {cookie:'erp_session='+session.sessionToken} : {}});
     const f = await receivingFixture(db);
     await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
     await db.role.update({where:{id:f.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
@@ -70,6 +72,19 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(created.status,201,createdText);
     const pending = await request();
     assert.equal(JSON.parse(createdText).data.id,pending.id);
+    assert.equal((await get(requestPath,null)).status,401);
+    for (const actor of [f.store,f.pm]) {
+      const listed = await get(requestPath,actor.session);
+      const body = await listed.text();
+      assert.equal(listed.status,200,body);
+      const rows = JSON.parse(body).data;
+      assert.equal(rows.length,1);
+      assert.equal(rows[0].id,pending.id);
+      assert.equal(rows[0].approvalInstance.approvalState,'SUBMITTED');
+      assert.equal(Object.hasOwn(rows[0],'requestKey'),false);
+    }
+    const unauthorizedRead = await get(requestPath,f.viewer.session);
+    assert.ok([403,404].includes(unauthorizedRead.status));
     assert.equal(pending.approvalInstance.approvalState,'SUBMITTED');
     assert.equal((await request()).id,pending.id);
     await assert.rejects(corrections.request({auth:store},'GOODS_RECEIPT',receipt.id,key,'Changed reason'));

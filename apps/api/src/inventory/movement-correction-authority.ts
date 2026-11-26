@@ -20,11 +20,12 @@ const prefixes: Record<MovementKind, string> = {
 export type CorrectionActor = {
   companyId: string; userId: string; permissions: string[]; roleCodes: string[];
 };
+export type CorrectionAction = 'REQUEST' | 'APPROVE' | 'REJECT' | 'READ_OWN' | 'READ_REVIEW';
 export type CorrectionAuthorityInput = {
   auth: CorrectionActor;
   source: { companyId: string; kind: MovementKind; projectIds: string[] };
   live: { assignments: RoleAssignment[]; employeeCompanyId: string; employeeActive: boolean; assignedProjectIds: string[] } | null;
-  action: 'REQUEST' | 'APPROVE' | 'REJECT';
+  action: CorrectionAction;
   requesterUserId?: string;
 };
 export function correctionAuthority(input: CorrectionAuthorityInput): 'ALLOW' | 'DENY' {
@@ -34,9 +35,9 @@ export function correctionAuthority(input: CorrectionAuthorityInput): 'ALLOW' | 
       !source.projectIds.every(id => live.assignedProjectIds.includes(id))) return 'DENY';
   const prefix = prefixes[source.kind];
   if (!Object.hasOwn(prefixes, source.kind)) return 'DENY';
-  if (action !== 'REQUEST' && action !== 'APPROVE' && action !== 'REJECT') return 'DENY';
-  const request = action === 'REQUEST';
-  if (!request && (!requesterUserId || requesterUserId === auth.userId)) return 'DENY';
+  if (action !== 'REQUEST' && action !== 'APPROVE' && action !== 'REJECT' && action !== 'READ_OWN' && action !== 'READ_REVIEW') return 'DENY';
+  const request = action === 'REQUEST' || action === 'READ_OWN';
+  if ((action === 'APPROVE' || action === 'REJECT') && (!requesterUserId || requesterUserId === auth.userId)) return 'DENY';
   const role = request ? 'STOREKEEPER' : 'PROJECT_MANAGER';
   const required = request ? [prefix + '.view', prefix + '.edit'] :
     [prefix + '.view', prefix + '.approve', prefix + '.reverse'];
