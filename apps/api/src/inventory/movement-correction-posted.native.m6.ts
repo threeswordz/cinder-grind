@@ -16,6 +16,7 @@ import { receivingFixture } from './receiving-test-fixture';
 import { transferCustodyFixture } from './transfer-custody-test-fixture';
 import { DocumentTargetsService } from '../documents/document-targets.service';
 import { StockTransferService } from './stock-transfer.service';
+import { materialPlanIssueFixture } from './material-plan-issue-test-fixture';
 
 test('SS16 draft: immutable correction request, configured PM decision and atomic canonical GR reversal', async () => {
   const expected = process.env.M6_SS16_DISPOSABLE_DB;
@@ -267,6 +268,17 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const tStore = await tf.sessions.resolve(tf.store.session.sessionToken);
     const tPm = await tf.sessions.resolve(tf.pm.session.sessionToken);
     assert.ok(tStore && tPm);
+    // Legacy paired transfer is a separate posted reversal journey before enabling custody.
+    const legacyTransfer = await okPost('stock-transfers',tf.store,tf.transferInput);
+    await okPost('stock-transfers/'+legacyTransfer.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
+    await okPost('stock-transfers/'+legacyTransfer.id+'/approve',tf.pm,{postKey:randomUUID()});
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),2);
+    assert.equal((await post('stock-transfers/'+legacyTransfer.id+'/reverse',tf.pm.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
+    const legacyRequest = await corrections.request({auth:tStore},'STOCK_TRANSFER',legacyTransfer.id,randomUUID(),'Incorrect paired transfer');
+    await corrections.decide({auth:tPm},legacyRequest.id,'APPROVE','Independent exact reversal');
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),4);
+    const transferNet = await db.stockTransaction.aggregate({where:{stockTransferId:legacyTransfer.id},_sum:{quantity:true}});
+    assert.equal(transferNet._sum.quantity?.toString(),'0');
     await okPost('transfer-custody/projects/'+tf.project.id+'/enable',tf.pm,{requestKey:randomUUID(),reason:'Disposable transfer policy'});
     const transfer = await okPost('stock-transfers',tf.store,tf.transferInput);
     await okPost('stock-transfers/'+transfer.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
@@ -296,6 +308,70 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     await assert.rejects(corrections.decide({auth:tPm},transferCorrection.id,'APPROVE','Replay'));
     assert.equal(await db.transferCustodyEvent.count({where:{transferId:transfer.id,action:'CANCEL'}}),1);
     assert.equal(await db.stockTransaction.count({where:{stockTransferId:transfer.id}}),0);
+    const ready = await okPost('stock-transfers',tf.store,tf.transferInput);
+    await okPost('stock-transfers/'+ready.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
+    await okPost('stock-transfers/'+ready.id+'/approve',tf.pm,{postKey:randomUUID()});
+    const readyHeader = await db.stockTransfer.findUniqueOrThrow({where:{id:ready.id}});
+    assert.ok(readyHeader.approvalInstanceId);
+    const historicalApproval = await db.approvalInstance.findUniqueOrThrow({where:{id:readyHeader.approvalInstanceId}});
+    assert.equal(historicalApproval.approvalState,'APPROVED');
+    const readyRequest = await corrections.request({auth:tStore},'STOCK_TRANSFER',ready.id,randomUUID(),'Approved but not dispatched','CANCEL_UNPOSTED');
+    await corrections.decide({auth:tPm},readyRequest.id,'APPROVE','Cancel before physical dispatch');
+    assert.deepEqual(await db.approvalInstance.findUniqueOrThrow({where:{id:historicalApproval.id}}),historicalApproval);
+    const readyCustody = await db.transferCustody.findUniqueOrThrow({where:{transferId:ready.id}});
+    assert.equal(await db.transferCustodyEvent.count({where:{transferId:ready.id,action:'CANCEL'}}),1);
+    assert.equal((await post('transfer-custody/transfers/'+ready.id+'/dispatch',tf.store.session,
+      {requestKey:randomUUID(),expectedVersion:readyCustody.version,reason:'Cancelled approved transfer'})).status,409);
+    await assert.rejects(corrections.request({auth:tStore},'STOCK_TRANSFER',ready.id,randomUUID(),'Duplicate terminal cancellation','CANCEL_UNPOSTED'));
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:ready.id}}),0);
+
+    // Plan overage uses a distinct approval entity and immutable authorization;
+    // cancellation must not create a new authorization or release stock.
+    const mp = await materialPlanIssueFixture(db);
+    await db.role.update({where:{id:mp.store.role.id},data:{roleCode:'STOREKEEPER'}});
+    await db.role.update({where:{id:mp.manager.role.id},data:{roleCode:'PROJECT_MANAGER'}});
+    await mp.grant(mp.manager,['inventory.issue.reverse','inventory.return.reverse']);
+    await db.approvalWorkflow.create({data:{companyId:mp.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',
+      entityType:'MOVEMENT_CORRECTION',workflowName:'Independent correction review',
+      steps:{create:[{stepNo:1,stepName:'PM',requiredApprovals:1,stepRoles:{create:[{roleId:mp.manager.role.id}]}}]}}});
+    const mpStore = await mp.sessions.resolve(mp.store.session.sessionToken);
+    const mpPm = await mp.sessions.resolve(mp.manager.session.sessionToken);
+    assert.ok(mpStore && mpPm);
+    mp.store.auth=mpStore;mp.manager.auth=mpPm;
+    await mp.controls.enable({auth:mp.ben.auth},mp.project.id,mp.enableInput());
+    const over = await mp.issue('7',false);
+    const intent = await mp.pin(over.id);
+    await mp.controls.submitOverage({auth:mpStore},over.id,intent);
+    const overAuth = await db.materialPlanIssueAuthorization.findFirstOrThrow({where:{issueId:over.id},include:{approval:true,lines:true}});
+    assert.ok(overAuth.approvalInstanceId);
+    assert.equal(overAuth.approval?.approvalState,'SUBMITTED');
+    const overReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',over.id,randomUUID(),'Incorrect overage source','CANCEL_UNPOSTED');
+    assert.equal(overReq.sourceApprovalInstanceId,overAuth.approvalInstanceId);
+    await corrections.decide({auth:mpPm},overReq.id,'APPROVE','Cancel submitted overage');
+    assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overAuth.approvalInstanceId}})).approvalState,'CANCELLED');
+    assert.equal(await db.materialPlanIssueAuthorization.count({where:{issueId:over.id}}),1);
+    assert.deepEqual(await db.materialPlanIssueAllocation.findMany({where:{authorizationId:overAuth.id},orderBy:{id:'asc'}}),
+      overAuth.lines.slice().sort((a,b)=>a.id.localeCompare(b.id)));
+    await assert.rejects(mp.controls.submitOverage({auth:mpStore},over.id,await mp.pin(over.id)),
+      (err:any)=>err.getResponse?.()?.code==='SS16_SOURCE_CANCELLED');
+    await assert.rejects(mp.controls.decide({auth:mpPm},overAuth.id,{requestKey:randomUUID(),decision:'APPROVE',comment:'Cancelled source'},'REVIEW'));
+    assert.equal(await db.stockTransaction.count({where:{materialIssueId:over.id}}),0);
+    // Posted issue and return both travel through independent correction.
+    await mp.issues.submit({auth:mpStore},mp.historical.id,'MR-ISSUE');
+    await mp.issues.approve({auth:mpPm},mp.historical.id,randomUUID());
+    const returned = await mp.sourceReturn(mp.historical.id,'1');
+    assert.equal((await post('material-returns/'+returned.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
+    const returnReq = await corrections.request({auth:mpStore},'MATERIAL_RETURN',returned.id,randomUUID(),'Incorrect return');
+    await corrections.decide({auth:mpPm},returnReq.id,'APPROVE','Independent return reversal');
+    assert.equal(await db.stockTransaction.count({where:{materialReturnId:returned.id}}),2);
+    const netReturn = await db.stockTransaction.aggregate({where:{materialReturnId:returned.id},_sum:{quantity:true}});
+    assert.equal(netReturn._sum.quantity?.toString(),'0');
+    assert.equal((await post('material-issues/'+mp.historical.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
+    const issueReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',mp.historical.id,randomUUID(),'Incorrect issue');
+    await corrections.decide({auth:mpPm},issueReq.id,'APPROVE','Independent issue reversal');
+    assert.equal(await db.stockTransaction.count({where:{materialIssueId:mp.historical.id}}),2);
+    const netIssue = await db.stockTransaction.aggregate({where:{materialIssueId:mp.historical.id},_sum:{quantity:true}});
+    assert.equal(netIssue._sum.quantity?.toString(),'0');
   } finally {
     try { await app?.close(); } finally {
       await db.$disconnect();
