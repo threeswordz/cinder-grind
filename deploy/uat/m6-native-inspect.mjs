@@ -24,7 +24,7 @@ export async function discoverBaselineFiles(root){
   for(const dir of ['', 'backup','rehearsal','cutover','role-readback']){
     const path=join(stage,dir);try{await privateDir(path);}catch(e){if(e.code==='ENOENT')continue;throw e;}
     for(const name of (await readdir(path)).sort()){
-      if(!/^[a-z0-9-]{1,100}\.json$/.test(name)||!/(snapshot|inventory|inventories|fingerprint|artifact|migration|ready|owned|preservation)/.test(name))continue;
+      if(!/^[a-z0-9-]{1,100}\.json$/.test(name)||!/(baseline|snapshot|inventory|inventories|fingerprint|artifact|migration|ready|owned|preservation)/.test(name))continue;
       const file=join(path,name),s=await lstat(file);need(s.isFile()&&!s.isSymbolicLink()&&s.uid===process.getuid()&&s.nlink===1&&!(s.mode&0o077),'M6_NATIVE_SCHEMA_FILE_INVALID');
       let shape='unread-size-limit',fields=[];
       if(s.size>0&&s.size<=33554432){const v=await readPrivate(file,33554432);shape=Array.isArray(v)?'array':v&&typeof v==='object'?'object':typeof v;
@@ -58,7 +58,7 @@ export async function inspectAdmission({observeRuntime,verifyRuntime,db,readInve
   return {status:'M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS',processChecksPassed:true,zeroActiveSessionsObserved:true,migrationRowsObserved:177,currentInventoryStableAcrossTwoCaptures:true,historicalBaselineVerified:false,milestone6Accepted:false,mayMutate:false,productionAuthorized:false};
 }
 async function main(){
-  need(process.argv.length===4&&['--inspect-runtime','--inspect-schema'].includes(process.argv[2])&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
+  need(process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation'].includes(process.argv[2])&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_/.test(k)),'M6_NATIVE_EXACT_MAC_REQUIRED');
   const {readCheckoutIdentity,inspectPostM4}=await import('./m6-post-m4-inspect.mjs');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),identity=await readCheckoutIdentity(source);
@@ -79,7 +79,21 @@ async function main(){
   const {PrismaClient}=createRequire(join(application,'apps/api/package.json'))('@prisma/client');
   const url='postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/proto_a_01?schema=public';
   const db=new PrismaClient({datasources:{db:{url}},log:[]});
-  try{return {...await inspectAdmission({observeRuntime,verifyRuntime,db,readInventory:inventory,root,application}),inspectorSha:identity.sha};}finally{await db.$disconnect();}
+  try{
+    if(process.argv[2]==='--inspect-preservation'){
+      const {verifyMigrationChecksums,migrationSources,verifyProtectedBackup}=await import('./m6-historical-backup.mjs');
+      const stage=join(root,'m4-upgrade-9417f07c');
+      const receipt=await readPrivate(join(stage,'backup-ready.json'));
+      const plan=await readPrivate(join(stage,'rehearsal','migration-plan-private.json'),33554432);
+      const before=await readAdmissionDatabase(db),sources=await migrationSources(application);
+      const migration=verifyMigrationChecksums(plan,before,sources);
+      const backup=await verifyProtectedBackup({root,stage,receipt,readInventory:inventory});
+      need(same(before,await readAdmissionDatabase(db)),'M6_HISTORICAL_MIGRATION_OBSERVATION_DRIFT');
+      verifyRuntime(await observeRuntime());
+      return {status:'M6_HISTORICAL_BACKUP_CHECKS_PASS',...migration,...backup,historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false,inspectorSha:identity.sha};
+    }
+    return {...await inspectAdmission({observeRuntime,verifyRuntime,db,readInventory:inventory,root,application}),inspectorSha:identity.sha};
+  }finally{await db.$disconnect();}
 }
 if(process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null)===await realpath(new URL(import.meta.url))){
   try{console.log(JSON.stringify(await main()));}catch(e){console.log(JSON.stringify({status:'M6_NATIVE_INSPECTION_BLOCKED',safeCode:/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'M6_NATIVE_PRIVATE_FAILURE',historicalBaselineVerified:false,mayMutate:false,productionAuthorized:false}));process.exitCode=1;}
