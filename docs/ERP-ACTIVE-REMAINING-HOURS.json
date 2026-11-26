@@ -4676,6 +4676,25 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-01-130",
+      "date": "2026-11-26",
+      "packageId": "M4-01",
+      "kind": "M4_RETAINED_OPERATOR_PLAN_70_UNIQUE_BOUNDED_ROWS_PREPARED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "0bcc355c0149197c13a90b0c652452861496578e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/795bf9a4373feff961ad32fe418aa27b3bce55fd/docs/M4-2026-11-26-RETAINED-ROLE-OPERATOR-PLAN.md"
+      ],
+      "basis": "Verified 112 unique register IDs and all formal NO, assigned each of 70 bounded IDs exactly once across A14/B31/C15/D10; 42 future rows preserved. Published and read back exact docs-only operator plan; verified no branch Actions runs and unchanged draft455. Plan defines target identity, authorization, real-actor positive/negative controls, read-only boundaries and redacted receipts. Existing runtime/actor observations remain absent. No actual execution or forecast reduction.",
+      "blocker": "Codex quota and exact review; authorized retained non-Production target identity, access and actual readback; specific full/Ready/integration authorization after independent review.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
