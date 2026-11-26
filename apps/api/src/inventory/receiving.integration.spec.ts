@@ -22,6 +22,13 @@ test('receiving actual HTTP holds physical goods until independent evidence chec
  const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
  try{
   const f=await receivingFixture(db),base=await app.getUrl()+'/api/v1',root='/inventory/receiving',targets=app.get(DocumentTargetsService);
+  // Disposable-only SS16 role/workflow configuration; no retained grants changed.
+  await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
+  await db.role.update({where:{id:f.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
+  const reversalPermission=await db.permission.findUniqueOrThrow({where:{permissionCode:'inventory.receipt.reverse'}});
+  await db.rolePermission.createMany({data:[{roleId:f.pm.role.id,permissionId:reversalPermission.id}],skipDuplicates:true});
+  await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic SS16 review',
+   steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
   type Actor=typeof f.store;
   async function call(actor:Actor|null,path:string,status=200,body?:unknown,csrf=true):Promise<any>{
    const r=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{...(actor?{Cookie:'erp_session='+actor.session.sessionToken}:{}),...(body===undefined?{}:{'Content-Type':'application/json'}),...(actor&&csrf?{'x-csrf-token':actor.session.csrfToken}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -161,8 +168,17 @@ test('receiving actual HTTP holds physical goods until independent evidence chec
    // Revocation and archived evidence cannot prevent a reasoned reversal of existing stock.
    await db.userSession.updateMany({where:{userId:f.jai.user.id},data:{revokedAt:new Date()}});
    await db.document.update({where:{id:live.evidence[0].documentId},data:{isActive:false}});
-   const reverse={reversalKey:randomUUID(),reason:'Synthetic physical return reversal'};
-   await call(f.store,'/inventory/goods-receipts/'+grId+'/reverse',201,reverse);await call(f.store,'/inventory/goods-receipts/'+grId+'/reverse',201,reverse);
+   const reverse={requestKey:randomUUID(),reason:'Synthetic physical return reversal'};
+   await call(f.store,'/inventory/goods-receipts/'+grId+'/reverse',409,{reversalKey:reverse.requestKey,reason:reverse.reason});
+   const correctionRoot='/inventory/movement-corrections';
+   const requestPath=correctionRoot+'/sources/GOODS_RECEIPT/'+grId+'/requests';
+   const correction=await call(f.store,requestPath,201,reverse);
+   assert.equal((await call(f.store,requestPath,201,reverse)).id,correction.id);
+   assert.equal(await balance(),'3.0000');
+   await call(f.store,correctionRoot+'/'+correction.id+'/approve',403,{comment:'Self approval denied'});
+   await call(f.pm,correctionRoot+'/'+correction.id+'/approve',201,{comment:'Independent physical correction'});
+   await call(f.pm,correctionRoot+'/'+correction.id+'/approve',409,{comment:'Decision replay denied'});
+   assert.equal((await call(f.store,requestPath,201,reverse)).id,correction.id);
    assert.equal(await balance(),'0.0000');assert.equal((await detail()).usable,false);assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:grId}}),2);
    await call(f.jai,root+'/deliveries/'+id,401);
   });

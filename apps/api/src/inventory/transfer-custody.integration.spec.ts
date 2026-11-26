@@ -27,6 +27,11 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
   app.setGlobalPrefix('api/v1'); app.use(securityHeadersMiddleware(false)); app.useGlobalFilters(new ProblemDetailsFilter()); await app.listen(0, '127.0.0.1');
   try {
     const f = await transferCustodyFixture(db, app), base = await app.getUrl() + '/api/v1';
+    await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
+    await db.role.update({where:{id:f.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
+    await f.grant(f.pm,['inventory.transfer.reverse']);
+    await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic SS16 review',
+      steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
     type Actor = typeof f.store;
     async function call(actor: Actor, path: string, expected = 200, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<any> {
       const response = await fetch(base + path, { method, headers: { Cookie: 'erp_session=' + actor.session.sessionToken, 'x-csrf-token': actor.session.csrfToken, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -34,13 +39,20 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
     }
     const quantity = async (warehouseId: string) => (await db.stockTransaction.aggregate({ where: { companyId: f.company.id, warehouseId, materialId: f.material.id }, _sum: { quantity: true } }))._sum.quantity?.toFixed(4) ?? '0.0000';
     const ordinary = '/inventory/stock-transfers', root = '/inventory/transfer-custody';
+    const correctionRoot='/inventory/movement-corrections';
+    const correctionPath=(sourceId:string)=>correctionRoot+'/sources/STOCK_TRANSFER/'+sourceId+'/requests';
+    const decisionPath=(requestId:string)=>correctionRoot+'/'+requestId+'/approve';
     let legacy: any;
     await t.test('legacy approval retains exact paired posting and reversal', async () => {
       legacy = await call(f.store, ordinary, 201, { ...f.transferInput, lines: [{ ...f.transferInput.lines[0], quantity: '2.0000' }] });
       await call(f.store, ordinary + '/' + legacy.id + '/submit', 201, { workflowCode: f.workflow.workflowCode });
       await call(f.pm, ordinary + '/' + legacy.id + '/approve', 201, { postKey: randomUUID() });
       assert.equal(await quantity(f.warehouse.id), '8.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '2.0000');
-      await call(f.store, ordinary + '/' + legacy.id + '/reverse', 201, { reversalKey: randomUUID(), reason: 'Legacy exact reversal' });
+      const body={requestKey:randomUUID(),reason:'Legacy exact reversal'};
+      await call(f.store,ordinary+'/'+legacy.id+'/reverse',409,{reversalKey:body.requestKey,reason:body.reason});
+      const request=await call(f.store,correctionPath(legacy.id),201,body);
+      assert.equal(await quantity(f.destinationWarehouse.id),'2.0000');
+      await call(f.pm,decisionPath(request.id),201,{comment:'Independent exact reversal'});
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
     });
     const originalLegacy = await db.stockTransfer.findUniqueOrThrow({ where: { id: legacy.id }, include: { stockTransactions: { orderBy: { id: 'asc' } } } });
@@ -183,8 +195,20 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.deepEqual(await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 201, receivedBody), first);
       await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 409, { ...receivedBody, lines: [{ ...receivedBody.lines[0], quantity: '5.0000' }] });
       assert.equal(await quantity(f.destinationWarehouse.id), '4.0000'); assert.equal((await detail()).lines[0].outstanding, '1.0000');
-      await f.grant(f.pm, ['inventory.transfer.reverse']);
       await call(f.pm, ordinary + '/' + id + '/reverse', 409, { reversalKey: randomUUID(), reason: 'Must not return unreceived stock' });
+      const partial={requestKey:randomUUID(),reason:'Must not reverse unreceived stock'};
+      await call(f.store,correctionPath(id),403,partial);
+      await db.projectMember.create({data:{projectId:f.unassigned.id,employeeId:f.store.employee.id,projectRole:'Temporary synthetic correction scope'}});
+      try {
+        const request=await call(f.store,correctionPath(id),201,partial);
+        await call(f.pm,decisionPath(request.id),409,{comment:'Partial custody must not reverse'});
+        const correction=await db.movementCorrectionRequest.findUniqueOrThrow({where:{id:request.id},include:{approvalInstance:true}});
+        assert.equal(correction.approvalInstance.approvalState,'SUBMITTED');
+        assert.equal(await quantity(f.destinationWarehouse.id),'4.0000');
+        await call(f.pm,correctionRoot+'/'+request.id+'/reject',201,{comment:'Outstanding physical custody'});
+      } finally {
+        await db.projectMember.deleteMany({where:{projectId:f.unassigned.id,employeeId:f.store.employee.id}});
+      }
       await assert.rejects(db.transferReceiptLine.updateMany({ where: { receiptId }, data: { quantity: '5' } }), /TRANSFER_HISTORY_IMMUTABLE/);
       await assert.rejects(db.transferReceiptLine.create({ data: { receiptId, transferItemId: transfer.items[0].id, quantity: '0.5', note: 'Must not extend a committed physical acknowledgment' } }), /TRANSFER_OVERRECEIPT_OR_DIMENSION_INVALID/);
     });
@@ -205,11 +229,15 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.deepEqual(results[0], results[1]); assert.equal((await detail()).lines[0].outstanding, '0.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '5.0000');
       await db.projectMember.create({ data: { projectId: f.unassigned.id, employeeId: f.store.employee.id, projectRole: 'Explicit synthetic reversal scope' } });
       const reversePath = ordinary + '/' + id + '/reverse';
-      const reversal = { reversalKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' };
-      await call(f.store, reversePath, 201, reversal);
+      const reversal = { requestKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' };
+      await call(f.store,reversePath,409,{reversalKey:reversal.requestKey,reason:reversal.reason});
+      const request=await call(f.store,correctionPath(id),201,reversal);
+      await call(f.store,decisionPath(request.id),403,{comment:'Self decision denied'});
+      await call(f.pm,decisionPath(request.id),201,{comment:'Independent complete custody reversal'});
       const transferStockAfter = await db.stockTransaction.count({ where: { stockTransferId: id } });
-      await call(f.store, reversePath, 201, reversal);
-      await call(f.store, reversePath, 409, { ...reversal, reason: 'Changed transfer correction reason' });
+      assert.equal((await call(f.store,correctionPath(id),201,reversal)).id,request.id);
+      await call(f.store,correctionPath(id),409,{...reversal,reason:'Changed transfer correction reason'});
+      await call(f.pm,decisionPath(request.id),409,{comment:'Decision replay denied'});
       assert.equal(await db.stockTransaction.count({ where: { stockTransferId: id } }), transferStockAfter);
       assert.equal((await db.stockTransfer.findUniqueOrThrow({ where: { id } })).reversalReason, reversal.reason);
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
