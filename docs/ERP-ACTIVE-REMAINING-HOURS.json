@@ -5939,6 +5939,26 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-187",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "M6_SS16_MOVEMENT_REVERSAL_REASON_REPLAY_CORRECTION_LOCAL_PASS",
+      "beforeHours": 31,
+      "afterHours": 31,
+      "sourceSha": "7306c179b671092034b1c172ea92ac3441904c14",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201009896",
+        "https://github.com/threeswordz/cinder-grind/commit/7306c179b671092034b1c172ea92ac3441904c14"
+      ],
+      "basis": "SS16: canonical goods receipt reverse already rejects same reversal key with changed reason; material issue, material return and stock transfer reverse instead returned committed row without verifying reason. Isolated 7306c179b671092034b1c172ea92ac3441904c14 on work-m6-lane-b-ss16-replay-20261127 adds exact replay decision and wires existing transaction branches: identical committed key/reason returns original; same key different reason throws HTTP conflict; other states retain existing reversal rules. Existing authorization, locks, stock effects and schema unchanged; no new grants or claim that Khaimook correction authority is complete. Three existing native regressions extended to check identical replay, conflicting reason, no additional stock effects and immutable stored reason. Actual local Node22.16.0, TypeScript5.8.3 transpile diagnostics none, 6/6 pure helper tests PASS (51.702424ms); exact tested blobs f245ae1653afa7bb81e7abc997f57c4319804e45 and e4e197c64a8e15d2777fa6f0583d0647884d96a3 match published files. Eight files, exact branch readback, zero Actions runs, protected main unchanged. Full typecheck and modified native regressions pending. PUR08/PUR14 existing native/browser suites found; avoid redundant recreation; reconcile their exact historical run evidence before pricing or executing any missing journeys. SS08 batch result still unconfirmed. No forecast deduction for this incomplete correction, no new scope or formal acceptance.",
+      "blocker": "Full typecheck and focused native issue/return/transfer regressions; SS16 approval authority and supplier deployed evidence reconciliation pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
