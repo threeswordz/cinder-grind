@@ -5545,6 +5545,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-168",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_EXPIRED_SESSION_GUARD_CORRECTION_HELPER_PASS",
+      "beforeHours": 20.5,
+      "afterHours": 20.5,
+      "sourceSha": "3a7a2801301efdda4fbea72f0203f63c7cd980d1",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7199966418",
+        "https://github.com/threeswordz/cinder-grind/commit/3a7a2801301efdda4fbea72f0203f63c7cd980d1"
+      ],
+      "basis": "Owner Mac read-only aggregate returned unrevoked=1, active=0, expired=1. Root cause confirmed against canonical SessionService.resolve, which rejects expired sessions. Candidate fixes only the two read-only inspectors, classifies unrevoked/active/expired counts using database transaction timestamp, rejects invalid counts and any live session, retains expired records and leaves existing deployment/drain/revocation gates untouched. Nine actual local Node22.16.0 helper tests passed; source and test blob hashes 014a331dcc2fe6a39b8ce5f0678c85bc16a1b24b and c9c9bb30074e78f275fa885b7111a69a88a5d147 match published files. Four inspector and fixture files additionally changed; their integrated test execution and Mac readback are pending. Candidate ahead1/behind0 versus preceding head, only six M6 files changed; zero Actions runs. This is bounded correction within existing forecast; no scope addition, no separate rework allowance, no reduction or measured human hours claimed. No data mutation.",
+      "blocker": "Run integrated focused tests and corrected native admission; historical data and file comparison remains pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
