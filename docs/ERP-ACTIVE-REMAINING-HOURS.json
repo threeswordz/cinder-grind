@@ -4654,6 +4654,28 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-129",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_PDF_LAYOUT_EXACT_TARGETED_PASS_REVIEW_REQUESTED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "0bcc355c0149197c13a90b0c652452861496578e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703866900",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45755656135/job/139693546793",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7182741761",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45755597615"
+      ],
+      "basis": "Post-Ready P2 on 9482cd57 prevents conditional integration under previous source authorization. New Draft head 0bcc355c corrects page bounds, preserves delivery contact, validates pre-wrap ASCII and Unicode line endings; exact scoped job verified actual API build/web typecheck, real ASCII, Unicode Chromium and browser PDF geometry with terminal M4_PUR07_EXPORT_LAYOUT_CHROMIUM_PASS. Workflow-only child aba3cef3 excluded. Draft admission stopped full run45755597615. Independent exact-head review requested. No forecast credit for correcting a regression; M4 10.5h, prototype 238h, ERP 1733h.",
+      "blocker": "Independent exact-head review, unresolved layout thread, fresh specific full/Ready/merge authority after clean review, actual integration and retained technical readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
