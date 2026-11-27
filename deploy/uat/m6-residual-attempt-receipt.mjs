@@ -1,0 +1,24 @@
+// Durable single-attempt custody for the residual native execution. No DB or session access.
+import {constants} from 'node:fs';
+import {mkdir,lstat,realpath,open} from 'node:fs/promises';
+import {join,resolve,dirname} from 'node:path';
+import {createHash} from 'node:crypto';
+const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_RECEIPT_'+c),{safeCode:'M6_RESIDUAL_RECEIPT_'+c});};
+const APP='70013b5139292ef33563447f8937c8f132feabd2',DISCOVERY='840477f8c18665953ed3285635adc81f5091fadb';
+const hex=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
+const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
+const phases=['roles','fixtures','sessions','ss08','fm02','supplier','cleanup'];
+const uid=()=>process.getuid();
+async function privateDir(path){const s=await lstat(path);need(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===uid()&&!(s.mode&0o077)&&await realpath(path)===path,'DIRECTORY');}
+async function syncDir(path){const f=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW);try{await f.sync();}finally{await f.close();}}
+async function writeExclusive(path,value){const bytes=Buffer.from(JSON.stringify(value)+'\n');need(bytes.length<=1048576,'SIZE');const f=await open(path,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);try{await f.writeFile(bytes);await f.sync();}finally{bytes.fill(0);await f.close();}await syncDir(dirname(path));}
+export async function beginResidualAttempt({parent,operatorSha,planSha256,baselineSha256,authorization}){
+ need(typeof parent==='string'&&resolve(parent)===parent&&parent.endsWith('/m6-successor-'+APP),'ROOT');
+ need(/^[a-f0-9]{40}$/.test(operatorSha??'')&&hex(planSha256)&&hex(baselineSha256)&&authorization?.operatorSha===operatorSha&&authorization.applicationSha===APP&&authorization.discoverySha===DISCOVERY&&authorization.database==='m6_successor_rehearsal'&&authorization.planSha256===planSha256&&authorization.baselineSha256===baselineSha256&&authorization.ownerAuthorizedResidualExecution===true&&authorization.retainedMutationAuthorized===false&&authorization.productionAuthorized===false,'AUTHORITY');
+ await privateDir(parent);const stage=join(parent,'event266-residual-execution');
+ try{await mkdir(stage,{mode:0o700});}catch(e){if(e.code==='EEXIST')need(false,'NO_REPLAY');throw e;}await syncDir(parent);await privateDir(stage);
+ const binding={applicationSha:APP,discoverySha:DISCOVERY,operatorSha,planSha256,baselineSha256,database:'m6_successor_rehearsal',productionAuthorized:false,automaticRetryAllowed:false};
+ await writeExclusive(join(stage,'attempt-private.json'),binding);
+ let index=0,active=null,failed=false,finished=false;const completed=[];
+ return {stage,async startPhase(name){need(!failed&&!finished&&active===null&&phases[index]===name,'PHASE_ORDER');await privateDir(stage);active=name;await writeExclusive(join(stage,name+'-started-private.json'),{...binding,phase:name,previous:completed.at(-1)?.sha256??null});},async sealPhase(name,proof){need(!failed&&!finished&&active===name&&proof&&typeof proof==='object'&&!Array.isArray(proof),'PHASE_SEAL');const sha256=digest(proof);await privateDir(stage);await writeExclusive(join(stage,name+'-committed-private.json'),{...binding,phase:name,proofSha256:sha256,previous:completed.at(-1)?.sha256??null});completed.push({phase:name,sha256});index++;active=null;},async fail(safeCode){need(!finished&&!failed,'TERMINAL');failed=true;await privateDir(stage);await writeExclusive(join(stage,'blocked-private.json'),{...binding,phase:active,completed:completed.map(x=>x.phase),safeCode:typeof safeCode==='string'&&/^M6_[A-Z0-9_]{1,100}$/.test(safeCode)?safeCode:'M6_RESIDUAL_PRIVATE_FAILURE',mayHaveMutated:true});},async finish(proof){need(!failed&&!finished&&active===null&&index===phases.length&&proof?.historicalSessionRowsPreserved===129&&proof?.newSessionsRevoked===5&&proof?.retainedDatabaseAndFilesUnchanged===true&&proof?.recoveryCopyUnchanged===true&&proof?.executionVerified===true&&proof?.productionAuthorized===false,'FINAL_PROOF');await privateDir(stage);finished=true;await writeExclusive(join(stage,'ready-private.json'),{...binding,completed,finalProofSha256:digest(proof),milestone6Accepted:false});return {status:'M6_RESIDUAL_EXECUTION_RECEIPT_SEALED',phasesCompleted:index,milestone6Accepted:false,productionAuthorized:false,automaticRetryAllowed:false};}};
+}
