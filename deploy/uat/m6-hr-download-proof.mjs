@@ -16,7 +16,11 @@ export function bindHrDownload(sealed,cd){
 export function verifyHrBrowserDownload(binding,{status,headers,name,bytes,requests}){
  const cache=String(headers?.['cache-control']??'').toLowerCase().split(',').map(x=>x.trim());
  need(requests===1&&status===200&&cache.includes('private')&&cache.includes('no-store')&&!cache.includes('public')&&headers['x-content-type-options']?.toLowerCase()==='nosniff'&&headers['content-type']?.split(';')[0].trim().toLowerCase()==='text/plain','HTTP');
- need(name===binding.expectedName&&bytes instanceof Uint8Array&&bytes.length===binding.expectedSize&&hash(bytes)===binding.expectedSha256,'BYTES');
+ const exposed=String(headers['access-control-expose-headers']??'').toLowerCase().split(',').map(x=>x.trim());
+ need(headers['content-disposition']==="attachment; filename*=UTF-8''"+encodeURIComponent(binding.expectedName),'DISPOSITION');
+ // Cross-origin credentialed fetch cannot read Content-Disposition unless explicitly exposed.
+ const browserName=exposed.includes('content-disposition')?binding.expectedName:'hr-protected-v'+binding.version+'.bin';
+ need(name===browserName&&bytes instanceof Uint8Array&&bytes.length===binding.expectedSize&&hash(bytes)===binding.expectedSha256,'BYTES');
  return {status:'M6_HR_BROWSER_AUTHORIZED_DOWNLOAD_VERIFIED',downloadRequests:1,exactBytesVerified:true,privateHeadersVerified:true,protectedDataPrinted:false,productionAuthorized:false};
 }
 // Audit snapshots are exact PostgreSQL to_jsonb(t)::text values, not JS-reencoded rows.

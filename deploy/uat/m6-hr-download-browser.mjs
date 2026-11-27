@@ -12,6 +12,7 @@ export function createHrDownloadGate(binding){
  need([binding?.companyId,binding?.employeeId,binding?.attachmentId].every(uuid)&&binding.path==='/hr/companies/'+binding.companyId+'/employees/'+binding.employeeId+'/documents/'+binding.attachmentId+'/download','BINDING');
  let armed=false,count=0;const base='/api/v1/hr/companies/'+binding.companyId,employee=base+'/employees/'+binding.employeeId,download=API+'/api/v1'+binding.path;
  return {arm(){need(!armed&&count===0,'NO_REPLAY');armed=true;},count:()=>count,allow(url,method){
+  if(typeof url==='string'&&url.startsWith('blob:'))return armed&&count===1&&method==='GET'&&/^blob:http:\/\/127\.0\.0\.1:44172\/[a-f0-9-]{36}$/.test(url);
   if(!allowedSuccessorBrowserRequest(url,method))return false;const u=new URL(url);
   if(u.origin===WEB)return true;
   if(u.href===download){if(method==='OPTIONS')return armed&&count===0;if(!armed||method!=='GET'||count!==0)return false;count++;return true;}
@@ -29,10 +30,11 @@ export async function runHrDownloadBrowser({protocol:p,binding,actor,session,sta
  need(authorization?.database==='m6_successor_rehearsal'&&authorization.ownerAuthorizedHrDownloadAudit===true&&authorization.retainedMutationAuthorized===false&&authorization.productionAuthorized===false,'AUTHORIZATION');
  need(p?.listeners instanceof Set&&typeof p.send==='function'&&typeof verifyRuntime==='function'&&actor?.userId===binding.actorId&&actor.companyId===binding.companyId&&actor.permissions?.includes('hr.documents.view')&&actor.permissions.includes('hr.employment.view')&&/^erp_session=[A-Za-z0-9_-]{20,256}$/.test(session?.cookie??''),'ACTOR');
  need(typeof stage==='string'&&resolve(stage)===stage&&await realpath(stage)===stage,'STAGE');const st=await lstat(stage);need(st.isDirectory()&&st.uid===process.getuid()&&!(st.mode&0o077),'STAGE');
- const gate=createHrDownloadGate(binding),directory=await mkdtemp(join(stage,'hr-download-'));let context,s,frame,download,response,complete=false,closing=false,failed=false;
+ const gate=createHrDownloadGate(binding),directory=await mkdtemp(join(stage,'hr-download-'));let context,s,frame,download,response,requestIdForDownload,complete=false,closing=false,failed=false;
  const url=API+'/api/v1'+binding.path;
  const listener=m=>{if(m.method==='Fetch.requestPaused'&&m.sessionId===s){const {requestId,request}=m.params,allowed=gate.allow(request.url,request.method);if(!allowed&&!closing)failed=true;p.send(allowed?'Fetch.continueRequest':'Fetch.failRequest',allowed?{requestId}:{requestId,errorReason:'BlockedByClient'},s).catch(()=>{if(!closing)failed=true;});}
-  if(m.method==='Network.responseReceived'&&m.sessionId===s&&m.params.response.url===url){if(response)failed=true;const r=m.params.response;response={status:r.status,headers:Object.fromEntries(Object.entries(r.headers).map(([k,v])=>[k.toLowerCase(),String(v)]))};}
+  if(m.method==='Network.requestWillBeSent'&&m.sessionId===s&&m.params.request.url===url&&m.params.request.method==='GET'){if(requestIdForDownload)failed=true;requestIdForDownload=m.params.requestId;}
+  if(m.method==='Network.responseReceived'&&m.sessionId===s&&m.params.requestId===requestIdForDownload&&m.params.response.url===url){if(response)failed=true;const r=m.params.response;response={status:r.status,headers:Object.fromEntries(Object.entries(r.headers).map(([k,v])=>[k.toLowerCase(),String(v)]))};}
   if(m.method==='Browser.downloadWillBegin'){if(download||m.params.frameId!==frame||!m.params.url.startsWith('blob:'+WEB+'/'))failed=true;download=m.params;}
   if(m.method==='Browser.downloadProgress'){if(!download||m.params.guid!==download.guid||m.params.state==='canceled')failed=true;else if(m.params.state==='completed')complete=true;}
  };
