@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
+
+**Latest evidence (Event261):** [Owner Mac readiness blocked; diagnostic correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226721192), [corrected operator](https://github.com/threeswordz/cinder-grind/commit/7bc1ded1a6df4ab38f44f6d092ebec733aaec972). Previous exact-head syntax passed; generic private runtime failure, no session creation reported. Root cause unknown. New source adds operation-specific stages and sanitized error codes only; three standalone diagnostic cases passed. No additional earned credit, no net rework increase, no formal acceptance. Do not replay previously successful browser journeys.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 7h |
+| M6-03 | 2.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **11h** |
+
+Next: one explicit corrected read-only Mac diagnostic invocation (new SHA), then resolve the actual reported operation; no session creation, grants, business mutations, full CI or Production.
+
+Prior entries below are historical snapshots.
+
+
 **M6 11h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 126h → 0h · canonical ERP 1,621h → 0h.**
 
 **Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h).
