@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 38h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 153h → 0h · Full ERP 1,648h → 0h.**
+**M4 CLOSED 0h · M6 28.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 143.5h → 0h · Full ERP 1,638.5h → 0h.**
+
+**Latest evidence (Event247):** [Owner Mac correction and shared operational continuation PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999), [exact operator](https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c). Two quantity-only grants and one audit row, 13 prior readbacks reused, 11 fresh sessions revoked, prior sessions preserved, 171 non-auth tables preserved, 15 HR denials, 26 browser module opens, zero additional browser logins. Retained files/database and recovery copy unchanged. No replay. M6 38→28.5h (−9.5h distinct new native evidence), scope0/rework0, actual labor unknown. Shared integration complete; M6-01 0.5h held for applicable exact-source acceptance/review. No formal milestone acceptance; full affected browser journeys remain false. No additional CI/Codex/Work/Production.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 6.5h |
+| M6-04 | 6.5h |
+| M6-05 | 6h |
+| **M6 total** | **28.5h** |
+
+Prior entries below are historical snapshots.
 
 **Latest evidence (Event245):** [Partial native readback and bounded correction/continuation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225065070), [exact operator](https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c). 11/11 login/logout/stale denial, 13 expected readbacks, Jai quantity403. DEC-054 confirms quantity-only; max2 missing synthetic Jai/Porn grants +1 audit, preserve first sessions and log, 10 remaining BOQ requests; reuse prior web artifact. 12 distinct new focused tests and two native syntax checks; actual correction/continuation authority and Mac execution pending. M6-02 14.5 +1.5 rework −3 verified preparation/partial evidence =13h. M6 39.5→38h; ERP1649.5→1648h. Scope0, actual labor unknown, no formal acceptance.
 

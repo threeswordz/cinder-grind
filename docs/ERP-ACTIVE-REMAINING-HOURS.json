@@ -6983,6 +6983,111 @@
       "verifiedCompletedScopeHours": 3,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-01-247",
+      "date": "2026-11-28",
+      "packageId": "M6-01",
+      "kind": "OWNER_MAC_SHARED_OPERATIONAL_CONTINUATION_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "e3d930b68c7c53d37399bc4cdf0a31d29af1584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999",
+        "https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c"
+      ],
+      "basis": "Native shared integration passed; hold applicable exact-source acceptance reserve, no self-approval.",
+      "blocker": "Independent exact-source review/Owner technical exit.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-247",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "OWNER_MAC_SHARED_OPERATIONAL_CONTINUATION_PASS",
+      "beforeHours": 13,
+      "afterHours": 9,
+      "sourceSha": "e3d930b68c7c53d37399bc4cdf0a31d29af1584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999",
+        "https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c"
+      ],
+      "basis": "Outstanding 10 BOQ readbacks, complete role matrix and new workspace evidence; no credit again for 13 earlier readbacks or correction authoring.",
+      "blocker": "Remaining affected native and browser journeys.",
+      "reductionHours": 4,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 4,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-247",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "OWNER_MAC_SHARED_OPERATIONAL_CONTINUATION_PASS",
+      "beforeHours": 6.5,
+      "afterHours": 6.5,
+      "sourceSha": "e3d930b68c7c53d37399bc4cdf0a31d29af1584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999",
+        "https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c"
+      ],
+      "basis": "SS16 configuration re-confirmed; previously credited, no distinct operational movement proof.",
+      "blocker": "SS16/supplier lifecycle and affected inventory journey evidence.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-247",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "OWNER_MAC_SHARED_OPERATIONAL_CONTINUATION_PASS",
+      "beforeHours": 9,
+      "afterHours": 6.5,
+      "sourceSha": "e3d930b68c7c53d37399bc4cdf0a31d29af1584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999",
+        "https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c"
+      ],
+      "basis": "Native certification authorization and finance-reference readbacks passed.",
+      "blocker": "Affected physical acceptance-to-certification journeys.",
+      "reductionHours": 2.5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 2.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-05-247",
+      "date": "2026-11-28",
+      "packageId": "M6-05",
+      "kind": "OWNER_MAC_SHARED_OPERATIONAL_CONTINUATION_PASS",
+      "beforeHours": 9,
+      "afterHours": 6,
+      "sourceSha": "e3d930b68c7c53d37399bc4cdf0a31d29af1584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999",
+        "https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c"
+      ],
+      "basis": "Native HR custody, 15 denials, positive controls and workspace probe passed.",
+      "blocker": "Remaining affected authorized protected-byte and browser journeys.",
+      "reductionHours": 3,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 3,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7012,8 +7117,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1648,
-  "currentRollingTotalSemantics": "1648h = prior1649.5h +1.5h newly identified rework -3h verified partial native/readback and tested implementation preparation (Event245). M6 38h, M7 50h, M8 65h, prototype153h. Scope0, actual labor unknown, no formal acceptance.",
+  "currentRollingTotalAfterPricedGapsHours": 1638.5,
+  "currentRollingTotalSemantics": "1638.5h = prior1648h -9.5h distinct new native operational evidence (Event247), scope0/rework0. M6 28.5h, M7 50h, M8 65h, combined143.5h. M6-01 shared operational task complete; 0.5h applicable acceptance reserve held. No formal acceptance or measured labor.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
