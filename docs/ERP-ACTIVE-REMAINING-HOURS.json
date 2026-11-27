@@ -7442,6 +7442,48 @@
       "verifiedCompletedScopeHours": 1.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "eb210a53496eb9434ce8695ece55d8d86af7c27e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227186733",
+        "https://github.com/threeswordz/cinder-grind/commit/eb210a53496eb9434ce8695ece55d8d86af7c27e"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-02-268",
+      "packageId": "M6-02",
+      "kind": "SS08_CANONICAL_JOURNEY_ADAPTER_TESTED",
+      "beforeHours": 5,
+      "afterHours": 4.5,
+      "basis": "Exact SS08 canonical adapter and test blobs match eight local focused tests. Distinct 0.5h preparation only; canonical request/issue/within-plan/link/new signed document and terminal verifier wiring; mock responses.",
+      "blocker": "Native source fixture, live transport and document upload, actual row/delta capture, integrated browser/API execution and review pending.",
+      "reductionHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "eb210a53496eb9434ce8695ece55d8d86af7c27e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227186733",
+        "https://github.com/threeswordz/cinder-grind/commit/eb210a53496eb9434ce8695ece55d8d86af7c27e"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-03-269",
+      "packageId": "M6-03",
+      "kind": "SUPPLIER_CANONICAL_RETURN_AND_AUDIT_DELTA_TESTED",
+      "beforeHours": 2.5,
+      "afterHours": 1.5,
+      "basis": "Exact supplier canonical adapter and audit delta blobs match 16 local focused tests (7+9). Distinct 1h preparation, no native evidence. Seven actor/version/source-bound advisory return events; exact hash-census preservation.",
+      "blocker": "Bind actual PUR07 acknowledgment, checked damaged custody and fresh source documents; live adapter and delta capture, browser verification; reconcile replacement route and acceptance. Native execution and independent review pending.",
+      "reductionHours": 1,
+      "verifiedCompletedScopeHours": 1
     }
   ],
   "unestimatedWork": [
@@ -7471,8 +7513,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1619,
-  "currentRollingTotalSemantics": "Event267: M6-02 5h, M6 9h, M7 50h, M8 65h, canonical prototype124h, ERP1619h; provisional ERP1329h/prototype73h. Tested components only, no native proof; actual labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1617.5,
+  "currentRollingTotalSemantics": "Events268–269: M6-02 4.5h, M6-03 1.5h, M6 7.5h, M7 50h, M8 65h, canonical prototype122.5h, ERP1617.5h; provisional ERP1327.5h/prototype71.5h. Tested adapters only; no native proof; actual labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
