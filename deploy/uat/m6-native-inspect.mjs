@@ -59,7 +59,7 @@ export async function inspectAdmission({observeRuntime,verifyRuntime,db,readInve
   return {status:'M6_NATIVE_READ_ONLY_ADMISSION_CHECKS_PASS',processChecksPassed:true,zeroActiveSessionsObserved:true,migrationRowsObserved:177,currentInventoryStableAcrossTwoCaptures:true,historicalBaselineVerified:false,milestone6Accepted:false,mayMutate:false,productionAuthorized:false};
 }
 async function main(){
-  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history','--inspect-rate-history','--inspect-retained-site'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
+  need(((process.argv.length===4&&['--inspect-runtime','--inspect-schema','--inspect-preservation','--inspect-rows','--inspect-auth-history','--inspect-rate-history','--inspect-retained-site','--inspect-retained-cd'].includes(process.argv[2]))||(process.argv.length===5&&['--inspect-integrated','--inspect-artifacts'].includes(process.argv[2])))&&sha.test(process.argv[3]),'M6_NATIVE_PINNED_INSPECTION_REQUIRED');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_/.test(k)),'M6_NATIVE_EXACT_MAC_REQUIRED');
   const {readCheckoutIdentity,inspectPostM4}=await import('./m6-post-m4-inspect.mjs');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),identity=await readCheckoutIdentity(source);
@@ -81,6 +81,15 @@ async function main(){
   const url='postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/proto_a_01?schema=public';
   const db=new PrismaClient({datasources:{db:{url}},log:[]});
   try{
+    if(process.argv[2]==='--inspect-retained-cd'){
+      const {observeRetainedCD}=await import('./m6-retained-cd-integrity.mjs');
+      const before=await readAdmissionDatabase(db);
+      const result=await observeRetainedCD(db);
+      need(same(before,await readAdmissionDatabase(db)),'M6_CD_MIGRATION_OBSERVATION_DRIFT');
+      verifyRuntime(await observeRuntime());
+      if(result.status!=='M6_CD_RETAINED_INTEGRITY_OBSERVED')process.exitCode=1;
+      return {...result,inspectorSha:identity.sha};
+    }
     if(process.argv[2]==='--inspect-retained-site'){
       const {SOURCE}=await import('./prototype-actors.mjs');
       const {validActorReceipt,validPrivateActors}=await import('./prototype-browser-operator.mjs');
