@@ -1,5 +1,6 @@
 // Coordinator-owned sequencing. Native runtime/session custody is supplied by the
 // authorized isolated adapter, never inferred from a successful lane fixture.
+import {requireSuccessorOrigins} from './m6-successor-session-batch.mjs';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('M6_COMMON_'+code),{safeCode:'M6_COMMON_'+code});};
 const sha=/^[a-f0-9]{40}$/;
 export function verifyCommonCandidate(candidate,receipt){
@@ -38,6 +39,7 @@ export async function sequenceCommonReadbacks({candidate,receipt,verifyRuntime,p
 export async function runCommonSuccessorReadbacks({candidate,receipt,context}){
   verifyCommonCandidate(candidate,receipt);
   need(context?.database==='m6_successor_rehearsal'&&context.db&&typeof context.verifyRuntime==='function'&&typeof context.withSessions==='function'&&typeof context.verifyFinal==='function'&&typeof context.siteTransport==='function'&&context.siteBinding&&context.ss16Binding&&context.certificationBinding&&context.hr,'CONTEXT');
+  requireSuccessorOrigins(context.origin,context.webOrigin);
   const {verifyM6SiteReadback}=await import('./m6-parallel-02-site-readback.mjs');
   const {observeSuccessorSS16Config}=await import('./m6-parallel-03-ss16-config.mjs');
   const {bindM604Certification,runM604CertificationReadback}=await import('./m6-parallel-04-certification-adapter.mjs');
@@ -51,6 +53,6 @@ export async function runCommonSuccessorReadbacks({candidate,receipt,context}){
     const config=await observeSuccessorSS16Config(context.db,context.ss16Binding);
     const cert=await bindM604Certification(context.db,context.certificationBinding);
     const hr=await prepareHrSuccessorExit({...context.hr,db:context.db,database:'m6_successor_rehearsal',verifyRuntime});
-    return {config,site:s=>verifyM6SiteReadback(context.siteBinding,context.siteTransport(s)),certification:s=>runM604CertificationReadback(cert,{origin:context.origin,cookies:s.certification}),hrDenials:s=>hr.verifyDenials(s.hr),hrFinish:()=>hr.finish()};
+    return {config,site:s=>verifyM6SiteReadback(context.siteBinding,context.siteTransport(s)),certification:s=>runM604CertificationReadback(cert,{origin:context.origin,cookies:s.certification}),hrDenials:s=>hr.verifyDenials(s.hr,undefined,{origin:context.origin,webOrigin:context.webOrigin}),hrFinish:()=>hr.finish()};
   }});
 }

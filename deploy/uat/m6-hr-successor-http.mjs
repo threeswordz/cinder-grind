@@ -1,7 +1,8 @@
 // HR-only GET transport. Existing synthetic session owner retains responsibility
 // for login/logout and before/after auth-history preservation. Never logs data.
 import {assertHrSuccessorDenials} from './m6-hr-successor-boundaries.mjs';
-const API='http://127.0.0.1:33071/api/v1',WEB='http://127.0.0.1:44171',MAX=1048576;
+import {requireSuccessorOrigins} from './m6-successor-session-batch.mjs';
+const RETAINED_API='http://127.0.0.1:33071',RETAINED_WEB='http://127.0.0.1:44171',MAX=1048576;
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('M6_HR_HTTP_'+code),{safeCode:'M6_HR_HTTP_'+code});};
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
 const cookie=/^erp_session=[A-Za-z0-9_-]{20,256}$/;
@@ -25,13 +26,14 @@ async function json(response){
   try{const envelope=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));need(envelope&&Object.hasOwn(envelope,'data'),'JSON');return envelope.data;}catch{need(false,'JSON');}
  }finally{bytes?.fill(0);for(const c of chunks)c.fill(0);try{await reader.cancel();}finally{reader.releaseLock();}}
 }
-export async function executeHrSuccessorDenials({binding,sessions,fetchImpl=fetch}){
+export async function executeHrSuccessorDenials({binding,sessions,fetchImpl=fetch,origin=RETAINED_API,webOrigin=RETAINED_WEB}){
+ if(origin!==RETAINED_API||webOrigin!==RETAINED_WEB)requireSuccessorOrigins(origin,webOrigin);
  need(binding&&sessions instanceof Map&&typeof fetchImpl==='function','CONTEXT');const {positive,negative}=paths(binding);
  const cookies=new Map();for(const k of roles){const c=sessions.get(k)?.cookie;need(typeof c==='string'&&cookie.test(c),'SESSION');cookies.set(k,c);}
  need(new Set(cookies.values()).size===roles.length,'SESSION_ALIAS');
  const get=async(k,p)=>{
   need(roles.includes(k)&&(positive[k].has(p)||negative[k].has(p)),'PATH');
-  let response;try{response=await fetchImpl(API+p,{method:'GET',headers:{Origin:WEB,Accept:'application/json',Cookie:cookies.get(k)},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{need(false,'TRANSPORT');}
+  let response;try{response=await fetchImpl(origin+'/api/v1'+p,{method:'GET',headers:{Origin:webOrigin,Accept:'application/json',Cookie:cookies.get(k)},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{need(false,'TRANSPORT');}
   if(response.redirected||!privateHeaders(response)){await discard(response);need(false,'PRIVACY_HEADERS');}
   // Do not decode any denial body, even if the server incorrectly returns
   // success. The assertion kernel will reject its status without leaking data.
