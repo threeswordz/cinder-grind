@@ -7130,6 +7130,27 @@
       "verifiedCompletedScopeHours": 4.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-251",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "TARGETED_TERMINAL_SUBCONTRACT_BROWSER_IMPLEMENTED_TESTED",
+      "beforeHours": 6.5,
+      "afterHours": 5.5,
+      "sourceSha": "6cbb39d3647af785551bbee5c967b25c0083b9a4",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225606270",
+        "https://github.com/threeswordz/cinder-grind/commit/6cbb39d3647af785551bbee5c967b25c0083b9a4"
+      ],
+      "basis": "9/9 focused local tests, exact receipt-bound physical/retention/finance UI assertion, read-only browser adapter and prior HR audit/session admission. Native entry syntax checked only. Historical physical lifecycle, native finance and prior scope assertions reused without duplicate credit.",
+      "blocker": "Exact Owner authority for two fresh Ben/Nancy sessions and bounded canonical login rate lifecycle; targeted Mac browser execution and applicable acceptance.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7159,8 +7180,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1633,
-  "currentRollingTotalSemantics": "1633h = prior1637.5h -4.5h distinct native protected HR browser evidence (Event250). M6 23h, M7 50h, M8 65h, prototype138h. Scope0/rework0, actual labor unknown; M6-05 technical exit evidenced, 0.5h acceptance reserve retained, no formal acceptance.",
+  "currentRollingTotalAfterPricedGapsHours": 1632,
+  "currentRollingTotalSemantics": "1632h = prior1633h -1h distinct tested subcontract browser preparation (Event251). M6 22h, M7 50h, M8 65h, combined137h. Scope0/rework0; actual labor unknown, native browser not yet executed, no formal acceptance.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
