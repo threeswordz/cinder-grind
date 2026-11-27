@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,327h → 0h · prototype 71h → 0h** (M6 7h / M7 26h / M8 38h). Canonical ERP 1,617h; canonical prototype 122h.
+
+**Latest evidence (Event270):** [Residual integration primitives and native hooks](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227289774), [exact source](https://github.com/threeswordz/cinder-grind/commit/3c47de41267e132a94aa98eb3a5f66e205345f6e). Six exact tested blobs, 25/25 local tests PASS (transport7/document delta12/exclusive receipt6). Native admission/runtime hooks committed and read back; not yet native tested. M6-02 4.5→4h, M6-03 1.5h; shared preparation 0.5h retired once. No formal acceptance or actual mutation.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 4h |
+| M6-03 | 1.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **7h** |
+
+Next: source-bound fixture writer, real row/delta capture, consolidated native entry/browser and exact authority, then one independent review. No standalone preflight replay, additional CI/Codex at intermediate head or Production.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,327.5h → 0h · prototype 71.5h → 0h** (M6 7.5h / M7 26h / M8 38h). Canonical ERP 1,617.5h; canonical prototype 122.5h.
 
 **Latest evidence (Events268–269):** [SS08 and supplier adapters, exact audit preservation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227186733), [exact source](https://github.com/threeswordz/cinder-grind/commit/eb210a53496eb9434ce8695ece55d8d86af7c27e). Six published blobs match locally tested source; 24/24 focused mocked tests PASS. SS08 dimensional within-plan issue and fresh signed receipt, seven supplier advisory return events and exact audit-only row hash delta. M6-02 5→4.5h and M6-03 2.5→1.5h; estimated 1.5h preparation retired once. No native execution, replacement pass, actual grant or formal acceptance.
