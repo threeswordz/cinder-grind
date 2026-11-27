@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 39.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 154.5h → 0h · Full ERP 1,649.5h → 0h.**
+**M4 CLOSED 0h · M6 38h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 153h → 0h · Full ERP 1,648h → 0h.**
+
+**Latest evidence (Event245):** [Partial native readback and bounded correction/continuation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225065070), [exact operator](https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c). 11/11 login/logout/stale denial, 13 expected readbacks, Jai quantity403. DEC-054 confirms quantity-only; max2 missing synthetic Jai/Porn grants +1 audit, preserve first sessions and log, 10 remaining BOQ requests; reuse prior web artifact. 12 distinct new focused tests and two native syntax checks; actual correction/continuation authority and Mac execution pending. M6-02 14.5 +1.5 rework −3 verified preparation/partial evidence =13h. M6 39.5→38h; ERP1649.5→1648h. Scope0, actual labor unknown, no formal acceptance.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 13h |
+| M6-03 | 6.5h |
+| M6-04 | 9h |
+| M6-05 | 9h |
+| **M6 total** | **38h** |
+
+The Event242 table and prior entries below are historical snapshots.
 
 **Latest evidence (Event242):** [Native shared operational operator](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224700119), [exact head](https://github.com/threeswordz/cinder-grind/commit/e4f61df48a876560dcd8ef46ccaf5c638f4562e6). 8/8 focused mocked admission/lifecycle tests PASS; exact native source syntax PASS, not executed. Explicit one-batch 11 synthetic actor sessions and canonical bounded login-rate lifecycle authority pending; no replay, direct bucket reset, retained mutation, CI/Codex/Work/Production. Zero additional forecast credit until native proof. Reconciled already-recorded Event238–241 credits once, 1656→1649.5h; scope0/rework0, actual labor unknown.
 
