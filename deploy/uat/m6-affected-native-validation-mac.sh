@@ -53,8 +53,8 @@ run_case() {
   export STORAGE_ROOT="$TMP/storage-$label"
   mkdir -m 700 "$STORAGE_ROOT"
   echo "===== NATIVE $label ====="
-  # Require a real positive test count, never accept an empty name filter.
-  if node --test --test-reporter=tap --test-concurrency=1 --test-name-pattern="$pattern" "$path" >"$log" 2>&1 && grep -Eq '^# pass [1-9][0-9]*$' "$log"; then
+  # Node can report a passing file wrapper when no test matches. Require the named test itself.
+  if node --test --test-reporter=tap --test-concurrency=1 --test-name-pattern="$pattern" "$path" >"$log" 2>&1 && awk -v p="$pattern" '/^ok [0-9]+ - / {name=$0; sub(/^ok [0-9]+ - /,"",name); if(index(name,p)==1 && name !~ /# (SKIP|TODO)/) matched=1} END{exit !matched}' "$log"; then
     grep -E '^# (tests|pass|fail|skipped|cancelled|duration_ms) ' "$log" || true
     echo "M6_AFFECTED_${label}_PASS"
   else
