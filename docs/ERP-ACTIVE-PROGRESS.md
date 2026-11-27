@@ -3,6 +3,10 @@
 <!-- current-work-m6 -->
 **M4 CLOSED 0h · M6 16h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 131h → 0h · Full ERP 1,626h → 0h.**
 
+**Latest evidence (Event256):** [Inventory admission block and tested source-receipt correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226026877), [corrected operator](https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c). Event255 failed before session creation in source code path: base and converted receiving share company/project/warehouse. Receipt-specific selectors and no-session preflight implemented, 12/12 focused tests PASS and native syntax PASS. Actual Mac preflight pending; no old operator retry. Rework +0.5h estimated, verified correction −0.5h, net0h; M6-03 5.5h and M6 16h unchanged. No new scope, formal acceptance, role/grant change or additional full CI. Prior technical passes remain recorded; verify live custody before new authorization.
+
+Prior entries below are historical snapshots.
+
 **Latest evidence (Event254):** [Targeted terminal inventory proof implemented](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225910006), [exact operator](https://github.com/threeswordz/cinder-grind/commit/8cb8ae337788fa9b8d8a9ade9f626167c3ef42dd). 10/10 focused tests PASS, native entry syntax PASS, native browser not executed. Existing receiving 4 observed/3 posted/1 held, transfer 5 dispatched/4 received/1 outstanding, converted GR source3/stock60, SS16 maker/checker and advisory-only supplier view. Prior 25 revoked sessions/HR/subcontract receipts admitted read-only. No duplicate native proof credit. Synthetic Jai lacks canonical PROCUREMENT_OFFICER role; no unauthorized grant. Three fresh authorized sessions needed; supplier lifecycle browser not claimed. M6-03 6.5→5.5h, M6 17→16h; scope0/rework0, actual labor unknown, no formal acceptance.
 
 | Current M6 package | Remaining |

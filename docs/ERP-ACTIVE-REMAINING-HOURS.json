@@ -7193,6 +7193,27 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-256",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "OWNER_MAC_ADMISSION_BLOCKED_RECEIPT_BINDING_REWORK_TESTED",
+      "beforeHours": 5.5,
+      "afterHours": 5.5,
+      "sourceSha": "b0cdc10c88cce746a240c35fcbbaab95dd30464c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226026877",
+        "https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c"
+      ],
+      "basis": "Event255 failed at historical delivery selector before runtime/session creation; original and converted receiving share scope. Exact sealed receiving/transfer receipt IDs and converted evidence identity replace ambiguous selectors. 12/12 focused tests, exact native syntax check, new zero-session read-only preflight. +0.5h estimated rework offset by tested correction only, no new scope or net retirement.",
+      "blocker": "Read-only preflight on actual Mac must confirm exact source binding and absence of prior runtime stage; then new exact operator authorization for three-session terminal browser. Jai canonical role gap remains separate. Formal acceptance pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7223,7 +7244,7 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1626,
-  "currentRollingTotalSemantics": "1626h = prior1627h -1h distinct tested terminal inventory browser preparation (Event254). M6 16h, M7 50h, M8 65h, combined131h. Scope0/rework0 in already-priced verification/fixture scope; actual labor unknown, native run and Jai synthetic role resolution pending; no formal acceptance.",
+  "currentRollingTotalSemantics": "1626h unchanged: Event256 +0.5h estimated receipt-selection rework and -0.5h tested correction, no net retirement, no new scope. M6 16h, M7 50h, M8 65h, combined131h. Native preflight and browser pending; actual labor unknown; no formal acceptance.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
