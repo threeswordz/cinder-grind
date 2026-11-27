@@ -112,7 +112,9 @@ To avoid repeated administrative PRs under **DEC-030**, prefer one coherent impl
 
 Maintain the **documented current-stage checkpoint** in `docs/CURRENT-STATE.md`, always verifying it against fresh GitHub Issues/PRs/CI; update scope, acceptance, testing, and other affected source documents for actual changes, and link to Current State instead of repeatedly copying long status histories. Preserve dated historical evidence. The concise PR template is a prompt to check **applicable** controls, not a waiver of CI, Codex, security, cost, Change Control, or Product Owner UAT.
 
-## Codex review economy policy — DEC-022
+## Codex review economy policy — DEC-022 / DEC-055
+
+**Immediate Owner-approved development cadence (27 November 2026 SGT):** [DEC-055 bounded development and independent verification](BOUNDED-DEVELOPMENT-VERIFICATION.md) defines mandatory risk-based early stable checkpoints, Mac-focused proof and existing GitHub PR-only Codex verification. It supersedes the first-pass-at-final-candidate restriction below for early stable boundaries only, not the final release admission gates. No standalone Codex or environment setup suggestions; no Issue-based Codex requests. Preserve the frozen review head; use isolated dependency-safe work rather than idle polling. New sessions must read the active #414 decision record pending governed main publication.
 
 Codex is a scarce independent review gate, not the continuous development reviewer. The default delivery pattern is:
 

@@ -84,7 +84,9 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 - When the Product / Business Owner asks for `live position`, `current position`, `where are we`, or equivalent project-status wording, follow `docs/LIVE-POSITION-REPORTING-STANDARD.md` after re-fetching live GitHub state.
 - See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-016.
 
-## Codex review economy policy — DEC-022
+## Codex review economy policy — DEC-022 / DEC-055
+
+**Owner-approved 27 November 2026:** Read and follow [bounded development and independent verification](docs/BOUNDED-DEVELOPMENT-VERIFICATION.md). Use Chat by default, focused Mac proof, then existing GitHub PR Codex at bounded stable development checkpoints. Do not suggest the standalone app or new Codex environment, or invoke Codex on Issues. Final release review/CI gates remain mandatory. DEC-055 supersedes the older first-review timing below only for stable development checkpoints; never review unstable commits or duplicate a request. Preserve frozen heads, single-writer/isolated branch discipline and category-wide inspection after repeated related defects.
 
 - Chat + CI are the continuous development/review loop while a branch is changing.
 - Do not request Codex after every commit or every individual fix.
