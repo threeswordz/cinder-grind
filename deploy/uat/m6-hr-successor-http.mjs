@@ -1,6 +1,7 @@
 // HR-only GET transport. Existing synthetic session owner retains responsibility
 // for login/logout and before/after auth-history preservation. Never logs data.
 import {assertHrSuccessorDenials} from './m6-hr-successor-boundaries.mjs';
+import {successorPrivacyHeaders} from './m6-successor-privacy-headers.mjs';
 import {requireSuccessorOrigins} from './m6-successor-session-batch.mjs';
 const RETAINED_API='http://127.0.0.1:33071',RETAINED_WEB='http://127.0.0.1:44171',MAX=1048576;
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('M6_HR_HTTP_'+code),{safeCode:'M6_HR_HTTP_'+code});};
@@ -16,7 +17,6 @@ function paths(b){
  return {positive,negative};
 }
 async function discard(response){try{await response.body?.cancel();}catch{need(false,'BODY_CLEANUP');}}
-function privateHeaders(response){const cache=(response.headers.get('cache-control')??'').toLowerCase().split(',').map(x=>x.trim());return cache.includes('private')&&cache.includes('no-store')&&!cache.includes('public')&&response.headers.get('x-content-type-options')?.trim().toLowerCase()==='nosniff'&&!response.headers.has('content-disposition');}
 async function json(response){
  const length=response.headers.get('content-length');
  if(!response.headers.get('content-type')?.toLowerCase().startsWith('application/json')||(length!==null&&(!/^\d+$/.test(length)||Number(length)>MAX))){await discard(response);need(false,'JSON_HEADERS');}
@@ -34,7 +34,7 @@ export async function executeHrSuccessorDenials({binding,sessions,fetchImpl=fetc
  const get=async(k,p)=>{
   need(roles.includes(k)&&(positive[k].has(p)||negative[k].has(p)),'PATH');
   let response;try{response=await fetchImpl(origin+'/api/v1'+p,{method:'GET',headers:{Origin:webOrigin,Accept:'application/json',Cookie:cookies.get(k)},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{need(false,'TRANSPORT');}
-  if(response.redirected||!privateHeaders(response)){await discard(response);need(false,'PRIVACY_HEADERS');}
+  if(response.redirected||!successorPrivacyHeaders(response,p,origin)){await discard(response);need(false,'PRIVACY_HEADERS');}
   // Do not decode any denial body, even if the server incorrectly returns
   // success. The assertion kernel will reject its status without leaking data.
   if(negative[k].has(p)||response.status!==200){await discard(response);return {status:response.status};}
