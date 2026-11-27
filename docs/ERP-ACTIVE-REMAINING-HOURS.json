@@ -6485,6 +6485,142 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-229",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "PARALLEL_SOURCE_INTEGRATION_PROVISIONAL_RECONCILIATION",
+      "beforeHours": 12.5,
+      "afterHours": 8,
+      "sourceSha": "ad8e381d5178e1f76a1c5c83506f858063fad197",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/ad8e381d5178e1f76a1c5c83506f858063fad197",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222645055",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222857486",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222890741"
+      ],
+      "basis": "40 distinct reported local fixture tests and concrete recovery composition, no native credit.",
+      "blocker": "Actual isolated native rehearsal, successor API startup and trusted custody/session integration.",
+      "reductionHours": 4.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 4.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-229",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "PARALLEL_SOURCE_INTEGRATION_PROVISIONAL_RECONCILIATION",
+      "beforeHours": 19,
+      "afterHours": 17,
+      "sourceSha": "9adf41eb1aa9f094dad71143f5dc90c8b4c85921",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/9adf41eb1aa9f094dad71143f5dc90c8b4c85921",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222929920"
+      ],
+      "basis": "28 reported local tests and three standalone TS helper checks for distinct role readback and UI command ownership corrections.",
+      "blocker": "React compile, affected browser journeys and actual scoped readback.",
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-229",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "PARALLEL_SOURCE_INTEGRATION_PROVISIONAL_RECONCILIATION",
+      "beforeHours": 12.5,
+      "afterHours": 11,
+      "sourceSha": "38780066a96593ea95836a9cfb7726df22d4f650",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/38780066a96593ea95836a9cfb7726df22d4f650",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222600695",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222635271",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222857035"
+      ],
+      "basis": "21 reported helper tests; no retirement for unexecuted native integration tests or completed historical SS16 review.",
+      "blocker": "Actual scoped SS16 configuration, converted-UOM/split custody and historical acceptance execution.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-04-229",
+      "date": "2026-11-27",
+      "packageId": "M6-04",
+      "kind": "PARALLEL_SOURCE_INTEGRATION_PROVISIONAL_RECONCILIATION",
+      "beforeHours": 13.5,
+      "afterHours": 12.5,
+      "sourceSha": "0dbef10ef362c768d5fd712b10da3302d1cf50ea",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/0dbef10ef362c768d5fd712b10da3302d1cf50ea",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222594448",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222624090",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222861534",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222900742"
+      ],
+      "basis": "29 reported fixture tests; accept 1h scoped readback/transport, exclude 0.5h duplicate global full-table preservation.",
+      "blocker": "Native certification/finance integration and scoped successor runtime evidence.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-05-229",
+      "date": "2026-11-27",
+      "packageId": "M6-05",
+      "kind": "PARALLEL_SOURCE_INTEGRATION_PROVISIONAL_RECONCILIATION",
+      "beforeHours": 14,
+      "afterHours": 10,
+      "sourceSha": "cc59fd1625f4d6c6ffed79e4c6574c227e455daa",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/cc59fd1625f4d6c6ffed79e4c6574c227e455daa",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222614582",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222653381",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222686480",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222866741",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222882756"
+      ],
+      "basis": "38 reported distinct fixture tests; accept 4h for four new tested helper modules; hold 6h of proposed credit pending native/overlap reconciliation.",
+      "blocker": "Trusted receipt binding, actual HR denial and protected data/role/session proof; not a runtime pass.",
+      "reductionHours": 4,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 4,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-229B",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "COMMON_SUCCESSOR_SEQUENCE_LOCAL_TESTS_PASS",
+      "beforeHours": 8,
+      "afterHours": 7.5,
+      "sourceSha": "bdddebe50aa4e55cb12b3ec7f63f28d3b11f7920",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548",
+        "https://github.com/threeswordz/cinder-grind/commit/bdddebe50aa4e55cb12b3ec7f63f28d3b11f7920"
+      ],
+      "basis": "0.5h distinct provisional authoring credit for common readback sequence, actual Node22.16.0 7/7 fixture tests and exact tested blob match; no repeat of lane test credit.",
+      "blocker": "Actual native operational adapter and private receipt bindings; altered database scope adapters not executed; real API/PG/React/browser and required release gates.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6514,8 +6650,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1681.5,
-  "currentRollingTotalSemantics": "1681.5h = prior1682h minus0.5h event228. M6 71.5h, M7 50h, M8 65h, combined186.5h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1668,
+  "currentRollingTotalSemantics": "1668h = prior1681.5h minus13.5h event229 (13h distinct parallel authoring + 0.5h new coordinator sequencer). M6 58h, M7 50h, M8 65h, combined173h. Proposed credit19.5h minus0.5h overlap minus6h deferred HR +0.5h new sequencer. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
