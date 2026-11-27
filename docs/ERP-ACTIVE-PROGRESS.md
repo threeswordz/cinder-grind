@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 27.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 142.5h → 0h · Full ERP 1,637.5h → 0h.**
+**M4 CLOSED 0h · M6 23h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 138h → 0h · Full ERP 1,633h → 0h.**
+
+**Latest evidence (Event250):** [Owner Mac protected HR browser journey PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225435675), [exact operator](https://github.com/threeswordz/cinder-grind/commit/ab60acdde265aaf8c3a3fbe71de70e88833bd2df). One download with exact synthetic bytes and private headers, one canonical audit append, one revoked fresh session, all 22 earlier sessions preserved, 170 other non-auth tables byte-identical, retained data and recovery unchanged. Together with previous denials and safe key custody, HR technical package exit evidenced; hold 0.5h independent acceptance reserve. M6-05 5→0.5h; M6 27.5→23h, scope0/rework0, actual labor unknown. No formal acceptance or blanket full-browser claim. No HR replay. Next subcontract affected browser journey, reuse historical/native evidence.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 6.5h |
+| M6-04 | 6.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **23h** |
+
+Prior entries below are historical snapshots.
 
 **Latest evidence (Event248):** [Targeted HR protected-download proof](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225314752), [exact operator](https://github.com/threeswordz/cinder-grind/commit/ab60acdde265aaf8c3a3fbe71de70e88833bd2df). 10/10 focused local tests PASS; native entry syntax PASS, not executed. Exactly one KOH session, one synthetic protected browser download and one canonical audit append need separate Owner approval. Both prior shared batches retained; no replay or additional CI. Exact source path comparison preserves historical evidence without blanket successor acceptance. M6-05 6→5h, M6 28.5→27.5h; scope0/rework0, actual labor unknown.
 

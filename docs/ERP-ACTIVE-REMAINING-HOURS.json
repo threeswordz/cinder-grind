@@ -7109,6 +7109,27 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-05-250",
+      "date": "2026-11-28",
+      "packageId": "M6-05",
+      "kind": "OWNER_MAC_PROTECTED_HR_BROWSER_DOWNLOAD_PASS",
+      "beforeHours": 5,
+      "afterHours": 0.5,
+      "sourceSha": "ab60acdde265aaf8c3a3fbe71de70e88833bd2df",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225435675",
+        "https://github.com/threeswordz/cinder-grind/commit/ab60acdde265aaf8c3a3fbe71de70e88833bd2df"
+      ],
+      "basis": "Exact native browser authorized synthetic bytes, private headers, canonical single download audit, one new revoked session, 22 earlier sessions preserved, 170 other non-auth tables byte-identical, retained files/database/recovery unchanged. Combined with prior HR denial and key custody evidence meets technical package exit. No duplicate credit for prior implementation/denials.",
+      "blocker": "Applicable independent exact-source acceptance; no repeat HR runtime needed on this exact candidate. Full affected milestone browser journeys and formal acceptance still outstanding.",
+      "reductionHours": 4.5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 4.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7138,8 +7159,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1637.5,
-  "currentRollingTotalSemantics": "1637.5h = prior1638.5h -1h distinct tested HR protected-download preparation (Event248). M6 27.5h, M7 50h, M8 65h, prototype142.5h. Scope0/rework0, actual labor unknown; native HR download not yet executed, no formal acceptance.",
+  "currentRollingTotalAfterPricedGapsHours": 1633,
+  "currentRollingTotalSemantics": "1633h = prior1637.5h -4.5h distinct native protected HR browser evidence (Event250). M6 23h, M7 50h, M8 65h, prototype138h. Scope0/rework0, actual labor unknown; M6-05 technical exit evidenced, 0.5h acceptance reserve retained, no formal acceptance.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
