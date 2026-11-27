@@ -3,6 +3,10 @@
 <!-- current-work-m6 -->
 **M4 CLOSED 0h · M6 16h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 131h → 0h · Full ERP 1,626h → 0h.**
 
+**Latest evidence (Event257):** [Owner Mac zero-session preflight PASS and permanent preflight direction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226060530). Exact corrected operator b0cdc10c88cce746a240c35fcbbaab95dd30464c; all three source receipts bound, 25 previous sessions and HR/subcontract evidence preserved, retained data/files/recovery unchanged, previous inventory stage absent, zero new sessions or business mutation. Mandatory shared admission discipline recorded in BOUNDED-DEVELOPMENT-VERIFICATION.md and AGENTS.md. Authenticated browser remains pending exact corrected operator authority. M6-03 5.5h, M6 16h unchanged; no duplicate credit, no new scope or rework. No formal acceptance.
+
+Prior entries below are historical snapshots.
+
 **Latest evidence (Event256):** [Inventory admission block and tested source-receipt correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226026877), [corrected operator](https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c). Event255 failed before session creation in source code path: base and converted receiving share company/project/warehouse. Receipt-specific selectors and no-session preflight implemented, 12/12 focused tests PASS and native syntax PASS. Actual Mac preflight pending; no old operator retry. Rework +0.5h estimated, verified correction −0.5h, net0h; M6-03 5.5h and M6 16h unchanged. No new scope, formal acceptance, role/grant change or additional full CI. Prior technical passes remain recorded; verify live custody before new authorization.
 
 Prior entries below are historical snapshots.

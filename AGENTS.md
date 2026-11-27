@@ -57,6 +57,8 @@ Before a material change, verify:
 If a technical implementation conflicts with approved rules, correct the implementation.
 If the desired outcome requires changing an approved rule, stop and obtain explicit approval.
 
+- **Owner-approved zero-session preflight (28 November 2026):** newly prepared authenticated native/Mac verification operators must share read-only admission and execution checks as specified in [bounded development verification](docs/BOUNDED-DEVELOPMENT-VERIFICATION.md#mandatory-zero-session-preflight-for-authenticated-nativemac-verification). When already authorized, combine preflight and execution in one invocation; do not repeat completed proof or create an extra approval gate.
+
 ## 4. Release discipline
 
 - **DEC-053:** After its independently reviewed/observed rollout, [CI validation policy](docs/CI-VALIDATION-POLICY.md) permits verified main integration to reuse the complete full PR's identical reviewed tree. Strict source/base/PR/run/attempt/review/job-log proof, fresh main build/audit/migrations/startup and an explicit integration receipt are mandatory; missing/changed/uncertain evidence or failed short checks requires full validation. Full PR/review remains, and final release/freeze/deployment consumers still require actual full main execution (push or explicit main-only full dispatch). An integration success is not a full-main test receipt. The Owner correction in #384 removes the Builder-added full-main rollout/path exception: CI/governance changes also use verified identical-tree reuse, with one full stable PR and independent review. Do not require another predecessor-main suite or another full push for this correction. Observe the short integration result before claiming success; no repeated scope approval is needed.

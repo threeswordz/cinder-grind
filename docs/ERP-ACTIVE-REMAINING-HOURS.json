@@ -7214,6 +7214,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-257",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "OWNER_MAC_ZERO_SESSION_PREFLIGHT_PASS",
+      "beforeHours": 5.5,
+      "afterHours": 5.5,
+      "sourceSha": "b0cdc10c88cce746a240c35fcbbaab95dd30464c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226060530",
+        "https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c"
+      ],
+      "basis": "Actual Mac read-only preflight passed exact original/converted/transfer receipt bindings; prior 25 sessions, HR audit, subcontract evidence, retained data/files/recovery preserved, prior inventory stage absent, zero sessions and no business mutation. Permanent zero-session admission rule added under DEC-055 discipline; no duplicate completion credit.",
+      "blocker": "Exact corrected operator authority for three-session terminal inventory browser. Jai canonical role and supplier evidence still separate. Formal acceptance pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7244,7 +7265,7 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1626,
-  "currentRollingTotalSemantics": "1626h unchanged: Event256 +0.5h estimated receipt-selection rework and -0.5h tested correction, no net retirement, no new scope. M6 16h, M7 50h, M8 65h, combined131h. Native preflight and browser pending; actual labor unknown; no formal acceptance.",
+  "currentRollingTotalSemantics": "1626h unchanged: Event257 actual zero-session preflight PASS; no duplicate credit for Event256 correction, no new scope/rework. M6 16h, M7 50h, M8 65h, combined131h. Native browser pending corrected exact authority; actual labor unknown, no formal acceptance.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
