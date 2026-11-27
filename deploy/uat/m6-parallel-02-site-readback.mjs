@@ -13,12 +13,16 @@ const roles=['KHAIMOOK','JAI','PORN','STORE_SITE'];
 const fields=new Set('id projectId companyId boqId boqName budgetRevisionId boqItemId revisionNo revisionNumber lifecycleState isOriginal isCurrent createdAt submittedAt itemCode description sectionId sectionCode sectionName quantity uomId uomCode uomName wbsId wbsCode wbsName costCodeId costCode costName sortOrder isActive'.split(' '));
 const relations={project:'id projectCode projectName',section:'id sectionCode sectionName',uom:'id uomCode uomName decimalPlaces',wbs:'id wbsCode wbsName',costCode:'id costCode costName',approvalInstance:'id approvalState currentStepNo startedAt completedAt'};
 const scalar=v=>v===null||['string','boolean','number'].includes(typeof v);
+const money=v=>{need(typeof v==='string'&&/^\d{1,18}(?:\.\d{1,4})?$/.test(v),'FULL_MONEY');const [a,b='']=v.split('.');return BigInt(a)*10000n+BigInt(b.padEnd(4,'0'));};
+const sameRaw=(r,c)=>Array.isArray(r.lines)&&r.lines.length===c.lines.length&&new Set(r.lines.map(l=>l.id)).size===r.lines.length&&c.lines.every(raw=>r.lines.some(l=>l.id===raw.id&&l.uomId===raw.uomId&&q(l.quantity)===q(raw.quantity)));
+const sameMoney=(r,c)=>sameRaw(r,c)&&c.lines.every(raw=>{const l=r.lines.find(l=>l.id===raw.id);return money(l.rate)===money(raw.rate)&&money(l.amount)===money(raw.amount);});
 export function assertM6QuantityProjection(row){
  need(row&&typeof row==='object'&&!Array.isArray(row),'QUANTITY_SHAPE');
  for(const [key,value] of Object.entries(row)){
   if(['items','lines','sections'].includes(key)){need(Array.isArray(value),'QUANTITY_SHAPE');value.forEach(assertM6QuantityProjection);continue;}
-  if(Object.hasOwn(relations,key)&&value!==null&&typeof value==='object'){
-   need(!Array.isArray(value)&&Object.entries(value).every(([k,v])=>relations[key].split(' ').includes(k)&&scalar(v)),'QUANTITY_DISCLOSURE');continue;
+  if(Object.hasOwn(relations,key)){
+   if(value===null||key==='costCode'&&typeof value==='string')continue;
+   need(typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([k,v])=>relations[key].split(' ').includes(k)&&scalar(v)),'QUANTITY_DISCLOSURE');continue;
   }
   need(fields.has(key)&&scalar(value),'QUANTITY_DISCLOSURE');
  }
@@ -55,19 +59,23 @@ export async function verifyM6SiteReadback(binding,{get,download}={}){
  need(denied(await download('FOREMAN',p.document)),'DOCUMENT_DENIAL');
  const cost=await read('BEN',p.cost),nancy=await read('NANCY',p.cost);
  for(const r of [cost,nancy])need(scope(r,b,b.costRevisionId)&&r.lifecycleState==='APPROVED'&&r.createdByUserId===b.benUserId&&r.approvalInstance?.actions?.some(a=>a.actionByUserId===b.benUserId&&a.action==='APPROVE')&&Array.isArray(r.lines)&&r.lines.length>0,'COST');
+ need(sameMoney(cost,cost)&&sameMoney(nancy,cost),'FULL_MONEY');
+ let clientMoney;
  for(const actor of ['BEN','NANCY']){
   const h=await read(actor,p.client),v=h.version;
   need(scope(v,b,b.clientVersionId)&&v.sourceRevisionId===b.costRevisionId&&v.createdByUserId===b.benUserId&&v.approvalInstance?.approvalState==='APPROVED'&&h.approvals?.some(a=>a.id===v.approvalInstanceId&&a.actions?.some(x=>x.actionByUserId===b.nancyUserId&&x.action==='APPROVE')),'CLIENT');
   const edit=one(v.edits?.filter(e=>e.editNo===v.currentEditNo),'CLIENT_EDIT'),l=one(edit.lines,'CLIENT_LINE'),m=one(l.mappings,'CLIENT_MAPPING');
   const raw=one(cost.lines.filter(x=>x.id===m.sourceLineId),'CLIENT_SOURCE');
+  const observed=[money(l.rate),money(l.amount)];
+  if(clientMoney)need(observed.every((x,i)=>x===clientMoney[i]),'FULL_MONEY');else clientMoney=observed;
   need(raw.uomId===l.uomId&&q(raw.quantity)===q(l.pricingSnapshot?.rawQuantity)&&q(l.pricingSnapshot.bufferQuantity)>0n&&q(l.quantity)===q(raw.quantity)+q(l.pricingSnapshot.bufferQuantity),'CLIENT_BUFFER');
  }
  for(const actor of roles){
   const row=await read(actor,p.quantity);assertM6QuantityProjection(row);
-  need(scope(row,b,b.costRevisionId)&&row.lines?.length===cost.lines.length&&cost.lines.every(raw=>row.lines.some(l=>l.id===raw.id&&l.uomId===raw.uomId&&q(l.quantity)===q(raw.quantity))),'RAW_QUANTITY');
-  const alternate=await get(actor,p.cost);if(!denied(alternate)){need(alternate?.status===200,'ALTERNATE_COST');assertM6QuantityProjection(alternate.data);need(scope(alternate.data,b,b.costRevisionId),'ALTERNATE_COST');}
+  need(scope(row,b,b.costRevisionId)&&sameRaw(row,cost),'RAW_QUANTITY');
+  const alternate=await get(actor,p.cost);if(!denied(alternate)){need(alternate?.status===200,'ALTERNATE_COST');assertM6QuantityProjection(alternate.data);need(scope(alternate.data,b,b.costRevisionId),'ALTERNATE_COST');need(sameRaw(alternate.data,cost),'RAW_QUANTITY');}
   need(denied(await get(actor,p.client)),'CLIENT_DENIAL');
  }
  need(denied(await get('STORE_SITE',p.foreign)),'FOREIGN_PROJECT_DENIAL');
- return {status:'M6_02_SITE_MATERIAL_ROLE_READBACK_VERIFIED',report:true,plan:true,request:true,documentBytes:true,documentDenial:true,boqRoleMatrix:true,foreignProjectDenial:true,mutationsPerformed:false,humanUatCompleted:false,productionAuthorized:false};
+ return {status:'M6_02_SITE_MATERIAL_ROLE_READBACK_VERIFIED',report:true,plan:true,request:true,documentBytes:true,documentDenial:true,boqRoleMatrix:true,mismatchedProjectDenial:true,mutationsPerformed:false,humanUatCompleted:false,productionAuthorized:false};
 }
