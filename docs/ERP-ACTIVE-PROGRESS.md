@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 46h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 161h → 0h · Full ERP 1,656h → 0h.**
+**M4 CLOSED 0h · M6 39.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 154.5h → 0h · Full ERP 1,649.5h → 0h.**
+
+**Latest evidence (Event242):** [Native shared operational operator](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224700119), [exact head](https://github.com/threeswordz/cinder-grind/commit/e4f61df48a876560dcd8ef46ccaf5c638f4562e6). 8/8 focused mocked admission/lifecycle tests PASS; exact native source syntax PASS, not executed. Explicit one-batch 11 synthetic actor sessions and canonical bounded login-rate lifecycle authority pending; no replay, direct bucket reset, retained mutation, CI/Codex/Work/Production. Zero additional forecast credit until native proof. Reconciled already-recorded Event238–241 credits once, 1656→1649.5h; scope0/rework0, actual labor unknown.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 14.5h |
+| M6-03 | 6.5h |
+| M6-04 | 9h |
+| M6-05 | 9h |
+| **M6 total** | **39.5h** |
+
+**Reconciled Event238–241:** [Fixture writer](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224285484) 46→45h; [Owner Mac 174-table/51-row fixture PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224308723) 45→43h; [HR receipt projection](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224338421) 43→42.5h; [operational components](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224547233) 42.5→39.5h. No repeated credit or formal acceptance.
 
 **Latest evidence (event235):** [Successor auth preservation helper](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223929299), exact [operator](https://github.com/threeswordz/cinder-grind/commit/4797928fbb06c156645dff821a1fbc3ec1fb4b11); application/recovery 70013b51 unchanged. Two tooling paths, actual local Node22.16.0 6/6 fixture tests PASS and exact tested blobs. 171 non-auth table fingerprints, historical sessions and authorized roster delta, explicit bounded rate-bucket disposition. Native execution and common integration pending. M6 46.5→46h, packages1/16/8/11/10h, −0.5h distinct authoring credit, scope0/rework0, no measured labor or formal acceptance. Actual read-only coverage receipt pending; no recovery replay, CI/Codex/Work/Production. Main unchanged.
 
@@ -245,7 +258,7 @@
 
 **Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 116.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,733h.
 
-## Stage-by-stage remaining work
+## Stage-by-stage remaining work (historical 26 November snapshot; current totals above)
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
@@ -263,7 +276,7 @@
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
 | **Full ERP** | 1847h | 116.5h | 2.5h | **1,733h** | **0/60** |
 
-## Each baseline package
+## Each baseline package (historical 26 November snapshot; current M6 estimates above)
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|

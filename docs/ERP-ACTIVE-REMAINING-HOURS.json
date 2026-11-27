@@ -6762,6 +6762,206 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-238",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "SUCCESSOR_FIXTURE_WRITER_LOCAL_TESTS_PASS",
+      "beforeHours": 8,
+      "afterHours": 7.5,
+      "sourceSha": "8f7860f5958a502641a2cef0df4f874a9cd0d78d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224285484",
+        "https://github.com/threeswordz/cinder-grind/commit/8f7860f5958a502641a2cef0df4f874a9cd0d78d"
+      ],
+      "basis": "Distinct fixture writer authoring, 9/9 mocked transaction tests across writer.",
+      "blocker": "Native SS16 configuration not yet executed.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-238",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "SUCCESSOR_FIXTURE_WRITER_LOCAL_TESTS_PASS",
+      "beforeHours": 11,
+      "afterHours": 10.5,
+      "sourceSha": "8f7860f5958a502641a2cef0df4f874a9cd0d78d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224285484",
+        "https://github.com/threeswordz/cinder-grind/commit/8f7860f5958a502641a2cef0df4f874a9cd0d78d"
+      ],
+      "basis": "Distinct certification actor writer authoring; same shared writer tests, no duplicate generic preservation credit.",
+      "blocker": "Native actor configuration not yet executed.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-239",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "OWNER_MAC_FIXTURE_COMMITTED",
+      "beforeHours": 7.5,
+      "afterHours": 6.5,
+      "sourceSha": "8f7860f5958a502641a2cef0df4f874a9cd0d78d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224308723",
+        "https://github.com/threeswordz/cinder-grind/commit/8f7860f5958a502641a2cef0df4f874a9cd0d78d"
+      ],
+      "basis": "Owner Mac verified SS16 config and exact 51-row additive delta, 174/174 tables.",
+      "blocker": "Authenticated affected operational journey.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-239",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "OWNER_MAC_FIXTURE_COMMITTED",
+      "beforeHours": 10.5,
+      "afterHours": 9.5,
+      "sourceSha": "8f7860f5958a502641a2cef0df4f874a9cd0d78d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224308723",
+        "https://github.com/threeswordz/cinder-grind/commit/8f7860f5958a502641a2cef0df4f874a9cd0d78d"
+      ],
+      "basis": "Owner Mac verified all three certification test actors; no duplicate general preservation allowance.",
+      "blocker": "Authenticated certification readback.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-05-240",
+      "date": "2026-11-28",
+      "packageId": "M6-05",
+      "kind": "HR_FIXTURE_CONTINUITY_LOCAL_TESTS_PASS",
+      "beforeHours": 10,
+      "afterHours": 9.5,
+      "sourceSha": "bfe5b7d6537fee49656b0dd345d108f350a1702e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224338421",
+        "https://github.com/threeswordz/cinder-grind/commit/bfe5b7d6537fee49656b0dd345d108f350a1702e"
+      ],
+      "basis": "8/8 receipt-projection tests; no credit for unexecuted integration.",
+      "blocker": "Native HR continuity and scoped denial evidence.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-01-241",
+      "date": "2026-11-28",
+      "packageId": "M6-01",
+      "kind": "SUCCESSOR_COMPONENTS_LOCAL_TESTS_PASS",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "9465616c8cdddd49191ca1a8ee794e9caca121d7",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224547233",
+        "https://github.com/threeswordz/cinder-grind/commit/9465616c8cdddd49191ca1a8ee794e9caca121d7"
+      ],
+      "basis": "Distinct tested runtime and roster preparation.",
+      "blocker": "Native execution of common operator.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-241",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "SUCCESSOR_COMPONENTS_LOCAL_TESTS_PASS",
+      "beforeHours": 16,
+      "afterHours": 14.5,
+      "sourceSha": "9465616c8cdddd49191ca1a8ee794e9caca121d7",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224547233",
+        "https://github.com/threeswordz/cinder-grind/commit/9465616c8cdddd49191ca1a8ee794e9caca121d7"
+      ],
+      "basis": "Distinct tested site BOQ binding, restricted transport and browser probe policy.",
+      "blocker": "Actual site/BOQ and affected browser journeys.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-241",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "SUCCESSOR_COMPONENTS_LOCAL_TESTS_PASS",
+      "beforeHours": 9.5,
+      "afterHours": 9,
+      "sourceSha": "9465616c8cdddd49191ca1a8ee794e9caca121d7",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224547233",
+        "https://github.com/threeswordz/cinder-grind/commit/9465616c8cdddd49191ca1a8ee794e9caca121d7"
+      ],
+      "basis": "Distinct tested certification alias/roster binding.",
+      "blocker": "Authenticated finance/denial readback.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-05-241",
+      "date": "2026-11-28",
+      "packageId": "M6-05",
+      "kind": "SUCCESSOR_COMPONENTS_LOCAL_TESTS_PASS",
+      "beforeHours": 9.5,
+      "afterHours": 9,
+      "sourceSha": "9465616c8cdddd49191ca1a8ee794e9caca121d7",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224547233",
+        "https://github.com/threeswordz/cinder-grind/commit/9465616c8cdddd49191ca1a8ee794e9caca121d7"
+      ],
+      "basis": "Distinct identity-header correction and policy tests.",
+      "blocker": "Native custody and denial readback.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-01-242",
+      "date": "2026-11-28",
+      "packageId": "M6-01",
+      "kind": "NATIVE_COMPOSITE_AUTHORIZATION_PENDING",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "e4f61df48a876560dcd8ef46ccaf5c638f4562e6",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7224700119",
+        "https://github.com/threeswordz/cinder-grind/commit/e4f61df48a876560dcd8ef46ccaf5c638f4562e6"
+      ],
+      "basis": "Admission and lifecycle tests 8/8; exact native entry syntax checked; no additional forecast credit before execution.",
+      "blocker": "Explicit session and bounded canonical rate-bucket authorization, then one native operation.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6791,8 +6991,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1656,
-  "currentRollingTotalSemantics": "1656h = prior1656.5h minus0.5h event235. M6 46h, M7 50h, M8 65h, combined161h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1649.5,
+  "currentRollingTotalSemantics": "1649.5h = Event235 1656h minus already-recorded Event238–241 6.5h (reconciled once); Event242 zero additional credit. M6 39.5h, M7 50h, M8 65h, combined154.5h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
