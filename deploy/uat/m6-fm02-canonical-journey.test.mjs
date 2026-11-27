@@ -9,7 +9,16 @@ function harness(){const binding={companyId:id(1),projectId:id(2),foreignProject
   [[200,{projectId:b.projectId,status:'NO_CONFIRMED_WORK_PLAN',percentComplete:null}],
   [200,[]],
   [404,null],
-  [200,{activities:[{id:b.quantityActivityId,wbsId:id(14),isMilestone:false},{id:b.milestoneActivityId,wbsId:id(14),isMilestone:true}],quantityLines:[{id:b.budgetLineId,wbsId:id(14),uomId:opts.wrongOptions?id(99):b.uomId,quantity:'20'}]}],
+  [200,{
+    activities:[
+      {id:b.quantityActivityId,wbsId:id(14),isMilestone:false},
+      {id:b.milestoneActivityId,wbsId:id(14),isMilestone:true}
+    ],
+    quantityLines:[{
+      id:b.budgetLineId,wbsId:id(14),
+      uomId:opts.wrongOptions?id(99):b.uomId,quantity:'20'
+    }]
+  }],
   [201,{...plan,confirmedAt:null,confirmedByUserId:null}],
   [403,null],
   [201,plan],
