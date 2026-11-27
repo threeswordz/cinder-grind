@@ -1,0 +1,29 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateSiteBinding,assertSiteHistory} from './m6-retained-site-material.mjs';
+const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+function fixture(){
+ const sourceSha='a'.repeat(40),f={sourceSha,companyId:id(1),projectId:id(2),warehouseId:id(3),materialId:id(4),uomId:id(5)};
+ const actors={sourceSha,actors:{FOREMAN:{email:'proto-foreman@example.invalid',userId:id(6),employeeId:id(7)},STORE_SITE:{email:'proto-store_site@example.invalid',userId:id(8),employeeId:id(9)},KHAIMOOK:{email:'proto-khaimook@example.invalid',userId:id(10)}}};
+ const input={sourceSha,actors,fixture:f,initial:{sourceSha,fixture:f,results:{reportId:id(11)}},journey:{status:'MATERIAL_API_JOURNEY_EXECUTED',financeUnchanged:true,productionAuthorized:false,stockHistory:['20.0000','17.0000','13.0000','20.0000'],planId:id(12),requestId:id(13),withinIssueId:id(14),overageIssueId:id(15),documentId:id(16),documentSha256:'b'.repeat(64),sourceMapping:{budgetRevisionId:id(17),budgetRevisionLineId:id(18)}}};
+ const b=validateSiteBinding(input),scope={companyId:b.companyId,projectId:b.projectId},m={materialId:b.materialId,uomId:b.uomId};
+ const report={...scope,id:b.reportId,status:'SUBMITTED',createdByUserId:b.foremanUserId,submittedByUserId:b.foremanUserId,submittedAt:'time',generalRemarks:'Synthetic Foreman daily report'};
+ const plan={...scope,id:b.planId,warehouseId:b.warehouseId,createdByUserId:b.storeUserId,budgetRevisionId:b.budgetRevisionId,revisions:[{status:'APPROVED',createdByUserId:b.storeUserId,submittedByUserId:b.storeUserId,decidedByUserId:b.pmUserId,submittedAt:'time',decidedAt:'time',lines:[{...m,budgetRevisionLineId:b.budgetRevisionLineId,quantity:'6.0000'}]}]};
+ const receipt={requestId:b.requestId,issueLinkId:id(20),recipientEmployeeId:b.foremanEmployeeId,issuerEmployeeId:b.storeEmployeeId,recordedByUserId:b.storeUserId,documentId:b.documentId,evidenceChecksum:b.documentSha256,signedEvidenceConfirmed:true,supersedesReceiptId:null};
+ const link={id:id(20),requestId:b.requestId,requestLineId:id(21),linkedByUserId:b.storeUserId,materialIssueItemId:id(22),receipts:[receipt]};
+ const request={...scope,id:b.requestId,warehouseId:b.warehouseId,createdByUserId:b.storeUserId,requesterEmployeeId:b.foremanEmployeeId,version:3,revisions:[{version:1},{version:2},{version:3}],lines:[{...m,id:id(21),requestedQuantity:'3.0000',issueLinks:[link]}]};
+ const document={id:b.documentId,companyId:b.companyId,checksum:b.documentSha256,isActive:true,links:[{entityType:'MATERIAL_REQUEST',entityId:b.requestId}]};
+ const issues=[[b.withinIssueId,'3',id(22),id(23)],[b.overageIssueId,'4',id(24),id(25)]].map(([issueId,qty,itemId,rowId])=>{
+  const fields={...scope,...m,warehouseId:b.warehouseId,materialIssueId:issueId,materialIssueItemId:itemId};
+  return {...scope,id:issueId,warehouseId:b.warehouseId,issuedToEmployeeId:b.foremanEmployeeId,createdByUserId:b.storeUserId,postedAt:'time',reversedAt:'time',reversedByUserId:b.storeUserId,items:[{...m,id:itemId,quantity:qty}],stockTransactions:[{...fields,id:rowId,movementType:'MATERIAL_ISSUE',quantity:'-'+qty+'.0000',reversalOfId:null},{...fields,id:rowId+'r',movementType:'MATERIAL_ISSUE_REVERSAL',quantity:qty+'.0000',reversalOfId:rowId}]};
+ });
+ return {input,b,rows:{report,request,plan,issues,document}};
+}
+test('retained original material history, not fresh posting or acceptance',()=>{const f=fixture(),r=assertSiteHistory(f.b,f.rows);assert.equal(r.issueReversalPairs,2);assert.equal(r.signedReceiptRows,1);assert.equal(r.originalIssueNetQuantity,'0.0000');assert.equal(r.authenticatedWorkflowVerified,false);assert.equal(r.protectedBytesVerified,false);assert.equal(r.historicalBaselineVerified,false);assert.equal(r.mayMutate,false);});
+test('wrong or cross-project original daily report blocked',()=>{const f=fixture();f.rows.report.projectId=id(99);assert.throws(()=>assertSiteHistory(f.b,f.rows),/DAILY_SOURCE/);});
+test('same actor decision blocked',()=>{const f=fixture();f.rows.plan.revisions[0].decidedByUserId=f.b.storeUserId;assert.throws(()=>assertSiteHistory(f.b,f.rows),/PLAN_INDEPENDENT_DECISION/);});
+test('quantity prefixes and fractions never match',()=>{for(const quantity of ['30','300','3.01','3.001','03']){const f=fixture();f.rows.request.lines[0].requestedQuantity=quantity;assert.throws(()=>assertSiteHistory(f.b,f.rows),/REQUEST_QUANTITY/);}});
+test('missing request revision blocked',()=>{const f=fixture();f.rows.request.revisions[1].version=3;assert.throws(()=>assertSiteHistory(f.b,f.rows),/REQUEST_REVISIONS/);});
+test('receipt checksum and foreign document link blocked',()=>{const f=fixture();const receipt=f.rows.request.lines[0].issueLinks[0].receipts[0];receipt.evidenceChecksum='c'.repeat(64);assert.throws(()=>assertSiteHistory(f.b,f.rows),/SIGNED_RECEIPT/);receipt.evidenceChecksum=f.b.documentSha256;f.rows.document.links[0].entityId=id(99);assert.throws(()=>assertSiteHistory(f.b,f.rows),/DOCUMENT_CUSTODY/);});
+test('extra ledger, mismatched reversal and wrong quantity blocked',()=>{const f=fixture(),ledger=f.rows.issues[0].stockTransactions;ledger.push({...ledger[1]});assert.throws(()=>assertSiteHistory(f.b,f.rows),/LEDGER_COUNT/);ledger.pop();ledger[1].reversalOfId=id(99);assert.throws(()=>assertSiteHistory(f.b,f.rows),/LEDGER_RECIPROCITY/);ledger[1].reversalOfId=ledger[0].id;ledger[1].quantity='30';assert.throws(()=>assertSiteHistory(f.b,f.rows),/LEDGER_RECIPROCITY/);});
+test('unbound private receipt and duplicate identities blocked',()=>{const f=fixture();f.input.initial.sourceSha='d'.repeat(40);assert.throws(()=>validateSiteBinding(f.input),/RECEIPT_SOURCE/);f.input.initial.sourceSha=f.input.sourceSha;f.input.journey.overageIssueId=f.input.journey.withinIssueId;assert.throws(()=>validateSiteBinding(f.input),/RECEIPT_IDENTIFIERS/);});
