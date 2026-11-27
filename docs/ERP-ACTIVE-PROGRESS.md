@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 22h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 137h → 0h · Full ERP 1,632h → 0h.**
+**M4 CLOSED 0h · M6 17h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 132h → 0h · Full ERP 1,627h → 0h.**
+
+**Latest evidence (Event253):** [Owner Mac terminal subcontract browser PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225755346), [exact operator](https://github.com/threeswordz/cinder-grind/commit/6cbb39d3647af785551bbee5c967b25c0083b9a4). Ben/Nancy terminal physical and certification scope, finance references, 171 non-auth tables unchanged, 23 prior sessions and HR audit preserved, two new sessions revoked, no business/audit mutations. Combined prior lifecycle/native evidence meets M6-04 technical exit; hold 0.5h independent acceptance reserve. M6-04 5.5→0.5h, M6 22→17h; scope0/rework0, actual labor unknown. HR receipt repeated in paste not new credit. No repeat runtime or extra CI. Next M6-03 SS16/supplier remaining affected browser evidence; full milestone acceptance pending.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 6.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **17h** |
+
+Prior entries below are historical snapshots.
 
 **Latest evidence (Event251):** [Targeted terminal subcontract browser implementation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225606270), [exact operator](https://github.com/threeswordz/cinder-grind/commit/6cbb39d3647af785551bbee5c967b25c0083b9a4). 9/9 focused local tests PASS, native syntax PASS; browser not executed. Sealed physical acceptance 8 accepted/2 held, THB731.25 gross/36.56 retention/694.69 net; Ben and Nancy terminal role-scoped readback without replay or business writes. Prior HR audit/session admission, both previous shared batches preserved. Two new sessions require explicit Owner authority. M6-04 6.5→5.5h, M6 23→22h; scope0/rework0, actual labor unknown, no formal acceptance.
 

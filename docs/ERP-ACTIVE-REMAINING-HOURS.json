@@ -7151,6 +7151,27 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-04-253",
+      "date": "2026-11-28",
+      "packageId": "M6-04",
+      "kind": "OWNER_MAC_TERMINAL_SUBCONTRACT_BROWSER_PASS",
+      "beforeHours": 5.5,
+      "afterHours": 0.5,
+      "sourceSha": "6cbb39d3647af785551bbee5c967b25c0083b9a4",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225755346",
+        "https://github.com/threeswordz/cinder-grind/commit/6cbb39d3647af785551bbee5c967b25c0083b9a4"
+      ],
+      "basis": "Exact successor terminal physical accepted/held, approved certification, finance UI and Ben certification hidden; 171 non-auth tables, all 23 prior sessions and HR audit preserved; two fresh sessions revoked and zero new business audit rows. Combined historical physical lifecycle, Event231 affected native and Event247 scope evidence meets technical package exit without duplicate credit.",
+      "blocker": "Applicable independent exact-source acceptance; no repeat subcontract browser on this exact application. Full affected milestone browser journeys and formal acceptance remain outstanding.",
+      "reductionHours": 5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7180,8 +7201,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1632,
-  "currentRollingTotalSemantics": "1632h = prior1633h -1h distinct tested subcontract browser preparation (Event251). M6 22h, M7 50h, M8 65h, combined137h. Scope0/rework0; actual labor unknown, native browser not yet executed, no formal acceptance.",
+  "currentRollingTotalAfterPricedGapsHours": 1627,
+  "currentRollingTotalSemantics": "1627h = prior1632h -5h distinct native terminal subcontract browser evidence (Event253). M6 17h, M7 50h, M8 65h, combined132h. Scope0/rework0; actual labor unknown, subcontract technical exit evidenced with 0.5h acceptance reserve; formal acceptance false.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
