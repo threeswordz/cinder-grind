@@ -225,7 +225,7 @@ export async function withResidualNativeAdmission(authority,consume){
       try{verifyRateBucketAdmission(authState);}catch(e){if(e.safeCode!=='M6_OPERATIONAL_LIVE_LOCAL_BUCKET')throw e;rateBucketReady=false;}
       mark('FINAL_CUSTODY');
       await verifyBeforeSessions();await verifyPreserved();
-      const publicProof={status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,historicalSessionRowsPreserved:binding.historicalSessionRowsPreserved,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};;
+      const publicProof={status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,historicalSessionRowsPreserved:binding.historicalSessionRowsPreserved,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};
       if(!consume)return publicProof;
       // Event266 is the only admitted starting state. Do not treat a partial
       // prior mutation attempt, changed roster or expired proof as permission.
