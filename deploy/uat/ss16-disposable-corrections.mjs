@@ -1,7 +1,7 @@
 // Successor-only adapter for the disposable historical material/UOM acceptance
 // fixture. Never change named/retained actor configuration or replay the Mac.
 import {SOURCE,httpClient} from './prototype-actors.mjs';
-import {randomUUID} from 'node:crypto';
+import {acceptCorrection} from './ss16-correction-acceptance.mjs';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('SS16_FIXTURE_'+code),{safeCode:'SS16_FIXTURE_'+code});};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const kinds={MATERIAL_ISSUE:{route:'material-issues',model:'materialIssue',prefix:'inventory.issue'},
@@ -58,8 +58,8 @@ export async function reverseDisposableSources(db,b,origins,targets){
  const allowed=new Map();
  for(const t of targets){
   const source='/inventory/'+kinds[t.kind].route+'/'+t.id,req='/inventory/movement-corrections/sources/'+t.kind+'/'+t.id+'/requests';
-  allowed.set('GET '+source,null);allowed.set('POST '+req,{requestKey:t.key,reason:t.reason});
-  allowed.set('GET '+req,null);
+  allowed.set('GET '+source,[null]);allowed.set('POST '+req,[{requestKey:t.key,reason:t.reason}]);
+  allowed.set('GET '+req,[null]);
  }
  const client=httpClient(origins.api,origins.web,async(url,options)=>{
   need(url.startsWith(origins.api+'/')&&options.redirect==='error'&&options.headers.Origin===origins.web,'TRANSPORT');
@@ -67,32 +67,17 @@ export async function reverseDisposableSources(db,b,origins,targets){
   if(path==='/auth/login'&&options.method==='POST')need(roles.some(([key])=>body.email===actors[key].email&&body.password===actors[key].password),'LOGIN');
   else if(path==='/auth/logout'&&options.method==='POST')need(same(body,{}),'LOGOUT');
   else if(path==='/auth/me'&&options.method==='GET')need(body===null,'ME');
-  else {const key=options.method+' '+path;need(allowed.has(key)&&same(allowed.get(key),body),'PATH');}
+  else {const key=options.method+' '+path;need(allowed.has(key)&&allowed.get(key).some(candidate=>same(candidate,body)),'PATH');}
   return fetch(url,options);
  });
  const sessions={};let primary;
  try{
   for(const [key,code] of roles)sessions[key]=await client.login('SS16_'+key,{...actors[key],expectedRoleCodes:[code]},f.companyId);
   const maker=sessions.STORE_SITE,pm=sessions.KHAIMOOK;
-  for(const t of targets){
-   const source='/inventory/'+kinds[t.kind].route+'/'+t.id,req='/inventory/movement-corrections/sources/'+t.kind+'/'+t.id+'/requests';
-   const body={requestKey:t.key,reason:t.reason};
-   const call=async(actor,label,path,expected,data)=>(await client.call(actor,label,path,expected,data)).value;
-   const made=(await call(maker,'CORRECTION_REQUEST',req,201,body)).data;
-   need(made?.sourceId===t.id&&made.sourceKind===t.kind&&made.approvalInstance?.approvalState==='SUBMITTED'&&/^[a-f0-9-]{36}$/.test(made.id),'REQUEST');
-   need((await call(maker,'CORRECTION_REPLAY',req,201,body)).data.id===made.id,'REPLAY');
-   const approve='/inventory/movement-corrections/'+made.id+'/approve',decision={comment:'Independent disposable PM reversal'};
-   allowed.set('POST '+approve,decision);
-   await call(maker,'CORRECTION_SELF_DENIED',approve,403,decision);
-   const done=(await call(pm,'CORRECTION_APPROVE',approve,201,decision)).data;
-   need(done.id===made.id&&done.approvalInstance.approvalState==='APPROVED','DECISION');
-   const replay=await call(pm,'CORRECTION_DECISION_REPLAY_DENIED',approve,409,decision);
-   need(replay.code==='SS16_DECISION_ALREADY_RECORDED','DECISION_REPLAY');
-   const history=(await call(maker,'CORRECTION_HISTORY',req,200)).data.find(x=>x.id===made.id);
-   need(history?.approvalInstance.actions.length===1&&history.approvalInstance.actions[0].actionByUserId===actors.KHAIMOOK.userId,'HISTORY');
-   const read=(await call(maker,'CORRECTION_SOURCE_READ',source,200)).data;
-   need(read?.id===t.id&&read.reversalKey==='ss16:'+made.id&&read.reversedAt,'SOURCE_OUTCOME');
-  }
+  for(const t of targets)await acceptCorrection({maker,reviewer:pm,kind:t.kind,id:t.id,key:t.key,reason:t.reason,
+    call:async(actor,label,path,expected,body)=>(await client.call(actor,label,path,expected,body)).value,
+    registerDecision:(path,...bodies)=>{need(!allowed.has('POST '+path),'DECISION_SCOPE');allowed.set('POST '+path,bodies);}});
+
  }catch(e){primary=e;}
  finally{
   for(const [key,s] of Object.entries(sessions))try{await client.logout('SS16_'+key,s);await client.call(s,'SS16_REVOKED','/auth/me',401);}catch(e){primary??=e;}

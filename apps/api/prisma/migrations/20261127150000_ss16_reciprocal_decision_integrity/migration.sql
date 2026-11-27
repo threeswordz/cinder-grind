@@ -50,6 +50,10 @@ BEGIN
    THEN RAISE EXCEPTION 'SS16 approval history immutable' USING ERRCODE='23514'; END IF;
   RETURN OLD;
  END IF;
+ IF EXISTS(SELECT 1 FROM movement_correction_requests WHERE source_approval_instance_id=OLD.id)
+  AND ROW(NEW.id,NEW.company_id,NEW.entity_type,NEW.entity_id,NEW.approval_workflow_id,NEW.started_at)
+      IS DISTINCT FROM ROW(OLD.id,OLD.company_id,OLD.entity_type,OLD.entity_id,OLD.approval_workflow_id,OLD.started_at)
+  THEN RAISE EXCEPTION 'SS16 original approval identity immutable' USING ERRCODE='23514'; END IF;
  IF OLD.entity_type='MOVEMENT_CORRECTION' OR NEW.entity_type='MOVEMENT_CORRECTION'
  OR EXISTS(SELECT 1 FROM movement_correction_requests WHERE approval_instance_id=OLD.id OR approval_instance_id=NEW.id) THEN
   IF OLD.entity_type<>'MOVEMENT_CORRECTION' OR NEW.entity_type<>'MOVEMENT_CORRECTION'
@@ -67,12 +71,15 @@ DECLARE a RECORD; c RECORD;
 BEGIN
  IF TG_OP<>'INSERT' THEN
   IF EXISTS(SELECT 1 FROM approval_instances WHERE id=OLD.approval_instance_id AND entity_type='MOVEMENT_CORRECTION')
-   OR (TG_OP='UPDATE' AND EXISTS(SELECT 1 FROM approval_instances WHERE id=NEW.approval_instance_id AND entity_type='MOVEMENT_CORRECTION'))
+  
    THEN RAISE EXCEPTION 'SS16 approval action immutable' USING ERRCODE='23514'; END IF;
-  IF TG_OP='DELETE' THEN RETURN OLD; END IF; RETURN NEW;
+  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+  IF EXISTS(SELECT 1 FROM approval_instances WHERE id=NEW.approval_instance_id AND entity_type='MOVEMENT_CORRECTION')
+   THEN RAISE EXCEPTION 'SS16 approval action immutable' USING ERRCODE='23514'; END IF;
+  RETURN NEW;
  END IF;
- SELECT * INTO a FROM approval_instances WHERE id=NEW.approval_instance_id FOR UPDATE;
- IF a.entity_type<>'MOVEMENT_CORRECTION' THEN RETURN NEW; END IF;
+ SELECT * INTO a FROM approval_instances WHERE id=NEW.approval_instance_id AND entity_type='MOVEMENT_CORRECTION' FOR UPDATE;
+ IF NOT FOUND THEN RETURN NEW; END IF;
  SELECT * INTO c FROM movement_correction_requests WHERE approval_instance_id=a.id;
  IF NOT FOUND OR a.approval_state<>'SUBMITTED' OR a.entity_id<>c.id OR a.company_id<>c.company_id
   OR NEW.action NOT IN ('APPROVE','REJECT') OR NEW.action_by_user_id=c.requested_by_user_id
@@ -109,7 +116,7 @@ BEGIN
  IF a.approval_state NOT IN ('APPROVED','REJECTED') OR a.completed_at IS NULL OR n<>1
  THEN RAISE EXCEPTION 'SS16 completed decision invalid' USING ERRCODE='23514'; END IF;
  SELECT * INTO d FROM approval_actions WHERE approval_instance_id=aid;
- IF d.action<>CASE a.approval_state WHEN 'APPROVED' THEN 'APPROVE' ELSE 'REJECT' END
+ IF d.action<>(CASE a.approval_state WHEN 'APPROVED' THEN 'APPROVE' ELSE 'REJECT' END)
  OR d.action_by_user_id=c.requested_by_user_id THEN RAISE EXCEPTION 'SS16 completed decision invalid' USING ERRCODE='23514'; END IF;
  IF a.approval_state='REJECTED' THEN RETURN NULL; END IF;
  source_table:=CASE c.source_kind WHEN 'GOODS_RECEIPT' THEN 'goods_receipts' WHEN 'MATERIAL_ISSUE' THEN 'material_issues'
@@ -133,7 +140,7 @@ BEGIN
  END IF;
  RETURN NULL;
 END $$;
-CREATE CONSTRAINT TRIGGER ss16_committed_approval AFTER INSERT OR UPDATE ON approval_instances DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION ss16_check_committed_decision();
+CREATE CONSTRAINT TRIGGER ss16_committed_approval AFTER INSERT OR UPDATE ON approval_instances DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW.entity_type='MOVEMENT_CORRECTION') EXECUTE FUNCTION ss16_check_committed_decision();
 CREATE CONSTRAINT TRIGGER ss16_committed_action AFTER INSERT ON approval_actions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION ss16_check_committed_decision();
 CREATE CONSTRAINT TRIGGER ss16_committed_request AFTER INSERT ON movement_correction_requests DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION ss16_check_committed_decision();
 -- Existing historical rows are not rewritten. Stop migration if the prior
@@ -146,3 +153,13 @@ DO $$ BEGIN
  OR EXISTS(SELECT 1 FROM approval_instances a WHERE a.entity_type='MOVEMENT_CORRECTION' AND NOT EXISTS(SELECT 1 FROM movement_correction_requests c WHERE c.approval_instance_id=a.id))
  THEN RAISE EXCEPTION 'SS16 existing reciprocal approval binding invalid' USING ERRCODE='23514'; END IF;
 END $$;
+
+CREATE FUNCTION ss16_workflow_identity_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF ROW(NEW.id,NEW.company_id,NEW.entity_type,NEW.workflow_code)
+    IS DISTINCT FROM ROW(OLD.id,OLD.company_id,OLD.entity_type,OLD.workflow_code)
+ AND EXISTS(SELECT 1 FROM approval_instances a WHERE a.approval_workflow_id=OLD.id AND a.entity_type='MOVEMENT_CORRECTION')
+ THEN RAISE EXCEPTION 'SS16 workflow identity immutable' USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER ss16_workflow_identity_guard BEFORE UPDATE ON approval_workflows FOR EACH ROW EXECUTE FUNCTION ss16_workflow_identity_guard();

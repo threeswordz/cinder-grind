@@ -5,7 +5,7 @@ set -euo pipefail
 umask 077
 expected=${1:-}
 mode=${2:-both}
-[[ "$mode" = both || "$mode" = ss16-only || "$mode" = regressions-only ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
+[[ "$mode" = both || "$mode" = ss16-only || "$mode" = regressions-only || "$mode" = ss16-review ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
 [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo M6_FOCUSED_EXACT_SHA_REQUIRED; exit 1; }
 cd "$(git rev-parse --show-toplevel)"
 test "$(git rev-parse HEAD)" = "$expected"
@@ -26,7 +26,7 @@ pnpm install --offline --frozen-lockfile
 pnpm --filter @construction-erp/api exec prisma validate
 pnpm prisma:generate
 pnpm build:api
-if [[ "$mode" != regressions-only ]]; then
+if [[ "$mode" = both || "$mode" = ss16-only ]]; then
   echo "===== M6 FOCUSED WEB BUILD ====="
   pnpm --filter @construction-erp/web build
   echo "M6_FOCUSED_WEB_BUILD_PASS"
@@ -35,6 +35,14 @@ if [[ "$mode" != regressions-only ]]; then
   echo "M6_SS16_AUTHORITY_PASS"
 else
   echo M6_PRIOR_WEB_AND_AUTHORITY_NOT_RERUN
+fi
+if [[ "$mode" = ss16-review ]]; then
+  echo "===== CHANGED ACCEPTANCE CONTRACTS ====="
+  for file in runtime-acceptance prototype-material-http prototype-material-run prototype-material-journey prototype-uom-plan-source ss16-disposable-corrections ss16-correction-acceptance; do
+    node --check "deploy/uat/$file.mjs"
+  done
+  node --test deploy/uat/ss16-correction-acceptance.test.mjs
+  echo M6_SS16_CHANGED_ACCEPTANCE_CONTRACTS_PASS
 fi
 SUFFIX=$(openssl rand -hex 4)
 PW=$(openssl rand -hex 24)

@@ -1,3 +1,4 @@
+import {acceptCorrection as runCorrectionAcceptance} from './ss16-correction-acceptance.mjs';
 const baseUrl = process.env.UAT_API_BASE_URL ?? `http://127.0.0.1:${process.env.API_PORT ?? '3000'}/api/v1`;
 const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
 const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
@@ -122,33 +123,10 @@ async function login(email, password) {
   };
 }
 
-// Exercise canonical corrections, not a generic 409 from the disabled route.
 async function acceptCorrection(maker,reviewer,kind,id,key,reason,blockedCode){
-  const route={GOODS_RECEIPT:'goods-receipts',MATERIAL_ISSUE:'material-issues',MATERIAL_RETURN:'material-returns',STOCK_TRANSFER:'stock-transfers'}[kind];
-  const source='/inventory/'+route+'/'+id;
-  const legacy=await request(reviewer,source+'/reverse',{method:'POST',json:{reversalKey:key,reason},expected:409});
-  check(legacy.data.code==='SS16_CORRECTION_APPROVAL_REQUIRED','Legacy reversal did not fail closed');
-  const path='/inventory/movement-corrections/sources/'+kind+'/'+id+'/requests',body={requestKey:key,reason};
-  const created=(await request(maker,path,{method:'POST',json:body,expected:201})).data.data;
-  check(created.sourceId===id&&created.sourceKind===kind&&created.approvalInstance.approvalState==='SUBMITTED','Wrong correction source');
-  const replay=(await request(maker,path,{method:'POST',json:body,expected:201})).data.data;
-  check(replay.id===created.id,'Correction replay changed identity');
-  const decision='/inventory/movement-corrections/'+created.id;
-  await request(maker,decision+'/approve',{method:'POST',json:{comment:'Self decision prohibited'},expected:403});
-  const result=await request(reviewer,decision+'/approve',{method:'POST',json:{comment:'Independent acceptance decision'},expected:blockedCode?409:201});
-  if(blockedCode){
-    check(result.data.code===blockedCode,'Wrong canonical blocked reversal reason');
-    const history=(await request(reviewer,path)).data.data.find(row=>row.id===created.id);
-    check(history?.approvalInstance.approvalState==='SUBMITTED'&&history.approvalInstance.actions.length===0,'Blocked reversal did not roll back');
-    await request(reviewer,decision+'/reject',{method:'POST',json:{comment:'Original source restriction confirmed'},expected:201});
-  }else{
-    check(result.data.data.approvalInstance.approvalState==='APPROVED','Correction not approved');
-    const duplicate=await request(reviewer,decision+'/approve',{method:'POST',json:{comment:'Independent acceptance decision'},expected:409});
-    check(duplicate.data.code==='SS16_DECISION_ALREADY_RECORDED','Repeated approval not rejected');
-  }
-  const read=await request(maker,source);
-  check(blockedCode?!read.data.data.reversedAt:read.data.data.reversalKey==='ss16:'+created.id,'Unexpected source reversal outcome');
-  return read;
+ const data=await runCorrectionAcceptance({maker,reviewer,kind,id,key,reason,blockedCode,verifyLegacy:true,
+  call:async(actor,label,path,expected,json)=>(await request(actor,path,{method:json===undefined?'GET':'POST',json,expected})).data});
+ return {data};
 }
 
 async function logout(session) {
