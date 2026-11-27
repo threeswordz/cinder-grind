@@ -76,6 +76,33 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const createdText = await created.text();
     assert.equal(created.status,201,createdText);
     const pending = await request();
+    const assertInvalidBinding = async (row: typeof pending) => {
+      // A fresh approval ID avoids mistaking the existing unique index for
+      // reciprocal/source validation. Each failed transaction rolls back.
+      const invalid = (kind: 'source'|'approval'|'pin') => db.$transaction(async tx=>{
+        const id=randomUUID(),aid=randomUUID();
+        await tx.approvalInstance.create({data:{id:aid,companyId:row.companyId,entityType:'MOVEMENT_CORRECTION',
+          entityId:kind==='approval'?randomUUID():id,approvalWorkflowId:row.approvalInstance.approvalWorkflowId,
+          currentStepNo:row.approvalInstance.currentStepNo,approvalState:'SUBMITTED'}});
+        await tx.movementCorrectionRequest.create({data:{id,companyId:row.companyId,sourceKind:row.sourceKind,
+          sourceId:kind==='source'?randomUUID():row.sourceId,sourcePostedAt:kind==='pin'?new Date(row.sourcePostedAt!.getTime()+1000):row.sourcePostedAt,
+          requestKey:randomUUID(),reason:'Invalid raw binding',requestedByUserId:row.requestedByUserId,approvalInstanceId:aid}});
+      });
+      await assert.rejects(invalid('source'),/SS16 source pin invalid/);
+      await assert.rejects(invalid('approval'),/SS16 reciprocal approval binding invalid/);
+      await assert.rejects(invalid('pin'),/SS16 source pin invalid/);
+      await assert.rejects(db.approvalInstance.update({where:{id:row.approvalInstanceId},data:{entityId:randomUUID()}}),/SS16 approval history immutable/);
+    };
+    const assertFrozenDecision = async (aid: string) => {
+      const before=await db.approvalInstance.findUniqueOrThrow({where:{id:aid}});
+      const action=await db.approvalAction.findFirstOrThrow({where:{approvalInstanceId:aid}});
+      await assert.rejects(db.approvalInstance.update({where:{id:aid},data:{approvalState:before.approvalState==='APPROVED'?'REJECTED':'APPROVED'}}),/SS16 approval history immutable/);
+      await assert.rejects(db.approvalAction.update({where:{id:action.id},data:{comment:'tampered'}}),/SS16 approval action immutable/);
+      await assert.rejects(db.approvalAction.delete({where:{id:action.id}}),/SS16 approval action immutable/);
+      assert.deepEqual(await db.approvalInstance.findUniqueOrThrow({where:{id:aid}}),before);
+      assert.deepEqual(await db.approvalAction.findUniqueOrThrow({where:{id:action.id}}),action);
+    };
+    await assertInvalidBinding(pending);
     assert.equal(JSON.parse(createdText).data.id,pending.id);
     assert.equal((await get(requestPath,null)).status,401);
     for (const actor of [f.store,f.pm]) {
@@ -123,6 +150,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(approved.status,201,approvedText);
     const result = JSON.parse(approvedText).data;
     assert.equal(result.approvalInstance.approvalState,'APPROVED');
+    await assertFrozenDecision(pending.approvalInstanceId);
     for(const actor of [f.store,f.pm]){
       const history=await get(requestPath,actor.session);
       assert.equal(history.status,200);
@@ -171,6 +199,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await post('movement-corrections/'+cancel.id+'/approve',f.store.session,{comment:'Self approve'})).status,403);
     const rejection = await post('movement-corrections/'+cancel.id+'/reject',f.pm.session,{comment:'Not justified'});
     assert.equal(rejection.status,201,await rejection.text());
+    await assertFrozenDecision(cancel.approvalInstanceId);
     assert.equal(await originalState(),'SUBMITTED');
     const approvedCancel = await corrections.request({auth:store},'GOODS_RECEIPT',draft.id,randomUUID(),cancelBody.reason,'CANCEL_UNPOSTED');
     audit.record = async (input, tx) => {
@@ -290,7 +319,9 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),2);
     assert.equal((await post('stock-transfers/'+legacyTransfer.id+'/reverse',tf.pm.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const legacyRequest = await corrections.request({auth:tStore},'STOCK_TRANSFER',legacyTransfer.id,randomUUID(),'Incorrect paired transfer');
+    await assertInvalidBinding(legacyRequest);
     await corrections.decide({auth:tPm},legacyRequest.id,'APPROVE','Independent exact reversal');
+    await assertFrozenDecision(legacyRequest.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),4);
     const transferNet = await db.stockTransaction.aggregate({where:{stockTransferId:legacyTransfer.id},_sum:{quantity:true}});
     assert.equal(transferNet._sum.quantity?.toString(),'0');
@@ -392,13 +423,17 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const returned = await mp.sourceReturn(mp.historical.id,'1');
     assert.equal((await post('material-returns/'+returned.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const returnReq = await corrections.request({auth:mpStore},'MATERIAL_RETURN',returned.id,randomUUID(),'Incorrect return');
+    await assertInvalidBinding(returnReq);
     await corrections.decide({auth:mpPm},returnReq.id,'APPROVE','Independent return reversal');
+    await assertFrozenDecision(returnReq.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{materialReturnId:returned.id}}),2);
     const netReturn = await db.stockTransaction.aggregate({where:{materialReturnId:returned.id},_sum:{quantity:true}});
     assert.equal(netReturn._sum.quantity?.toString(),'0');
     assert.equal((await post('material-issues/'+mp.historical.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const issueReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',mp.historical.id,randomUUID(),'Incorrect issue');
+    await assertInvalidBinding(issueReq);
     await corrections.decide({auth:mpPm},issueReq.id,'APPROVE','Independent issue reversal');
+    await assertFrozenDecision(issueReq.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{materialIssueId:mp.historical.id}}),2);
     const netIssue = await db.stockTransaction.aggregate({where:{materialIssueId:mp.historical.id},_sum:{quantity:true}});
     assert.equal(netIssue._sum.quantity?.toString(),'0');

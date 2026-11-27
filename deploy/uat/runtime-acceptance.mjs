@@ -122,6 +122,35 @@ async function login(email, password) {
   };
 }
 
+// Exercise canonical corrections, not a generic 409 from the disabled route.
+async function acceptCorrection(maker,reviewer,kind,id,key,reason,blockedCode){
+  const route={GOODS_RECEIPT:'goods-receipts',MATERIAL_ISSUE:'material-issues',MATERIAL_RETURN:'material-returns',STOCK_TRANSFER:'stock-transfers'}[kind];
+  const source='/inventory/'+route+'/'+id;
+  const legacy=await request(reviewer,source+'/reverse',{method:'POST',json:{reversalKey:key,reason},expected:409});
+  check(legacy.data.code==='SS16_CORRECTION_APPROVAL_REQUIRED','Legacy reversal did not fail closed');
+  const path='/inventory/movement-corrections/sources/'+kind+'/'+id+'/requests',body={requestKey:key,reason};
+  const created=(await request(maker,path,{method:'POST',json:body,expected:201})).data.data;
+  check(created.sourceId===id&&created.sourceKind===kind&&created.approvalInstance.approvalState==='SUBMITTED','Wrong correction source');
+  const replay=(await request(maker,path,{method:'POST',json:body,expected:201})).data.data;
+  check(replay.id===created.id,'Correction replay changed identity');
+  const decision='/inventory/movement-corrections/'+created.id;
+  await request(maker,decision+'/approve',{method:'POST',json:{comment:'Self decision prohibited'},expected:403});
+  const result=await request(reviewer,decision+'/approve',{method:'POST',json:{comment:'Independent acceptance decision'},expected:blockedCode?409:201});
+  if(blockedCode){
+    check(result.data.code===blockedCode,'Wrong canonical blocked reversal reason');
+    const history=(await request(reviewer,path)).data.data.find(row=>row.id===created.id);
+    check(history?.approvalInstance.approvalState==='SUBMITTED'&&history.approvalInstance.actions.length===0,'Blocked reversal did not roll back');
+    await request(reviewer,decision+'/reject',{method:'POST',json:{comment:'Original source restriction confirmed'},expected:201});
+  }else{
+    check(result.data.data.approvalInstance.approvalState==='APPROVED','Correction not approved');
+    const duplicate=await request(reviewer,decision+'/approve',{method:'POST',json:{comment:'Independent acceptance decision'},expected:409});
+    check(duplicate.data.code==='SS16_DECISION_ALREADY_RECORDED','Repeated approval not rejected');
+  }
+  const read=await request(maker,source);
+  check(blockedCode?!read.data.data.reversedAt:read.data.data.reversalKey==='ss16:'+created.id,'Unexpected source reversal outcome');
+  return read;
+}
+
 async function logout(session) {
   await request(session, '/auth/logout', { method: 'POST', expected: 204 });
 }
@@ -527,6 +556,18 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
   },
 });
 
+// Dedicated synthetic SS16 roles: existing broad test roles stay unchanged.
+const correctionRoles={};
+for (const [code, actions] of [['STOREKEEPER',['view','edit']],['PROJECT_MANAGER',['view','approve','reverse']]]) {
+  const created=await request(admin,'/admin/roles',{method:'POST',expected:201,
+    json:{roleCode:code,roleName:'Disposable SS16 '+code+' '+suffix}});
+  correctionRoles[code]=created.data.data.id;
+  await request(admin,'/admin/roles/'+correctionRoles[code]+'/permissions',{method:'PUT',
+    json:{permissionCodes:['receipt','issue','return','transfer'].flatMap(kind=>actions.map(action=>'inventory.'+kind+'.'+action))}});
+}
+await request(admin,'/admin/approval-workflows',{method:'POST',expected:201,json:{
+  workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',workflowName:'Disposable independent correction',
+  steps:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,roleIds:[correctionRoles.PROJECT_MANAGER]}]}});
 const directCostWorkflowCode = 'DIRECT_COST_POSTING_' + suffix;
 await request(admin, '/admin/approval-workflows', {
   method: 'POST',
@@ -956,7 +997,7 @@ const pmUser = await request(admin, '/admin/users', {
     displayName: 'Project Manager ' + suffix,
     password: pmPassword,
     employeeId: pmEmployee.data.data.id,
-    roleIds: [roleId],
+    roleIds: [roleId, correctionRoles.STOREKEEPER],
   },
   expected: 201,
 });
@@ -978,7 +1019,7 @@ const checkerUser = await request(admin, '/admin/users', {
     displayName: 'Baseline Approver ' + suffix,
     password: checkerPassword,
     employeeId: checkerEmployee.data.data.id,
-    roleIds: [checkerRoleId],
+    roleIds: [checkerRoleId, correctionRoles.PROJECT_MANAGER],
   },
   expected: 201,
 });
@@ -3548,14 +3589,7 @@ check(
     String(postedReturn.data.data.stockTransactions[0]?.quantity) === '1',
   'Material Return approval did not atomically post one exact positive ledger effect.',
 );
-await request(pm, '/inventory/material-issues/' + materialIssueId + '/reverse', {
-  method: 'POST',
-  json: {
-    reversalKey: 'issue-too-early-' + suffix,
-    reason: 'Must reject until Return is reversed',
-  },
-  expected: 409,
-});
+await acceptCorrection(pm,checker,'MATERIAL_ISSUE',materialIssueId,'issue-too-early-'+suffix,'Must reject until Return is reversed','MATERIAL_ISSUE_HAS_OUTSTANDING_RETURN');
 await request(pm, '/inventory/material-returns', {
   method: 'POST',
   json: {
@@ -3569,36 +3603,14 @@ await request(pm, '/inventory/material-returns', {
   },
   expected: 422,
 });
-const reversedReturn = await request(
-  pm,
-  '/inventory/material-returns/' + materialReturnId + '/reverse',
-  {
-    method: 'POST',
-    json: {
-      reversalKey: 'return-reverse-' + suffix,
-      reason: 'V0.4-D live Return reversal',
-    },
-    expected: 201,
-  },
-);
+const reversedReturn=await acceptCorrection(pm,checker,'MATERIAL_RETURN',materialReturnId,'return-reverse-'+suffix,'V0.4-D live Return reversal');
 check(
   reversedReturn.data.data.stockTransactions.reduce(
     (sum, row) => sum + Number(row.quantity), 0,
   ) === 0,
   'Material Return reversal did not exactly negate its source movement.',
 );
-const reversedIssue = await request(
-  pm,
-  '/inventory/material-issues/' + materialIssueId + '/reverse',
-  {
-    method: 'POST',
-    json: {
-      reversalKey: 'issue-reverse-' + suffix,
-      reason: 'V0.4-D live Issue reversal',
-    },
-    expected: 201,
-  },
-);
+const reversedIssue=await acceptCorrection(pm,checker,'MATERIAL_ISSUE',materialIssueId,'issue-reverse-'+suffix,'V0.4-D live Issue reversal');
 check(
   reversedIssue.data.data.stockTransactions.reduce(
     (sum, row) => sum + Number(row.quantity), 0,
@@ -3755,16 +3767,7 @@ await request(
 );
 record('V0.4-E Inventory document targets, secure Transfer evidence and Project denial');
 
-const reversedStageETransfer = await request(
-  pm, '/inventory/stock-transfers/' + stageETransferId + '/reverse', {
-    method: 'POST',
-    json: {
-      reversalKey: 'transfer-reverse-' + suffix,
-      reason: 'V0.4-E live Transfer reversal',
-    },
-    expected: 201,
-  },
-);
+const reversedStageETransfer=await acceptCorrection(pm,checker,'STOCK_TRANSFER',stageETransferId,'transfer-reverse-'+suffix,'V0.4-E live Transfer reversal');
 check(
   reversedStageETransfer.data.data.stockTransactions.length === 4 &&
     reversedStageETransfer.data.data.stockTransactions.reduce(
@@ -3800,20 +3803,8 @@ await request(pm, '/procurement/purchase-orders/' + revisedPoId + '/cancel', {
 await request(unassignedReceipt, '/inventory/goods-receipts/' + receiptAId, {
   expected: 403,
 });
-await request(pm, '/inventory/goods-receipts/' + receiptAId + '/reverse', {
-  method: 'POST',
-  json: { reversalKey: 'reverse-a-' + suffix, reason: 'Blocked by approved Supplier Invoice lineage' },
-  expected: 409,
-});
-const reversedReceiptB = await request(
-  pm,
-  '/inventory/goods-receipts/' + receiptBId + '/reverse',
-  {
-    method: 'POST',
-    json: { reversalKey: 'reverse-b-' + suffix, reason: 'UAT full reversal' },
-    expected: 201,
-  },
-);
+await acceptCorrection(pm,checker,'GOODS_RECEIPT',receiptAId,'reverse-a-'+suffix,'Blocked by approved Supplier Invoice lineage','RECEIPT_REVERSAL_FINANCE_SOURCE_LOCKED');
+const reversedReceiptB=await acceptCorrection(pm,checker,'GOODS_RECEIPT',receiptBId,'reverse-b-'+suffix,'UAT full reversal');
 check(
   reversedReceiptB.data.data.reversedAt &&
     reversedReceiptB.data.data.stockTransactions.length === 2 &&
