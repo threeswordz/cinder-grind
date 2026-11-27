@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import {
   Alert, Box, Button, Chip, Divider, MenuItem, Paper, Stack,
   TextField, Typography,
@@ -10,6 +10,7 @@ import {
 } from '../api/material-plans';
 import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 import { materialPlanLabels } from './material-plan-labels';
+import { createMaterialPlanCommandGate, maySendMaterialPlanCommand } from './material-plan-command-gate';
 
 type Intent =
   | { kind: 'CREATE'; body: PlanContent & { requestKey: string; projectId: string; warehouseId: string; budgetRevisionId: string; workPackageCode: string } }
@@ -45,6 +46,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   // Keep the exact requestKey and payload across a lost-response retry.
   // Do not permit a different action while a prior result is uncertain.
   const [pending, setPending] = useState<Intent | null>(null);
+  const commandGate = useRef(createMaterialPlanCommandGate<Intent>());
   const [saved, setSaved] = useState(false);
   const choiceKey = (kind: string) => projectId + ':' + basisId + ':' + kind;
   const pagesFor = (kind: string) => choicePages[choiceKey(kind)] ?? [''];
@@ -99,6 +101,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const warehousePage = authorizedProject && warehouses.isSuccess && !warehouses.isFetching ? warehouses.data.data : null;
   const revisionPage = authorizedProject && revisions.isSuccess && !revisions.isFetching ? revisions.data.data : null;
 
+  const commandScope = { projectId, authorizedProject, planId: current?.id ?? null, permissions };
+  const retryAuthorized = pending !== null && maySendMaterialPlanCommand(pending, commandScope);
   const mutation = useMutation({
     mutationFn: (intent: Intent) => {
       switch (intent.kind) {
@@ -109,6 +113,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
       }
     },
     onSuccess: async result => {
+      commandGate.current.succeed();
       setPending(null);
       setSaved(true);
       setPlanId(result.data.id);
@@ -117,9 +122,10 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
       setRevisionBase(null);
       await cache.invalidateQueries({ queryKey: ['material-plan-ui'] });
     },
+    onSettled: () => commandGate.current.settle(),
   });
   const dispatch = (intent: Intent) => {
-    if (pending || mutation.isPending) return;
+    if (!commandGate.current.begin(intent, commandScope)) return;
     setPending(intent);
     setSaved(false);
     mutation.mutate(intent);
@@ -129,6 +135,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
     await cache.invalidateQueries({ queryKey: ['material-plan-ui'] });
   };
   const resetProject = (id: string) => {
+    if (commandGate.current.hasPending()) return;
     setProjectId(id); setPlanId(''); setListPages(['']); setHistoryPages(['']);
     setChoicePages({}); setMode('CREATE'); setRevisionBase(null); setBasisId(''); setWarehouseId('');
     setPackageCode(''); setLines([]); setReason(''); setComment('');
@@ -204,8 +211,13 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
         <MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
     </TextField>
     {pending ? <Alert severity="warning">{t.pending}<Stack direction="row" spacing={1}>
-      <Button disabled={mutation.isPending} onClick={() => mutation.mutate(pending)}>{t.retry}</Button>
-      <Button disabled={mutation.isPending} onClick={() => { setPending(null); mutation.reset(); void refresh(); }}>{t.clear}</Button>
+      <Button disabled={mutation.isPending || !retryAuthorized} onClick={() => {
+        const pending = commandGate.current.retry(commandScope);
+        if (pending) mutation.mutate(pending);
+      }}>{t.retry}</Button>
+      <Button disabled={mutation.isPending} onClick={() => {
+        if (commandGate.current.clear()) { setPending(null); mutation.reset(); void refresh(); }
+      }}>{t.clear}</Button>
     </Stack></Alert> : null}
     {mutation.isError ? <Alert severity="error">{t.error}</Alert> : null}
     {saved ? <Alert severity="success">{t.saved}</Alert> : null}
@@ -219,7 +231,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
               <Chip key={p.id} variant={planId === p.id ? 'filled' : 'outlined'}
                 color={planId === p.id ? 'primary' : 'default'}
                 label={p.workPackageCode + ' · v' + p.version}
-                onClick={() => { setPlanId(p.id); setHistoryPages(['']); setMode('CREATE'); setRevisionBase(null); }} />)}
+                disabled={Boolean(pending) || mutation.isPending}
+                onClick={() => { if (commandGate.current.hasPending()) return; setPlanId(p.id); setHistoryPages(['']); setMode('CREATE'); setRevisionBase(null); }} />)}
           </Stack>
           {plansPage && !plansPage.items.length ? <Alert severity="info">{t.empty}</Alert> : null}
           <Stack direction="row" spacing={1}>

@@ -2,6 +2,8 @@
 // fixture. Never change named/retained actor configuration or replay the Mac.
 import {SOURCE,httpClient} from './prototype-actors.mjs';
 import {acceptCorrection} from './ss16-correction-acceptance.mjs';
+import {readSS16Ledger,verifySS16Ledger} from './m6-parallel-03-ss16-ledger.mjs';
+import {readSS16Config,assertSS16Config} from './m6-parallel-03-ss16-config.mjs';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('SS16_FIXTURE_'+code),{safeCode:'SS16_FIXTURE_'+code});};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const kinds={MATERIAL_ISSUE:{route:'material-issues',model:'materialIssue',prefix:'inventory.issue'},
@@ -53,6 +55,8 @@ export async function reverseDisposableSources(db,b,origins,targets){
   else await tx.approvalWorkflow.create({data:{companyId:f.companyId,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',
    workflowName:'Disposable successor correction',steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,
     stepRoles:{create:[{roleId:actors.KHAIMOOK.roleId}]}}]}}});
+  const binding={companyId:f.companyId,storeUserId:actors.STORE_SITE.userId,pmUserId:actors.KHAIMOOK.userId,projectIds:[f.projectId],kinds:[...new Set(targets.map(t=>t.kind))]};
+  assertSS16Config(binding,await readSS16Config(tx,binding));
   return saved;
  },{isolationLevel:'Serializable'});
  const allowed=new Map();
@@ -74,9 +78,14 @@ export async function reverseDisposableSources(db,b,origins,targets){
  try{
   for(const [key,code] of roles)sessions[key]=await client.login('SS16_'+key,{...actors[key],expectedRoleCodes:[code]},f.companyId);
   const maker=sessions.STORE_SITE,pm=sessions.KHAIMOOK;
-  for(const t of targets)await acceptCorrection({maker,reviewer:pm,kind:t.kind,id:t.id,key:t.key,reason:t.reason,
+  for(const t of targets){
+   const before=await readSS16Ledger(db,t.kind,t.id);
+   await acceptCorrection({maker,reviewer:pm,kind:t.kind,id:t.id,key:t.key,reason:t.reason,
     call:async(actor,label,path,expected,body)=>(await client.call(actor,label,path,expected,body)).value,
     registerDecision:(path,...bodies)=>{need(!allowed.has('POST '+path),'DECISION_SCOPE');allowed.set('POST '+path,bodies);}});
+   const after=await readSS16Ledger(db,t.kind,t.id);
+   verifySS16Ledger({kind:t.kind,id:t.id,before,after,reversed:true,reviewerId:actors.KHAIMOOK.userId});
+  }
 
  }catch(e){primary=e;}
  finally{
