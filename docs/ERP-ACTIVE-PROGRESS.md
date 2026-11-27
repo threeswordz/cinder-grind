@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 81.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 196.5h → 0h · Full ERP 1,691.5h → 0h.**
+**M4 CLOSED 0h · M6 76.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 191.5h → 0h · Full ERP 1,686.5h → 0h.**
+
+**Latest native evidence (event215):** [Owner Mac continuity PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220087778), exact `8eb00f80`, tests8/8, selected tables19/19, documents10/10, original HR attachment/key checksums match. No session, decryption or business replay. M6-02 20→19h; M6-04 16→13.5h; M6-05 15.5→14h; M6-01 13h and M6-03 17h unchanged. Previous81.5h +0 scope +0 additional rework −5h provisional future verification estimate =76.5h. Independent SS16 review, bounded rate-bucket disposition and affected authorization/UI/configuration and governed integration still required; no formal acceptance or Production. Do not repeat event213 or event215.
 
 **Latest native evidence (event213):** [Owner Mac batch PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020), exact `55420efa`, 35/35 tests; rate, site, authenticated C/D all PASS. M6-01 14→13h; M6-02 22→20h; M6-03 17h unchanged; M6-04 17.5→16h; M6-05 17→15.5h. Previous 87.5h +0 new scope +0 additional rework −6h provisional estimated remaining effort =81.5h. No labor claim. No repeat of authenticated sessions or prior business journeys. Bounded rate disposition, protected-byte and retained invoice/payment/BOQ proof, independent SS16 review and integrated release remain. No formal acceptance or Production.
 

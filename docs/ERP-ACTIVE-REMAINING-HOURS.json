@@ -6363,6 +6363,66 @@
       "verifiedCompletedScopeHours": 1.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-215",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_SEALED_JOURNEY_CONTINUITY_NATIVE_PASS",
+      "beforeHours": 20,
+      "afterHours": 19,
+      "sourceSha": "8eb00f8067ccb0a7a64e5b11f39308eef6e060d5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220087778",
+        "https://github.com/threeswordz/cinder-grind/commit/8eb00f8067ccb0a7a64e5b11f39308eef6e060d5"
+      ],
+      "basis": "Native sealed source document rows and actual storage checksums now bound; earlier metadata verification not credited twice.",
+      "blocker": "Affected role/browser and integrated release.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-04-215",
+      "date": "2026-11-27",
+      "packageId": "M6-04",
+      "kind": "M6_SEALED_JOURNEY_CONTINUITY_NATIVE_PASS",
+      "beforeHours": 16,
+      "afterHours": 13.5,
+      "sourceSha": "8eb00f8067ccb0a7a64e5b11f39308eef6e060d5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220087778",
+        "https://github.com/threeswordz/cinder-grind/commit/8eb00f8067ccb0a7a64e5b11f39308eef6e060d5"
+      ],
+      "basis": "Native original sealed invoice/payment/allocation and BOQ/approval/source/document exact row continuity; distinct from subcontract metadata proof.",
+      "blocker": "Integrated release and affected authorization checks; historical authorized readback only.",
+      "reductionHours": 2.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-05-215",
+      "date": "2026-11-27",
+      "packageId": "M6-05",
+      "kind": "M6_SEALED_JOURNEY_CONTINUITY_NATIVE_PASS",
+      "beforeHours": 15.5,
+      "afterHours": 14,
+      "sourceSha": "8eb00f8067ccb0a7a64e5b11f39308eef6e060d5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220087778",
+        "https://github.com/threeswordz/cinder-grind/commit/8eb00f8067ccb0a7a64e5b11f39308eef6e060d5"
+      ],
+      "basis": "Native original encrypted attachment row/ciphertext checksum continuity and original key custody linkage; previous general inventories excluded.",
+      "blocker": "Affected authorization and integrated release; no fresh plaintext access verified.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6392,8 +6452,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1691.5,
-  "currentRollingTotalSemantics": "1691.5h = previous1697.5h minus 6h provisional distinct verified future-effort allowance for Owner Mac batch event213. M6 81.5h, M7 50h, M8 65h, combined196.5h. Scope0, additional rework0; labor unknown; all112 requirements retained, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1686.5,
+  "currentRollingTotalSemantics": "1686.5h = prior1691.5h minus5h distinct provisional verified future-effort allowance for event215. M6 76.5h, M7 50h, M8 65h, combined191.5h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
