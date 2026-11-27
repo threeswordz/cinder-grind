@@ -7379,6 +7379,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-265",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "PRISMA_RESTORED_SESSION_CENSUS_CORRECTED",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "sourceSha": "840477f8c18665953ed3285635adc81f5091fadb",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226890434",
+        "https://github.com/threeswordz/cinder-grind/commit/840477f8c18665953ed3285635adc81f5091fadb"
+      ],
+      "basis": "Owner dependency restoration passed, native readiness reached session projection. Corrected hardcoded database census to exact historical baseline plus 17 authorized new rows, preserving hash/actor/chronology checks and downstream prior projections. 17/17 actual focused tests, exact helper and test blobs matched; native result pending. Rework absorbed.",
+      "blocker": "Corrected native read-only invocation pending; no further install, no replay of successful business journeys.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7409,7 +7430,7 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1621,
-  "currentRollingTotalSemantics": "Event264: M6 11h unchanged, canonical ERP1621h/prototype126h; provisional ERP1331h/prototype75h. Incremental install did not restore transitive Prisma dependency; fresh pinned installation pending.",
+  "currentRollingTotalSemantics": "Event265: M6 11h unchanged, canonical ERP1621h/prototype126h; provisional ERP1331h/prototype75h. Prisma restored; session census projection corrected, 17/17 focused tests passed; native readiness pending. No earned retirement.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
