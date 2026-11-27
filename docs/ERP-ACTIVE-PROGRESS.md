@@ -3,6 +3,22 @@
 <!-- current-work-m6 -->
 **Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
 
+**Latest evidence (Event262):** [Prisma module load blocker](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226749151). Owner Mac diagnostic reached PRISMA_LOAD line82 before new readiness queries. Same loader as successful Event258; underlying local exception unknown. Next dependency-only probe, not full operator replay. No new sessions reported, no earned credit or net rework increase.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 7h |
+| M6-03 | 2.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **11h** |
+
+Prior entries below are historical snapshots.
+
+
+**Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
+
 **Latest evidence (Event261):** [Owner Mac readiness blocked; diagnostic correction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226721192), [corrected operator](https://github.com/threeswordz/cinder-grind/commit/7bc1ded1a6df4ab38f44f6d092ebec733aaec972). Previous exact-head syntax passed; generic private runtime failure, no session creation reported. Root cause unknown. New source adds operation-specific stages and sanitized error codes only; three standalone diagnostic cases passed. No additional earned credit, no net rework increase, no formal acceptance. Do not replay previously successful browser journeys.
 
 | Outstanding M6 package | Remaining |
