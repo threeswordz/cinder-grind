@@ -61,11 +61,11 @@ function normalizeSnapshot(snapshot){return Object.fromEntries(Object.entries(sn
 export async function prepareHrSuccessorExit({db,ready,receipts,sealedSnapshot,oldKeys,preservedKeys,cdBinding,readFiles,verifyRuntime}){
  need(typeof readFiles==='function'&&typeof verifyRuntime==='function','CONTEXT');
  verifyHrSealedPhase(ready,receipts);need(same(oldKeys,preservedKeys),'PRESERVED_KEYS');
- const baseline=structuredClone(sealedSnapshot),expectedAccess=hrAccessProjection(baseline),expectedDocuments=sealedHrDocumentProjection(baseline);
+ const baseline=structuredClone(sealedSnapshot),expectedAccess=hrAccessProjection(baseline),expectedDocuments=sealedHrDocumentProjection(baseline),expectedKeys=structuredClone(oldKeys);
  const binding=bindHrSuccessorDenials(baseline,cdBinding);
- const capture=async()=>{await verifyRuntime();const snapshot=await captureHrSuccessorSnapshot(db),access=await captureHrAccessProjection(db),files=await readFiles();
+ const capture=async()=>{await verifyRuntime();const snapshot=await captureHrSuccessorSnapshot(db),access=await captureHrAccessProjection(db),files=structuredClone(await readFiles());
   need(same(expectedAccess,access),'HR_ACCESS_DRIFT');
-  const custody=verifyHrSuccessorCustody({before:baseline,after:snapshot,oldDocuments:expectedDocuments,currentDocuments:files?.documents,oldKeys,currentKeys:files?.hrkeys});await verifyRuntime();return {snapshot:normalizeSnapshot(snapshot),access,files,custody};};
+  const custody=verifyHrSuccessorCustody({before:baseline,after:snapshot,oldDocuments:expectedDocuments,currentDocuments:files?.documents,oldKeys:expectedKeys,currentKeys:files?.hrkeys});await verifyRuntime();return {snapshot:normalizeSnapshot(snapshot),access,files,custody};};
  const before=await capture();let attempted=false,denials,finished=false;
  return Object.freeze({
   async verifyDenials(sessions,fetchImpl){need(!attempted&&!finished,'NO_REPLAY');attempted=true;denials=await executeHrSuccessorDenials({binding,sessions,fetchImpl});return {status:denials.status,denials:denials.denials,positiveControls:denials.positiveControls};},
