@@ -7484,6 +7484,27 @@
       "blocker": "Bind actual PUR07 acknowledgment, checked damaged custody and fresh source documents; live adapter and delta capture, browser verification; reconcile replacement route and acceptance. Native execution and independent review pending.",
       "reductionHours": 1,
       "verifiedCompletedScopeHours": 1
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-270",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "RESIDUAL_INTEGRATION_PRIMITIVES_TESTED",
+      "beforeHours": 4.5,
+      "afterHours": 4,
+      "sourceSha": "3c47de41267e132a94aa98eb3a5f66e205345f6e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227289774",
+        "https://github.com/threeswordz/cinder-grind/commit/3c47de41267e132a94aa98eb3a5f66e205345f6e"
+      ],
+      "basis": "Three distinct tested integration primitives (25/25 local tests, six exact matching blobs): restricted HTTP transport, source-bound file delta, private durable attempt receipt. Native admission and opt-in runtime document hooks implemented/read back but not yet native tested. 0.5h provisional shared preparation retired once.",
+      "blocker": "Source-bound fixture writer, actual row and audit delta capture, unified native entry and browser integration; exact role/session/fixture authorization, stable independent review and native execution pending.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7513,8 +7534,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1617.5,
-  "currentRollingTotalSemantics": "Events268–269: M6-02 4.5h, M6-03 1.5h, M6 7.5h, M7 50h, M8 65h, canonical prototype122.5h, ERP1617.5h; provisional ERP1327.5h/prototype71.5h. Tested adapters only; no native proof; actual labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1617,
+  "currentRollingTotalSemantics": "Event270: M6-02 4h, M6-03 1.5h, M6 7h, M7 50h, M8 65h, canonical prototype122h, ERP1617h; provisional ERP1327h/prototype71h. Distinct tested preparation only; native glue not yet executed; actual labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
