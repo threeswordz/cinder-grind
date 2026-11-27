@@ -7277,6 +7277,27 @@
       "verifiedCompletedScopeHours": 1.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-260",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "RESIDUAL_NATIVE_ZERO_SESSION_READINESS_WIRED",
+      "beforeHours": 7.5,
+      "afterHours": 7,
+      "sourceSha": "7449edd2e0f18b1d655149c41e529a5302d2b181",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226686438",
+        "https://github.com/threeswordz/cinder-grind/commit/7449edd2e0f18b1d655149c41e529a5302d2b181"
+      ],
+      "basis": "Readiness helper and seven new fixture tests, actual local 47/47 pass, exact matching blobs. Native zero-session admission wires prior inventory projection, historical site binding and read-only fixture/role discovery. Estimate 0.5h distinct preparation, no native proof credit.",
+      "blocker": "Native entry syntax check and actual Mac residual discovery pending. Exact synthetic-only fixture/grant and canonical workflow authority must follow; terminal verifiers not yet wired into authorized business execution. Formal acceptance pending.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7306,8 +7327,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1621.5,
-  "currentRollingTotalSemantics": "Event259: M6-02 9→7.5h, M6 13→11.5h, M7 50h, M8 65h, canonical prototype126.5h, ERP1621.5h. Distinct tested preparation only; actual labor unknown; no formal acceptance. Provisional rebaseline ERP1331.5h/prototype75.5h.",
+  "currentRollingTotalAfterPricedGapsHours": 1621,
+  "currentRollingTotalSemantics": "Event260: M6-02 7.5→7h, M6 11.5→11h, M7 50h, M8 65h, canonical prototype126h, ERP1621h. Distinct tested readiness preparation only; actual labor unknown; no formal acceptance. Provisional ERP1331h/prototype75h.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
