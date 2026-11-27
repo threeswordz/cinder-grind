@@ -6,6 +6,7 @@ import { ApiError } from '../api/client';
 import { siteIssuesApi, type IssueCategory, type IssueOperation } from '../api/site-issues';
 import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 import { siteIssueLabels } from './site-issue-labels';
+import { pinSiteIssueOperation, mayRetrySiteIssueOperation } from './site-issue-command-scope';
 
 export type SiteIssueLink = { projectId: string; id: string };
 const identity = (user: CurrentUser) => [user.companyId, user.id, [...user.permissions].sort().join(',')].join(':');
@@ -50,6 +51,8 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
   const [owner, setOwner] = useState(''), [recipient, setRecipient] = useState(''), [reason, setReason] = useState('');
   const [routingPin, setRoutingPin] = useState<number | null>(null);
   const [pending, setPending] = useState<IssueOperation | null>(null), pendingRef = useRef<IssueOperation | null>(null);
+  const pinnedRef = useRef<ReturnType<typeof pinSiteIssueOperation>>(null), running = useRef(false);
+  const appliedLink = useRef('');
   const [message, setMessage] = useState<'saved' | 'unavailable' | 'uncertain' | null>(null);
   const base = ['fm03', scope];
   const projects = useQuery({ queryKey: [...base, 'projects'], queryFn: siteIssuesApi.projects,
@@ -65,38 +68,49 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
     enabled: authorized && view, retry: false, gcTime: 0, refetchInterval: 15000, refetchOnWindowFocus: true });
   const detail = useQuery({ queryKey: [...base, projectId, selected, 'detail', beforeVersion], queryFn: () => siteIssuesApi.get(selected, beforeVersion),
     enabled: authorized && view && Boolean(selected), retry: false, gcTime: 0, refetchInterval: 15000, refetchOnWindowFocus: true });
-  const current = authorized && view && detail.isSuccess && !detail.isFetching && detail.data.data.projectId === projectId
+  const current = authorized && view && detail.isSuccess && !detail.isFetching && detail.data.data.projectId === projectId && detail.data.data.companyId === user.companyId && detail.data.data.id === selected
     ? detail.data.data : null;
+  const commandScope = { identity: scope, projectId, authorized, currentIssueId: current?.id ?? null, permissions: user.permissions };
+  const retryAuthorized = mayRetrySiteIssueOperation(pinnedRef.current, commandScope);
   const mutation = useMutation({
     mutationFn: siteIssuesApi.send,
     onSuccess: async (result, operation) => {
-      pendingRef.current = null; setPending(null); setMessage('saved'); setNote(''); setAsset('');
+      pendingRef.current = null; pinnedRef.current = null; setPending(null); setMessage('saved'); setNote(''); setAsset('');
       if (operation.path.endsWith('/routing')) { setRoutingPin(null); setOwner(''); setRecipient(''); setReason(''); }
       if (result.data.id) { setSelected(result.data.id); setPin(result.data.version); setBefore(undefined); setDescription(''); }
       await cache.invalidateQueries({ queryKey: base });
     },
     onError: error => {
       if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-        pendingRef.current = null; setPending(null); setMessage('unavailable');
+        pendingRef.current = null; pinnedRef.current = null; setPending(null); setMessage('unavailable');
         void cache.invalidateQueries({ queryKey: base });
       } else setMessage('uncertain');
     },
+    onSettled: () => { running.current = false; },
   });
   function send(path: string, body: Record<string, unknown>) {
-    if (pendingRef.current || !authorized) return;
+    if (pendingRef.current || running.current) return;
     const operation = { path, body: { ...body, requestKey: crypto.randomUUID() } };
+    const pinned = pinSiteIssueOperation(operation, commandScope);
+    if (!pinned) return;
+    pinnedRef.current = pinned; running.current = true;
     pendingRef.current = operation; setPending(operation); setMessage(null); mutation.mutate(operation);
   }
   useEffect(() => {
-    if (!initialLink || pending) return;
+    if (!initialLink) { appliedLink.current = ''; return; }
+    const link = scope + ':' + initialLink.projectId + ':' + initialLink.id;
+    if (pending || mutation.isPending || appliedLink.current === link) return;
+    appliedLink.current = link;
     setProject(initialLink.projectId); setSelected(initialLink.id); setPin(null); setBefore(undefined);
-  }, [initialLink, pending, scope]);
+    setNote(''); setAsset(''); setMessage(null);
+  }, [initialLink, pending, scope, mutation.isPending]);
   useEffect(() => {
+    if (pendingRef.current || running.current) return;
     setSelected(''); setPin(null); setBefore(undefined); setPages(['']); setReport(''); setActivity('');
     setDescription(''); setCategory('GENERAL'); setAffects(false); setStopped(false); setDelay(false);
     setOwner(''); setRecipient(''); setReason(''); setRoutingPin(null); setNote(''); setAsset(''); setMessage(null);
     if (initialLink?.projectId === projectId) setSelected(initialLink.id);
-  }, [projectId, scope, initialLink]);
+  }, [projectId, scope]);
   useEffect(() => { if (pin === null && current) setPin(current.version); }, [current, pin]);
   if (!view && !configure) return null;
   const frozen = pending !== null || mutation.isPending;
@@ -122,11 +136,15 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
     <Stack spacing={2}>
       <Typography variant="h5">{t.title}</Typography>
       {message ? <Alert severity={message === 'saved' ? 'success' : 'warning'}>{t[message]}
-        {pending && !mutation.isPending ? <Button onClick={() => {
-          if (pendingRef.current) mutation.mutate(pendingRef.current);
-        }}>{t.retry}</Button> : null}
+        {pending && !mutation.isPending ? <><Button disabled={!retryAuthorized} onClick={() => {
+          if (!running.current && pendingRef.current && mayRetrySiteIssueOperation(pinnedRef.current, commandScope)) {
+            running.current = true; mutation.mutate(pendingRef.current);
+          }
+        }}>{t.retry}</Button>
+          {!retryAuthorized ? <Button onClick={() => { void projects.refetch(); if (authorized && selected) void detail.refetch(); }}>{t.refresh}</Button> : null}
+        </> : null}
       </Alert> : null}
-      <TextField select label={t.project} value={projectId} disabled={frozen} onChange={e => setProject(e.target.value)}>
+      <TextField select label={t.project} value={projectId} disabled={frozen} onChange={e => { if (!pendingRef.current && !running.current) setProject(e.target.value); }}>
         <MenuItem value="">{t.select}</MenuItem>
         {projects.isSuccess ? projects.data.data.map(p => <MenuItem key={p.id} value={p.id}>{p.projectCode} · {p.projectName}</MenuItem>) : null}
       </TextField>
