@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 48h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 163h → 0h · Full ERP 1,658h → 0h.**
+**M4 CLOSED 0h · M6 46.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 161.5h → 0h · Full ERP 1,656.5h → 0h.**
+
+**Latest evidence (event234):** [Successor session isolation and coverage admission](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223753649), operator [f4d78fb3](https://github.com/threeswordz/cinder-grind/commit/f4d78fb3068c55dd83461e3a36fc70c96e91b42d), sealed application remains 70013b51. 4 commits/9 tooling paths; actual local tests7/7 session owner +4/4 role census, exact tested blobs; origin correction/native admission not executed. No new runtime/migration bytes, no session/launch/rehearsal replay, CI/Codex/Work/Production. M6 48→46.5h, packages1.5/16/8/11/10h. −1.5h provisional distinct authoring, scope0/rework0, actual labor unknown, no formal acceptance. Next read-only coverage against existing recovered DB; separately authorize isolated configuration/sessions if needed.
 
 **Latest evidence (event233):** [Authorized populated recovery sealed](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223579918), exact [candidate](https://github.com/threeswordz/cinder-grind/commit/70013b5139292ef33563447f8937c8f132feabd2). Owner Mac receipt: 177 predecessor checksums +7 additions =184 applied matches, 172 historical tables preserved, restored rows and protected copy verified, retained database/files unchanged, no cutover/acceptance/production. Preserve sealed recovery and do not repeat. M6 52→48h, packages 3/16/8/11/10h; −4h distinct recovery verification credit, scope0/rework0, no measured labor. Actual isolated operational bindings, authorized sessions, browser and release gates outstanding.
 

@@ -6721,6 +6721,27 @@
       "verifiedCompletedScopeHours": 4,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-01-234",
+      "date": "2026-11-28",
+      "packageId": "M6-01",
+      "kind": "SUCCESSOR_SESSION_OWNER_AND_ROLE_COVERAGE_LOCAL_TESTS_PASS",
+      "beforeHours": 3,
+      "afterHours": 1.5,
+      "sourceSha": "f4d78fb3068c55dd83461e3a36fc70c96e91b42d",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223753649",
+        "https://github.com/threeswordz/cinder-grind/commit/7a11fb27286db4c358a6fe581b9d6208874466af",
+        "https://github.com/threeswordz/cinder-grind/commit/e58d702edb19415260b3a3d422b5fa31c09bdc86"
+      ],
+      "basis": "1h distinct provisional authoring credit for single-use session owner 7/7 local tests, 0.5h for role coverage census 4/4 local tests, exact tested blobs. No credit for unexecuted HR origin wiring or native admission.",
+      "blocker": "Actual read-only coverage admission, isolated runtime and artifact/session preservation binding; configuration/session scope requires separate authorization; browser and release verification.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6750,8 +6771,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1658,
-  "currentRollingTotalSemantics": "1658h = prior1662h minus4h event233. M6 48h, M7 50h, M8 65h, combined163h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1656.5,
+  "currentRollingTotalSemantics": "1656.5h = prior1658h minus1.5h event234. M6 46.5h, M7 50h, M8 65h, combined161.5h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
