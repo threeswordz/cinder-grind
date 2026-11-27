@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 52h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 167h → 0h · Full ERP 1,662h → 0h.**
+**M4 CLOSED 0h · M6 48h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 163h → 0h · Full ERP 1,658h → 0h.**
+
+**Latest evidence (event233):** [Authorized populated recovery sealed](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223579918), exact [candidate](https://github.com/threeswordz/cinder-grind/commit/70013b5139292ef33563447f8937c8f132feabd2). Owner Mac receipt: 177 predecessor checksums +7 additions =184 applied matches, 172 historical tables preserved, restored rows and protected copy verified, retained database/files unchanged, no cutover/acceptance/production. Preserve sealed recovery and do not repeat. M6 52→48h, packages 3/16/8/11/10h; −4h distinct recovery verification credit, scope0/rework0, no measured labor. Actual isolated operational bindings, authorized sessions, browser and release gates outstanding.
 
 **Latest evidence (event231):** [Owner Mac affected-only PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223397336), exact [candidate](https://github.com/threeswordz/cinder-grind/commit/70013b5139292ef33563447f8937c8f132feabd2). Offline dependencies, Prisma/API/web build, 184/184 fresh migrations, 28/28 changed fixture tests, 16/16 frontend guards, four native groups 4/4, 48/48 total. Prior SS16 and six native groups not rerun. Populated successor and browser not run. M6 58→52h; packages 7/16/8/11/10h. −6h distinct integrated evidence credit, scope0/rework0, no labor or formal acceptance claim. No HR native proof or retained role changes. Next populated isolated rehearsal and operational/browser binding. Main unchanged.
 
