@@ -7505,6 +7505,72 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227484098",
+        "https://github.com/threeswordz/cinder-grind/commit/0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+        "https://github.com/threeswordz/cinder-grind/commit/803e7ccf59417bacb69730a52d309023e8978383"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-03-271",
+      "packageId": "M6-03",
+      "kind": "SUPPLIER_SOURCE_PREPARATION_TESTED",
+      "beforeHours": 1.5,
+      "afterHours": 1,
+      "basis": "Actual controlled-response source and canonical PUR07 preparation tests15/15, exact GitHub blobs; 0.5h distinct preparation retired.",
+      "blocker": "Actual isolated source/evidence census, bounded multipart transport, row/file delta proof, execution/browser review pending.",
+      "reductionHours": 0.5,
+      "verifiedCompletedScopeHours": 0.5
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227484098",
+        "https://github.com/threeswordz/cinder-grind/commit/0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+        "https://github.com/threeswordz/cinder-grind/commit/803e7ccf59417bacb69730a52d309023e8978383"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-02-272",
+      "packageId": "M6-02",
+      "kind": "CANONICAL_SITE_FIXTURE_ADAPTER_TESTED",
+      "beforeHours": 4,
+      "afterHours": 3.25,
+      "basis": "15/15 actual controlled tests; dimensional WBS/activities and approved successor BOQ/material plan, exact DEC054 Ben Cost self-approval, history facts check. 0.75h preparation retirement.",
+      "blocker": "Native source and actor configuration, restricted fixture transport, exact actual row capture and orchestration pending.",
+      "reductionHours": 0.75,
+      "verifiedCompletedScopeHours": 0.75
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227484098",
+        "https://github.com/threeswordz/cinder-grind/commit/0cbc3f8174986dd84a9fdc94b380b309f94256d8",
+        "https://github.com/threeswordz/cinder-grind/commit/803e7ccf59417bacb69730a52d309023e8978383"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-02-273",
+      "packageId": "M6-02",
+      "kind": "NATIVE_READ_ONLY_SOURCE_ADAPTER_TESTED",
+      "beforeHours": 3.25,
+      "afterHours": 3,
+      "basis": "8/8 actual controlled Prisma response tests; verified admission context, exact projected role delta and read-only source planning. Shared0.25h preparation retired once; 38/38 combined actual tests.",
+      "blocker": "Final unified entry, actual source prerequisites, live DB/file deltas and browser execution; independent review and explicit synthetic-only authority pending.",
+      "reductionHours": 0.25,
+      "verifiedCompletedScopeHours": 0.25
     }
   ],
   "unestimatedWork": [
@@ -7534,8 +7600,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1617,
-  "currentRollingTotalSemantics": "Event270: M6-02 4h, M6-03 1.5h, M6 7h, M7 50h, M8 65h, canonical prototype122h, ERP1617h; provisional ERP1327h/prototype71h. Distinct tested preparation only; native glue not yet executed; actual labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1615.5,
+  "currentRollingTotalSemantics": "Events271–273: M6-02 3h, M6-03 1h, M6 5.5h, M7 50h, M8 65h, canonical prototype120.5h, ERP1615.5h; provisional ERP1325.5h/prototype69.5h. Tested controlled-response preparation, native proof pending; measured labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
