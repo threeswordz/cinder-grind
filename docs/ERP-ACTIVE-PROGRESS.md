@@ -1,6 +1,26 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**M6 11.5h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 126.5h → 0h · canonical ERP 1,621.5h → 0h.**
+
+**Provisional rebaselined ERP: 1,331.5h → 0h · prototype 75.5h → 0h** (M6 11.5h / M7 26h / M8 38h).
+
+**Latest evidence (Event259):** [Three residual M6 verification components implemented/tested](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226612902), [isolated branch exact head](https://github.com/threeswordz/cinder-grind/commit/21162ae86c2209538c4b6c76937eeccb951807d9). Post-inventory session/receipt admission, FM02 confirmed-plan/quantity/milestone rollup, SS08 representative work dimensions/BOQ/signed receipt/stock history. 40/40 focused local fixture tests PASS; six exact tested blobs verified. Native wiring and actual scoped execution pending; no replay, app change, grant change, full CI or formal acceptance. M6-02 9→7.5h (1.5h estimated retirement, not actual labor). M6-03 2.5h unchanged.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 7.5h |
+| M6-03 | 2.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **11.5h** |
+
+Next: wire consolidated native admission, scoped fixture discovery and canonical SS08/FM02/Jai supplier execution; precise synthetic-only authority where required. Do not repeat Event258 inventory or earlier HR/subcontract browser journeys.
+
+Prior entries below are historical snapshots.
+
+
 **M6 13h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 128h → 0h · canonical ERP 1,623h → 0h.**
 
 **Provisional rebaselined ERP: 1,333h → 0h · prototype 77h → 0h** (M6 13h / M7 26h / M8 38h; pass4 planning estimate minus Event258 verified 3h, no new scope or rework).
