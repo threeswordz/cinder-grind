@@ -7256,6 +7256,27 @@
       "verifiedCompletedScopeHours": 3,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-259",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "RESIDUAL_M6_VERIFICATION_COMPONENTS_IMPLEMENTED_TESTED",
+      "beforeHours": 9,
+      "afterHours": 7.5,
+      "sourceSha": "21162ae86c2209538c4b6c76937eeccb951807d9",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226612902",
+        "https://github.com/threeswordz/cinder-grind/commit/21162ae86c2209538c4b6c76937eeccb951807d9"
+      ],
+      "basis": "Three distinct focused components: post-inventory receipt/session projection for prior preservation verifier, FM02 exact confirmed-plan and measured/milestone source rollup readback, SS08 WBS/activity/BOQ/signed bytes/stock history readback. 40/40 local Node22.16 fixture tests passed; all six published blobs match tested source. Estimate retirement 1.5h for implementation preparation only, no native evidence or duplicate credit.",
+      "blocker": "Wire consolidated native admission and actual scoped API/browser fixture binding; exact synthetic Jai role and canonical workflow authority pending; no runtime execution, no role change, no formal acceptance.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7285,8 +7306,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1623,
-  "currentRollingTotalSemantics": "1623h: Event258 actual Owner Mac inventory terminal browser PASS; M6-03 5.5→2.5h, M6 16→13h, M7 50h, M8 65h, combined128h. No new scope/rework; actual labor unknown; no formal acceptance. Provisional planning rebaseline separately 1333h, prototype77h, not canonical.",
+  "currentRollingTotalAfterPricedGapsHours": 1621.5,
+  "currentRollingTotalSemantics": "Event259: M6-02 9→7.5h, M6 13→11.5h, M7 50h, M8 65h, canonical prototype126.5h, ERP1621.5h. Distinct tested preparation only; actual labor unknown; no formal acceptance. Provisional rebaseline ERP1331.5h/prototype75.5h.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
