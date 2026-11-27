@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 72h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 187h → 0h · Full ERP 1,682h → 0h.**
+**M4 CLOSED 0h · M6 71.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 186.5h → 0h · Full ERP 1,681.5h → 0h.**
+
+**Latest evidence (event228):** [Successor migration proof](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222419690), [exact source](https://github.com/threeswordz/cinder-grind/commit/29679721cff6d6a4ff3b9be1c103bc154eea0e57). Local Node22.16.0 11/11 fixture tests PASS; exact two published blobs match. M6-01 13→12.5h; M6 72→71.5h; full ERP1682→1681.5h. 0.5h provisional helper implementation credit, scope0/rework0, no actual labor claim. Native filesystem/PG proof and successor orchestration remain open. No new CI, review, deployment or formal acceptance.
 
 **Latest evidence (event227):** [SS16 review closure and integration](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222102266). Exact independent clean review `079fbacd`, five historical source findings resolved, PR456 closed unmerged. Consolidated [candidate `a5384c27`](https://github.com/threeswordz/cinder-grind/commit/a5384c27c95423437cd63ccc6eedb5ca79ca0b3e), 19 retained evidence paths copied byte-identically, complete tree 1,442 paths, zero conflicts/mismatches. M6-03 15.5→12.5h; M6 75 +0 scope +0 rework −3h =72h; full ERP1682h. Credit is provisional future effort for completed independent review/finding reconciliation only, not actual hours or duplicate test credit. Remaining package estimates 13/19/12.5/13.5/14. Historical acceptance/UOM/split custody and affected role/configuration proof remain integrated release gates. No new CI/Mac, no Production, no formal acceptance. Next develop common successor release path; bounded rate disposition remains Owner decision.
 

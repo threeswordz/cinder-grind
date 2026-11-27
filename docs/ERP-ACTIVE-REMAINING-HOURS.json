@@ -6465,6 +6465,26 @@
       "verifiedCompletedScopeHours": 3,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-228",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "SUCCESSOR_MIGRATION_PROOF_HELPER_LOCAL_TESTS_PASS",
+      "beforeHours": 13,
+      "afterHours": 12.5,
+      "sourceSha": "29679721cff6d6a4ff3b9be1c103bc154eea0e57",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222419690",
+        "https://github.com/threeswordz/cinder-grind/commit/29679721cff6d6a4ff3b9be1c103bc154eea0e57"
+      ],
+      "basis": "0.5h provisional reduction for implemented migration proof helper, 11/11 local fixture tests and exact published blob match only.",
+      "blocker": "Filesystem scanner native coverage, pinned successor orchestration, actual PostgreSQL/Mac proof, bounded rate disposition and integrated release.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6494,8 +6514,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1682,
-  "currentRollingTotalSemantics": "1685h = prior1686.5h minus1.5h distinct provisional forecast for event218. M6 75h, M7 50h, M8 65h, combined190h. Scope0, additional rework0, labor unknown, no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1681.5,
+  "currentRollingTotalSemantics": "1681.5h = prior1682h minus0.5h event228. M6 71.5h, M7 50h, M8 65h, combined186.5h. Scope0, additional rework0, actual labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
