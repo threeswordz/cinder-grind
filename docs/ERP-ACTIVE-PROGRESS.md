@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 76.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 191.5h → 0h · Full ERP 1,686.5h → 0h.**
+**M4 CLOSED 0h · M6 75h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 190h → 0h · Full ERP 1,685h → 0h.**
+
+**Latest evidence (event218):** [Owner Mac SS16 decision-history PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220255231), exact `1877d1d5`; focused native1/1 and changed Chromium component PASS. Prior authority14/14, API/web build and migrations182/182 retained without duplicate credit. M6-03 17→15.5h; M6 76.5h +0 scope +0 additional rework −1.5h provisional remaining effort =75h. Independent DEC-022 review of GitHub code now next, no further Mac rerun or full CI for review. No formal acceptance or Production.
 
 **Latest native evidence (event215):** [Owner Mac continuity PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220087778), exact `8eb00f80`, tests8/8, selected tables19/19, documents10/10, original HR attachment/key checksums match. No session, decryption or business replay. M6-02 20→19h; M6-04 16→13.5h; M6-05 15.5→14h; M6-01 13h and M6-03 17h unchanged. Previous81.5h +0 scope +0 additional rework −5h provisional future verification estimate =76.5h. Independent SS16 review, bounded rate-bucket disposition and affected authorization/UI/configuration and governed integration still required; no formal acceptance or Production. Do not repeat event213 or event215.
 
