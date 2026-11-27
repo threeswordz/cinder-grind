@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,329h → 0h · prototype 73h → 0h** (M6 9h / M7 26h / M8 38h). Canonical ERP 1,619h; canonical prototype 124h.
+
+**Latest evidence (Event267):** [Residual role and FM02 components tested](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227080431), [exact source](https://github.com/threeswordz/cinder-grind/commit/6b63cf440931c5cea0d3c09d14a8d3a7e5f3e3e5). Six published blobs match locally tested source; 28/28 focused mocked tests PASS. Exact role plan and guarded transaction adapter, FM02 canonical HTTP sequence. No actual grant, DB/business mutation, native session or formal acceptance. M6-02 6.5→5h; estimated 1.5h preparation retired once.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 5h |
+| M6-03 | 2.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **9h** |
+
+Next: source-bound fixture and SS08/supplier canonical execution, transport, durable receipt and actual delta integration; focused tests then one stable independent DEC-022 review, exact synthetic execution authorization. No repeat preflight-only run, no prior browser replay, no CI/Codex or Production at intermediate head.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,330.5h → 0h · prototype 74.5h → 0h** (M6 10.5h / M7 26h / M8 38h). Canonical ERP 1,620.5h; canonical prototype 125.5h.
 
 **Latest evidence (Event266):** [Owner Mac residual readiness PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226939704), [proposed residual execution scope](https://github.com/threeswordz/cinder-grind/commit/47274a9800daa7a42f1843de43b48d8809a49841). Exact operator 840477f8c18665953ed3285635adc81f5091fadb; 129 historical rows and 28 prior batch sessions preserved, retained database/files/recovery unchanged. SS08 signed receipt/BOQ allocation present; dimensions absent. FM02 no eligible pairs/plans, supplier no events; Ben/Jai canonical roles absent, six missing scheduling permissions across Ben/Khaimook/Foreman. Zero new sessions or business mutations. Distinct native discovery retires 0.5h estimate; no formal acceptance.
