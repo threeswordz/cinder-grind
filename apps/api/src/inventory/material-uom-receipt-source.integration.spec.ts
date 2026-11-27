@@ -15,15 +15,23 @@ import { StockCountService } from './stock-count.service';
 import {StockTransferService} from './stock-transfer.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
 import { receivingFixture } from './receiving-test-fixture';
+import { ProblemDetailsFilter } from '../common/problem-details.filter';
+import { securityHeadersMiddleware } from '../common/security-headers';
+import { prepareConvertedCorrectionFixture, proveConvertedCorrection } from './m6-parallel-03-ss16-native-proof';
 
 test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, exact dated stock posting and original reversal', async () => {
   const url = new URL(process.env.DATABASE_URL ?? '');
   assert.ok(['localhost','127.0.0.1'].includes(url.hostname));
   assert.ok(/^\/(?:erp_validation|construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(url.pathname));
   const db=new PrismaService();await db.$connect();
-  const app=await NestFactory.create(AppModule,{logger:false});await app.init();
+  const app=await NestFactory.create(AppModule,{logger:false});
+  app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
+  const base=await app.getUrl()+'/api/v1';
   try{
     const f=await receivingFixture(db), receipts=app.get(GoodsReceiptService);
+    await prepareConvertedCorrectionFixture(db,f,['GOODS_RECEIPT','MATERIAL_ISSUE','MATERIAL_RETURN']);
+    f.store.auth=(await f.sessions.resolve(f.store.session.sessionToken))!;
+    f.pm.auth=(await f.sessions.resolve(f.pm.session.sessionToken))!;
     const definitions=app.get(MaterialUomService);
     const permissions=await db.permission.findMany({where:{permissionCode:{in:['master.material.view','master.material.manage','master.material.conversion.manage']}}});
     assert.equal(permissions.length,3);
@@ -86,7 +94,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     assert.equal(reservedChoice?.reserved.toString(),'22');assert.equal(reservedChoice?.available.toString(),'18');
     assert.equal((await quantities.activeReserved(db,{...dim,uomId:f.uom.id})).toString(),'0');
     await assert.rejects(db.materialUomReservationPin.update({where:{reservationId:rs.id},data:{stockQuantity:new Prisma.Decimal(1)}}),/MATERIAL_UOM_RESERVATION_PIN_IMMUTABLE/);
-    await assert.rejects(receipts.reverse({auth:f.store.auth},receipt.id,randomUUID(),'Protected stock reversal'),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE');
+    await proveConvertedCorrection(db,f,base,'GOODS_RECEIPT',receipt.id,'Protected stock reversal','RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE');
     const another=await reservations.create({auth:store},{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)});
     await assert.rejects(reservations.activate({auth:store},another.id,'2026-11-19'),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='RESERVATION_INSUFFICIENT_AVAILABLE');
     assert.equal(await db.materialUomReservationPin.count({where:{reservationId:another.id}}),0);
@@ -135,21 +143,17 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     assert.equal(returnedEffect.revisionId,rsPin.revisionId);assert.equal(returnedEffect.sourceQuantity.toString(),'0.5');
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'29');
     await assert.rejects(returns.create({auth:returnMaker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:issueItem.id,quantity:new Prisma.Decimal('0.6')}]}));
-    await assert.rejects(issues.reverse({auth:issuer},issue.id,randomUUID(),'Outstanding return must prevent reversal'));
+    await proveConvertedCorrection(db,f,base,'MATERIAL_ISSUE',issue.id,'Outstanding return must prevent reversal','MATERIAL_ISSUE_HAS_OUTSTANDING_RETURN');
     const fractional=await returns.create({auth:returnMaker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:issueItem.id,quantity:new Prisma.Decimal('0.1')}]});
     await returns.submit({auth:returnMaker},fractional.id,returnWorkflow.workflowCode);
     await assert.rejects(returns.approve({auth:returnChecker},fractional.id,randomUUID()));
     assert.equal(await db.stockTransaction.count({where:{materialReturnId:fractional.id}}),0);
-    const returnReversalKey=randomUUID();
-    await returns.reverse({auth:returnMaker},returned.id,returnReversalKey,'Synthetic partial return reversal');
-    await returns.reverse({auth:returnMaker},returned.id,returnReversalKey,'Synthetic partial return reversal');
+    await proveConvertedCorrection(db,f,base,'MATERIAL_RETURN',returned.id,'Synthetic partial return reversal');
     const removed=await db.stockTransaction.findFirstOrThrow({where:{reversalOfId:returnedMovement.id}});
     assert.equal(removed.quantity.toString(),'-11');
     assert.equal((await db.materialUomEffectPin.findUniqueOrThrow({where:{stockTransactionId:removed.id}})).revisionId,rsPin.revisionId);
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'18');
-    const issueReversalKey=randomUUID();
-    await issues.reverse({auth:issuer},issue.id,issueReversalKey,'Synthetic issue reversal');
-    await issues.reverse({auth:issuer},issue.id,issueReversalKey,'Synthetic issue reversal');
+    await proveConvertedCorrection(db,f,base,'MATERIAL_ISSUE',issue.id,'Synthetic issue reversal');
     const restored=await db.stockTransaction.findFirstOrThrow({where:{reversalOfId:issued.id}});
     assert.equal(restored.quantity.toString(),'22');
     assert.equal((await db.materialUomEffectPin.findUniqueOrThrow({where:{stockTransactionId:restored.id}})).revisionId,rsPin.revisionId);
@@ -170,7 +174,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'15');
     const unreservedEffect=await db.materialUomEffectPin.findUniqueOrThrow({where:{stockTransactionId:unreservedMovement.id}});
     assert.equal(unreservedEffect.revisionId,unreservedPin.revisionId);
-    await issues.reverse({auth:issuer},unreserved.id,randomUUID(),'Synthetic unreserved reversal');
+    await proveConvertedCorrection(db,f,base,'MATERIAL_ISSUE',unreserved.id,'Synthetic unreserved reversal');
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'40');
     const staleIssue=await issues.create({auth:issuer},{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)}]});
     await issues.submit({auth:issuer},staleIssue.id,issueWorkflow.workflowCode);
@@ -204,9 +208,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'40');
     const choice=(await transfers.stockChoices(counter,f.project.id,f.warehouse.id)).find(x=>x.materialId===f.material.id&&x.uomId===each.id);
     assert.equal(choice?.available.toString(),'40');
-    const reversalKey=randomUUID();
-    await receipts.reverse({auth:f.store.auth},receipt.id,reversalKey,'Reverse synthetic pinned receipt');
-    await receipts.reverse({auth:f.store.auth},receipt.id,reversalKey,'Reverse synthetic pinned receipt');
+    await proveConvertedCorrection(db,f,base,'GOODS_RECEIPT',receipt.id,'Reverse synthetic pinned receipt');
     const reversed=await db.stockTransaction.findFirstOrThrow({where:{reversalOfId:movement.id}});
     assert.equal(reversed.quantity.toString(),'-40');
     assert.equal(reversed.uomId,each.id);

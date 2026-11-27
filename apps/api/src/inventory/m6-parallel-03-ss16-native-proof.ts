@@ -1,13 +1,14 @@
 // Test-only SS16 adapter for the disposable converted-UOM native journeys.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {PrismaService} from '../prisma/prisma.service';
+import type {PrismaService} from '../prisma/prisma.service';
 
 type Actor={user:{id:string};role:{id:string;companyId:string;roleCode:string};session:{sessionToken:string;csrfToken:string}};
 type Fixture={company:{id:string;companyCode:string;companyName:string};store:Actor;pm:Actor};
 const kinds={
  GOODS_RECEIPT:{field:'goodsReceiptId',route:'goods-receipts',permission:'inventory.receipt',effect:'receipt-reversal:'},
  MATERIAL_ISSUE:{field:'materialIssueId',route:'material-issues',permission:'inventory.issue',effect:'material-issue-reversal:'},
+ MATERIAL_RETURN:{field:'materialReturnId',route:'material-returns',permission:'inventory.return',effect:'material-return-reversal:'},
  STOCK_TRANSFER:{field:'stockTransferId',route:'stock-transfers',permission:'inventory.transfer',effect:'stock-transfer-reversal:'},
 } as const;
 type Kind=keyof typeof kinds;
@@ -55,6 +56,8 @@ export async function proveConvertedCorrection(db:PrismaService,f:Fixture,base:s
  const payload={requestKey:randomUUID(),reason};
  await call(f.pm,'/inventory/'+k.route+'/'+id+'/reverse',409,{reversalKey:payload.requestKey,reason},'SS16_CORRECTION_APPROVAL_REQUIRED');
  const request=await call(f.store,path,201,payload);
+ assert.equal(request.sourceId,id);assert.equal(request.sourceKind,kind);assert.equal(request.companyId,f.company.id);
+ assert.equal(request.requestedByUserId,f.store.user.id);assert.equal(request.reason,reason);
  assert.equal(request.approvalInstance.approvalState,'SUBMITTED');
  assert.equal((await call(f.store,path,201,payload)).id,request.id);
  const approve=root+'/'+request.id+'/approve',comment='Independent converted stock correction';
@@ -63,14 +66,14 @@ export async function proveConvertedCorrection(db:PrismaService,f:Fixture,base:s
  const history=async()=>{
   const rows=await call(f.pm,path,200);
   const row=rows.find((r:any)=>r.id===request.id);
-  assert.ok(row);return row.approvalInstance;
+  assert.ok(row);assert.equal(row.sourceId,id);assert.equal(row.sourceKind,kind);assert.equal(row.reason,reason);assert.equal(row.requestedByUserId,f.store.user.id);return row.approvalInstance;
  };
  if(blockedCode){
   await call(f.pm,approve,409,{comment},blockedCode);
   const pending=await history();
   assert.equal(pending.approvalState,'SUBMITTED');assert.equal(pending.actions.length,0);
   assert.deepEqual(await read(),before);
-  const rejection='Outstanding physical custody';
+  const rejection='Original source restriction confirmed';
   await call(f.pm,root+'/'+request.id+'/reject',201,{comment:rejection});
   const rejected=await history();
   assert.equal(rejected.approvalState,'REJECTED');assert.equal(rejected.actions.length,1);
@@ -93,9 +96,10 @@ export async function proveConvertedCorrection(db:PrismaService,f:Fixture,base:s
   assert.equal(matches.length,1);
   const reversal=matches[0]!;
   assert.equal(reversal.quantity.toString(),original.quantity.negated().toString());
+  assert.equal(reversal.movementType,original.movementType+'_REVERSAL');
   assert.equal(reversal.effectKey,k.effect+original.id);
   assert.equal(reversal.postedByUserId,f.pm.user.id);
-  for(const field of ['companyId','warehouseId','projectId','materialId','uomId','goodsReceiptId','goodsReceiptItemId','materialIssueId','materialIssueItemId','stockTransferId','stockTransferItemId','transferReceiptLineId','wbsId','costCodeId','activityId'] as const)assert.equal(reversal[field],original[field],field);
+  for(const field of ['companyId','warehouseId','projectId','materialId','uomId','goodsReceiptId','goodsReceiptItemId','materialIssueId','materialIssueItemId','materialReturnId','materialReturnItemId','stockTransferId','stockTransferItemId','transferReceiptLineId','wbsId','costCodeId','activityId'] as const)assert.equal(reversal[field],original[field],field);
   const pin=original.materialUomEffectPin,reversePin=reversal.materialUomEffectPin;
   if(pin){
    assert.ok(reversePin);
