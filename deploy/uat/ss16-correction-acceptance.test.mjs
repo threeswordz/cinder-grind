@@ -45,3 +45,7 @@ test('wrong replay id and missing stock outcome both fail closed',async()=>{
 test('completed history cannot be silently absent',async()=>{
  const f=fixture('MATERIAL_ISSUE',undefined,{CORRECTION_HISTORY:{data:[]}});await assert.rejects(acceptCorrection(f.args),/HISTORY/);
 });
+
+test('same actor identity in distinct objects fails before HTTP',async()=>{
+ const f=fixture();f.args.reviewer={...maker};await assert.rejects(acceptCorrection(f.args),/INPUT/);assert.equal(f.seen.length,0);
+});
