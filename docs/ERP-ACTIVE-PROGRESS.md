@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,330.5h → 0h · prototype 74.5h → 0h** (M6 10.5h / M7 26h / M8 38h). Canonical ERP 1,620.5h; canonical prototype 125.5h.
+
+**Latest evidence (Event266):** [Owner Mac residual readiness PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226939704), [proposed residual execution scope](https://github.com/threeswordz/cinder-grind/commit/47274a9800daa7a42f1843de43b48d8809a49841). Exact operator 840477f8c18665953ed3285635adc81f5091fadb; 129 historical rows and 28 prior batch sessions preserved, retained database/files/recovery unchanged. SS08 signed receipt/BOQ allocation present; dimensions absent. FM02 no eligible pairs/plans, supplier no events; Ben/Jai canonical roles absent, six missing scheduling permissions across Ben/Khaimook/Foreman. Zero new sessions or business mutations. Distinct native discovery retires 0.5h estimate; no formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 6.5h |
+| M6-03 | 2.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **10.5h** |
+
+Next: implement and test consolidated synthetic fixture and canonical workflow operator; exact mutation/session authorization only when ready. No repeat preflight-only run, no historical business replay, no Production/full CI/Codex.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
 
 **Latest evidence (Event265):** [Prisma restored; session census corrected](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226890434), [corrected operator](https://github.com/threeswordz/cinder-grind/commit/840477f8c18665953ed3285635adc81f5091fadb). Owner confirmed Prisma6.19.3 restored; residual admission reached inventory projection. Corrected hardcoded session total to historical baseline +17, exact historical hashes and prior chain preserved. 17/17 focused tests passed, exact helper/test blobs verified. Native readiness pending; no earned retirement or net rework increase.
