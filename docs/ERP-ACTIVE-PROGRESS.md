@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 58h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 173h → 0h · Full ERP 1,668h → 0h.**
+**M4 CLOSED 0h · M6 52h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 167h → 0h · Full ERP 1,662h → 0h.**
+
+**Latest evidence (event231):** [Owner Mac affected-only PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223397336), exact [candidate](https://github.com/threeswordz/cinder-grind/commit/70013b5139292ef33563447f8937c8f132feabd2). Offline dependencies, Prisma/API/web build, 184/184 fresh migrations, 28/28 changed fixture tests, 16/16 frontend guards, four native groups 4/4, 48/48 total. Prior SS16 and six native groups not rerun. Populated successor and browser not run. M6 58→52h; packages 7/16/8/11/10h. −6h distinct integrated evidence credit, scope0/rework0, no labor or formal acceptance claim. No HR native proof or retained role changes. Next populated isolated rehearsal and operational/browser binding. Main unchanged.
 
 **Latest evidence (event229):** [Central parallel integration and reconciliation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7223126548), [verified tree union](https://github.com/threeswordz/cinder-grind/commit/44f45d8666fc290bdd2933ea296d1a8e29b3caf9), [common readback sequencer](https://github.com/threeswordz/cinder-grind/commit/bdddebe50aa4e55cb12b3ec7f63f28d3b11f7920). Five pinned lane histories, 21 commits/42 disjoint paths, 1,479 blobs exact union. 156 distinct builder-reported focused tests across heads; actual new sequencer7/7 locally with matching blobs. M6 71.5→58h; remaining packages 7.5/17/11/12.5/10h. Proposed 19.5h minus0.5h overlap minus6h deferred HR, plus0.5h distinct sequencer =13.5h provisional future effort retirement; no measured labor or native/release credit. Scope0/rework0. Actual native runtime/receipt/session binding, changed adapters, browser and PG verification outstanding. No full CI/Codex/Work/Mac deployment/Production. Main unchanged.
 
