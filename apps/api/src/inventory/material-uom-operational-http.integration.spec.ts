@@ -13,6 +13,7 @@ import {securityHeadersMiddleware} from '../common/security-headers';
 import {MaterialUomService} from '../master-data/material-uom.service';
 import {InventoryReportService} from './inventory-report.service';
 import {receivingFixture} from './receiving-test-fixture';
+import {prepareConvertedCorrectionFixture,proveConvertedCorrection} from './m6-parallel-03-ss16-native-proof';
 
 test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates, reservation and automatic issue freeze',async()=>{
  const target=new URL(process.env.DATABASE_URL??'');assert.ok(['localhost','127.0.0.1'].includes(target.hostname));
@@ -111,9 +112,9 @@ test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates
   assert.equal(convertedIssue.conversion?.numerator,'24');
   assert.equal(convertedIssue.conversion?.businessDate,'2026-11-19');
   assert.equal(originalReceipt?.conversion?.numerator,'20'); // Later mapping never rewrites an earlier receipt.
-  await call(f.store,'/inventory/material-issues/'+issue.id+'/reverse',201,{reversalKey:randomUUID(),reason:'Original HTTP issue reversal'});assert.equal(await balance(),'60');
-  const reverse={reversalKey:randomUUID(),reason:'Original physical delivery reversal'};
-  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);
+  await prepareConvertedCorrectionFixture(db,f,['MATERIAL_ISSUE','GOODS_RECEIPT']);
+  await proveConvertedCorrection(db,f,base,'MATERIAL_ISSUE',issue.id,'Original HTTP issue reversal');assert.equal(await balance(),'60');
+  await proveConvertedCorrection(db,f,base,'GOODS_RECEIPT',receipt.id,'Original physical delivery reversal');
   assert.equal(await balance(),'0');assert.equal((await detail()).usable,false);
   assert.deepEqual([await db.payment.count({where:{companyId:f.company.id}}),await db.directCostPosting.count({where:{companyId:f.company.id}})],financialBefore);
  }finally{await app.close();await db.$disconnect();if(previousStorage===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=previousStorage;await rm(storage,{recursive:true,force:true});}
