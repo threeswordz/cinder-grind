@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 17h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 132h → 0h · Full ERP 1,627h → 0h.**
+**M4 CLOSED 0h · M6 16h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 131h → 0h · Full ERP 1,626h → 0h.**
+
+**Latest evidence (Event254):** [Targeted terminal inventory proof implemented](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225910006), [exact operator](https://github.com/threeswordz/cinder-grind/commit/8cb8ae337788fa9b8d8a9ade9f626167c3ef42dd). 10/10 focused tests PASS, native entry syntax PASS, native browser not executed. Existing receiving 4 observed/3 posted/1 held, transfer 5 dispatched/4 received/1 outstanding, converted GR source3/stock60, SS16 maker/checker and advisory-only supplier view. Prior 25 revoked sessions/HR/subcontract receipts admitted read-only. No duplicate native proof credit. Synthetic Jai lacks canonical PROCUREMENT_OFFICER role; no unauthorized grant. Three fresh authorized sessions needed; supplier lifecycle browser not claimed. M6-03 6.5→5.5h, M6 17→16h; scope0/rework0, actual labor unknown, no formal acceptance.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 5.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **16h** |
+
+Prior entries below are historical snapshots.
 
 **Latest evidence (Event253):** [Owner Mac terminal subcontract browser PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225755346), [exact operator](https://github.com/threeswordz/cinder-grind/commit/6cbb39d3647af785551bbee5c967b25c0083b9a4). Ben/Nancy terminal physical and certification scope, finance references, 171 non-auth tables unchanged, 23 prior sessions and HR audit preserved, two new sessions revoked, no business/audit mutations. Combined prior lifecycle/native evidence meets M6-04 technical exit; hold 0.5h independent acceptance reserve. M6-04 5.5→0.5h, M6 22→17h; scope0/rework0, actual labor unknown. HR receipt repeated in paste not new credit. No repeat runtime or extra CI. Next M6-03 SS16/supplier remaining affected browser evidence; full milestone acceptance pending.
 

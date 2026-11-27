@@ -7172,6 +7172,27 @@
       "verifiedCompletedScopeHours": 5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-254",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "TARGETED_INVENTORY_TERMINAL_BROWSER_IMPLEMENTED_TESTED",
+      "beforeHours": 6.5,
+      "afterHours": 5.5,
+      "sourceSha": "8cb8ae337788fa9b8d8a9ade9f626167c3ef42dd",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225910006",
+        "https://github.com/threeswordz/cinder-grind/commit/8cb8ae337788fa9b8d8a9ade9f626167c3ef42dd"
+      ],
+      "basis": "10/10 focused local tests; exact canonical receiving PO/GR/stock, partial transfer and converted receipt binding, role-scoped read-only browser adapter, prior subcontract/HR/session admission. Native entry syntax checked only. No duplicate credit for earlier native converted and supplier lifecycle results.",
+      "blocker": "Owner authority for three receipt-bound synthetic Store Site/Khaimook/Porn sessions and bounded login-rate lifecycle; actual browser run pending. Synthetic Jai lacks PROCUREMENT_OFFICER canonical role; separate explicit resolution and remaining supplier evidence needed, no grant change performed.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7201,8 +7222,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1627,
-  "currentRollingTotalSemantics": "1627h = prior1632h -5h distinct native terminal subcontract browser evidence (Event253). M6 17h, M7 50h, M8 65h, combined132h. Scope0/rework0; actual labor unknown, subcontract technical exit evidenced with 0.5h acceptance reserve; formal acceptance false.",
+  "currentRollingTotalAfterPricedGapsHours": 1626,
+  "currentRollingTotalSemantics": "1626h = prior1627h -1h distinct tested terminal inventory browser preparation (Event254). M6 16h, M7 50h, M8 65h, combined131h. Scope0/rework0 in already-priced verification/fixture scope; actual labor unknown, native run and Jai synthetic role resolution pending; no formal acceptance.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
