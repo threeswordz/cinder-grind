@@ -159,7 +159,7 @@ async function main(){
         const beforeBinding=bindSuccessorRoster({fixture,original:privateActors.actors,attempt,committed,users:beforeUsers,projects});need(beforeBinding.rosterSha256===failed.rosterSha256&&same(planQuantityCorrection({binding:beforeBinding,original:privateActors.actors,fixture,users:beforeUsers,projects,permissionRow}),correction.plan),'CORRECTION_SCOPE');
         for(const k of ['JAI','PORN','STORE_SITE','KHAIMOOK'])need(b.roster[k].permissions.includes(permission)&&!b.roster[k].permissions.some(p=>p==='budget.cost.full_view'||p.startsWith('budget.customer.')),'BOQ_PREFLIGHT');
         for(const k of ['BEN','NANCY'])need(['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'].every(p=>b.roster[k].permissions.includes(p)),'FULL_BOQ_PREFLIGHT');
-        return b;
+        return {...b,historicalSessionRowsPreserved:sessions.length};
       });
       mark('RETAINED_CUSTODY_CAPTURE');
       const old=await captureSuccessorDatabase(sourceDb,'proto_a_01',177),files=Object.fromEntries(await Promise.all(['documents','uploads','hrkeys'].map(async k=>[k,await inventory(join(root,k))])));
@@ -222,7 +222,7 @@ async function main(){
       try{verifyRateBucketAdmission(authState);}catch(e){if(e.safeCode!=='M6_OPERATIONAL_LIVE_LOCAL_BUCKET')throw e;rateBucketReady=false;}
       mark('FINAL_CUSTODY');
       await verifyBeforeSessions();await verifyPreserved();
-      return {status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};
+      return {status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,historicalSessionRowsPreserved:binding.historicalSessionRowsPreserved,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};
     }finally{await sourceDb.$disconnect();}
   }finally{await db.$disconnect();}
 }
