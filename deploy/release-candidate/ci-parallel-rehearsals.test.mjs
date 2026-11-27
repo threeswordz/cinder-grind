@@ -91,3 +91,71 @@ test('lane setup, execution or cleanup failure poisons gate and cleans completed
     assert.deepEqual(cleaned,failure==='prepare'?['lane0']:['lane1','lane0']);
   }
 });
+
+import {SHARDS,ciIdentity,artifactName,checkShard,readArtifact,collectShards} from './ci-sharded-rehearsals.mjs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,symlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join,basename} from 'node:path';
+const shardEnv={GITHUB_ACTIONS:'true',RELEASE_COMMIT:SHA,EXACT_RELEASE_COMMIT:SHA,
+  GITHUB_WORKFLOW:'Validate Construction ERP',GITHUB_WORKFLOW_REF:'fixture/erp/.github/workflows/validate.yml@refs/pull/42/merge',
+  GITHUB_RUN_ID:'1234',GITHUB_RUN_NUMBER:'99',GITHUB_RUN_ATTEMPT:'2',GITHUB_REPOSITORY:'fixture/erp'};
+function shardRows(job,env=shardEnv){
+  return new Map(SHARDS[job].map(entry=>[entry.file,JSON.stringify({
+    releaseCommit:env.RELEASE_COMMIT,previousReleaseCommit:entry.previous,
+    exactCheckout:'PASS',cleanTree:'PASS',freshMigration:'PASS',
+    verifiedRecoveryPoint:'PASS',productionPreparation:'PASS',rollbackReadiness:'PASS',
+    ci:ciIdentity(env,job),
+  })]));
+}
+test('four runner shards preserve exactly the existing eight source/evidence pairs',()=>{
+  assert.equal(Object.keys(SHARDS).length,4);
+  assert.ok(Object.values(SHARDS).every(s=>s.length===2));
+  assert.deepEqual(Object.values(SHARDS).flat().map(x=>x.previous).sort(),GROUPS.flat().map(x=>x.previous).sort());
+  assert.deepEqual(Object.values(SHARDS).flat().map(x=>x.file).sort(),GROUPS.flat().map(x=>x.file).sort());
+  assert.equal(collectShards(shardEnv,job=>shardRows(job)).size,8);
+});
+test('historical shards reject stale attempt, wrong runner, wrong candidate and incomplete proof',()=>{
+  for(const modify of [
+    row=>({...row,ci:{...row.ci,runAttempt:'1'}}),
+    row=>({...row,ci:{...row.ci,runId:'9999'}}),
+    row=>({...row,ci:{...row.ci,job:'history-d'}}),
+    row=>({...row,ci:{...row.ci,workflowRef:'unexpected'}}),
+    row=>({...row,ci:{...row.ci,repository:'other/repo'}}),
+    row=>({...row,releaseCommit:'b'.repeat(40)}),
+    row=>({...row,previousReleaseCommit:'b'.repeat(40)}),
+    row=>({...row,rollbackReadiness:'FAIL'}),
+  ]){
+    assert.throws(()=>collectShards(shardEnv,job=>{
+      const rows=shardRows(job);
+      if(job==='history-a'){const [path,raw]=rows.entries().next().value;rows.set(path,JSON.stringify(modify(JSON.parse(raw))));}
+      return rows;
+    }));
+  }
+  assert.throws(()=>collectShards(shardEnv,job=>job==='history-c'?new Map():shardRows(job)));
+  assert.throws(()=>collectShards(shardEnv,job=>job==='history-a'?shardRows('history-d'):shardRows(job)));
+  assert.throws(()=>ciIdentity(shardEnv,'validate'));
+  assert.throws(()=>ciIdentity({...shardEnv,GITHUB_RUN_ATTEMPT:'0'},'history-a'));
+  assert.throws(()=>ciIdentity({...shardEnv,EXACT_RELEASE_COMMIT:'b'.repeat(40)},'history-a'));
+  assert.notEqual(artifactName(shardEnv,'history-a'),artifactName({...shardEnv,GITHUB_RUN_ATTEMPT:'3'},'history-a'));
+});
+test('artifact ingestion rejects missing, extra, symlink and stale-attempt evidence',()=>{
+  const root=mkdtempSync(join(tmpdir(),'erp-shard-test-'));
+  try{
+    const job='history-a',dir=join(root,artifactName(shardEnv,job));
+    mkdirSync(dir);
+    const rows=shardRows(job);
+    for(const [path,raw] of rows)writeFileSync(join(dir,basename(path)),raw);
+    assert.equal(readArtifact(root,job,shardEnv).size,2);
+    const extra=join(dir,'unexpected.json');
+    writeFileSync(extra,'{}');
+    assert.throws(()=>readArtifact(root,job,shardEnv),/inventory/);
+    rmSync(extra);
+    const first=join(dir,basename(SHARDS[job][0].file)),target=join(root,'target.json');
+    writeFileSync(target,rows.get(SHARDS[job][0].file));
+    rmSync(first);
+    assert.throws(()=>readArtifact(root,job,shardEnv),/inventory/);
+    symlinkSync(target,first);
+    assert.throws(()=>readArtifact(root,job,shardEnv),/Invalid evidence file/);
+    assert.throws(()=>readArtifact(root,job,{...shardEnv,GITHUB_RUN_ATTEMPT:'3'}));
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
