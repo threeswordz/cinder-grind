@@ -8,11 +8,12 @@ const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export const snapshotTables=Object.freeze([...hrTables,'documents','document_links']);
 // Exact same SQL representation as the existing fm03Snapshot, with a fixed
 // table allowlist and bounded size. Keep private snapshots in memory only.
-export async function captureHrSuccessorSnapshot(db){
+export async function captureHrSuccessorSnapshot(db,database='proto_a_01'){
+ need(['proto_a_01','m6_successor_rehearsal'].includes(database),'DB_SCOPE');
  return db.$transaction(async tx=>{
   await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
   const ids=await tx.$queryRawUnsafe("SELECT current_database() AS db,current_user AS role,current_setting('transaction_read_only') AS ro,current_setting('transaction_isolation') AS isolation");
-  need(ids.length===1&&ids[0].db==='proto_a_01'&&ids[0].role==='proto_runtime'&&ids[0].ro==='on'&&ids[0].isolation==='repeatable read','DB_IDENTITY');
+  need(ids.length===1&&ids[0].db===database&&ids[0].role==='proto_runtime'&&ids[0].ro==='on'&&ids[0].isolation==='repeatable read','DB_IDENTITY');
   await requireNoLiveSessions(tx);
   const out={};for(const t of snapshotTables){
    const rows=await tx.$queryRawUnsafe('SELECT to_jsonb(t)::text AS bytes FROM public."'+t+'" t LIMIT 10001');

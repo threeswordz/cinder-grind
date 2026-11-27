@@ -41,16 +41,19 @@ export async function readSS16Config(tx,b){
  const projects=await tx.project.findMany({where:{id:{in:b.projectIds},companyId:b.companyId},select:{id:true,companyId:true,isActive:true,members:{where:{employeeId:{in:[store.employee.id,pm.employee.id]}},select:{employeeId:true,isActive:true}}}});
  return {company,workflow,store,pm,projects};
 }
-export async function observeRetainedSS16Config(db,b){
+async function observeSS16Config(db,b,database){
  binding(b);
  need(/^[0-9a-f]{40}$/.test(b.sourceSha??''),'SOURCE_SHA');
  return db.$transaction(async tx=>{
   await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
   const rows=await tx.$queryRawUnsafe("SELECT current_database() AS db,current_user AS role,current_setting('transaction_read_only') AS ro,current_setting('transaction_isolation') AS isolation");
-  need(rows?.length===1&&rows[0].db==='proto_a_01'&&rows[0].role==='proto_runtime'&&rows[0].ro==='on'&&rows[0].isolation==='repeatable read','DATABASE');
+  need(rows?.length===1&&rows[0].db===database&&rows[0].role==='proto_runtime'&&rows[0].ro==='on'&&rows[0].isolation==='repeatable read','DATABASE');
   await requireNoLiveSessions(tx);
   const snapshot=await readSS16Config(tx,b);
   need(snapshot.company?.companyCode==='PROTO_A','RETAINED_COMPANY');
   return assertSS16Config(b,snapshot);
  },{isolationLevel:'RepeatableRead',timeout:30000});
 }
+
+export function observeRetainedSS16Config(db,b){return observeSS16Config(db,b,'proto_a_01');}
+export function observeSuccessorSS16Config(db,b){return observeSS16Config(db,b,'m6_successor_rehearsal');}

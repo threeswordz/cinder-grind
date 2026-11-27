@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {sequenceCommonReadbacks,verifyCommonCandidate} from './m6-common-successor.mjs';
+function fixture(){
+  const candidate={sha:'a'.repeat(40),tree:'b'.repeat(40),syntheticOnly:true,rehearsalOnly:true,productionAuthorized:false};
+  const receipt={status:'M6_SUCCESSOR_ISOLATED_REHEARSAL_SEALED',candidateSha:candidate.sha,candidateTree:candidate.tree,predecessorChecksumsMatched:177,additionsMatched:7,appliedChecksumsMatched:184,restoredRowsMatched:true,recoveryCopyUnchanged:true,retainedDatabaseAndFilesUnchanged:true,cutoverPerformed:false,milestone6Accepted:false,productionAuthorized:false};
+  const calls=[];
+  const checks={config:{status:'M6_SS16_CONFIGURATION_OBSERVED',mayMutate:false},site:async()=>{calls.push('site');return {status:'M6_02_SITE_MATERIAL_ROLE_READBACK_VERIFIED',mutationsPerformed:false};},certification:async()=>{calls.push('cert');return {status:'M6_04_CERTIFICATION_SCOPE_ASSERTIONS_PASS',scopedDenialAssertions:5,mayMutate:false};},hrDenials:async()=>{calls.push('hr');return {status:'M6_HR_SUCCESSOR_DENIAL_ASSERTIONS_PASS',denials:15,positiveControls:2};},hrFinish:async()=>{calls.push('finish');return {status:'M6_HR_SUCCESSOR_EXIT_ASSERTIONS_PASS',zeroActiveSessionsObserved:true,denials:15,positiveControls:2};}};
+  const args={candidate,receipt,verifyRuntime:async()=>calls.push('runtime'),prepare:async()=>{calls.push('prepare');return checks;},withSessions:async fn=>{calls.push('sessions');try{await fn({});}finally{calls.push('revoke');}},verifyFinal:async()=>{calls.push('final');return {zeroActiveSessions:true,sessionRevocationVerified:true,authHistoryPreserved:true,businessRowsPreserved:true,protectedFilesPreserved:true,retainedRuntimeUnchanged:true};}};
+  return {args,calls,checks};
+}
+test('one prepared batch, finish only after revocation, no release claim',async()=>{const {args,calls}=fixture();const r=await sequenceCommonReadbacks(args);assert.deepEqual(calls,['runtime','prepare','sessions','site','cert','hr','revoke','runtime','finish','final','runtime']);assert.equal(r.milestone6Accepted,false);assert.equal(r.affectedNativeAndBrowserTestsRequired,true);});
+test('reject wrong tree or incomplete migration before preparation',async()=>{const {args,calls}=fixture();args.receipt.candidateTree='c'.repeat(40);await assert.rejects(sequenceCommonReadbacks(args),/REHEARSAL/);assert.deepEqual(calls,[]);args.receipt.candidateTree=args.candidate.tree;args.receipt.appliedChecksumsMatched=183;assert.throws(()=>verifyCommonCandidate(args.candidate,args.receipt),/REHEARSAL/);});
+test('reject missing SS16 configuration before sessions',async()=>{const {args,calls,checks}=fixture();checks.config={};await assert.rejects(sequenceCommonReadbacks(args),/PREPARE/);assert.deepEqual(calls,['runtime','prepare']);});
+test('failure within batch still invokes adapter cleanup; no final pass',async()=>{const {args,calls,checks}=fixture();checks.certification=async()=>({});await assert.rejects(sequenceCommonReadbacks(args),/CERTIFICATION/);assert.deepEqual(calls,['runtime','prepare','sessions','site','revoke']);});
+test('reject skipped session callback',async()=>{const {args}=fixture();args.withSessions=async()=>{};await assert.rejects(sequenceCommonReadbacks(args),/SESSION_BATCH/);});
+test('reject duplicate session callback',async()=>{const {args}=fixture();args.withSessions=async fn=>{await fn({});await fn({});};await assert.rejects(sequenceCommonReadbacks(args),/SESSION_REPLAY/);});
+test('reject incomplete auth and preservation evidence',async()=>{const {args}=fixture();args.verifyFinal=async()=>({zeroActiveSessions:true,sessionRevocationVerified:true});await assert.rejects(sequenceCommonReadbacks(args),/FINAL/);});
