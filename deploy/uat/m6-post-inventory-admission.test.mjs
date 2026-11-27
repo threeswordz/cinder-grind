@@ -18,3 +18,15 @@ function fixture(){
 }
 test('projects only three consumed inventory sessions; preserves stock and audit for downstream checks',()=>{const a=fixture(),p=projectPostInventoryBaseline(a);assert.equal(p.sessionRows.length,25);assert.deepEqual(p.current.user_sessions,a.prior.map(s=>s.hash).sort());assert.deepEqual(p.current.stock_transactions,a.current.stock_transactions);assert.deepEqual(p.current.audit_logs,a.current.audit_logs);assert.equal(a.current.user_sessions.length,28);});
 for(const [name,change] of [['wrong receipt source',a=>a.receipt.operatorSha='wrong'],['wrong started roster',a=>a.started.rosterSha256=hash('other')],['wrong actor',a=>a.started.actorIds[0]=id(9)],['new business mutation',a=>a.receipt.businessMutationsPerformed=true],['overclaimed supplier evidence',a=>a.receipt.supplierFullLifecycleBrowserVerified=true],['missing prior session',a=>a.current.user_sessions.shift()],['duplicate session hash',a=>a.sessionRows[27].hash=a.sessionRows[26].hash],['active session',a=>a.sessionRows[27].revoked=false],['ambiguous chronology',a=>a.sessionRows[27].created='2026-11-28T09:00:00Z'],['overlapping prior session',a=>a.sessionRows[24].revokedAt='2026-11-28T11:00:00Z']])test('rejects '+name,()=>{const a=fixture();change(a);assert.throws(()=>projectPostInventoryBaseline(a),/M6_POST_INVENTORY_/);});
+
+// Exercise the real contract: historical rows are independent of batch counts.
+function withRetained(n){
+ const a=fixture(),historical=Array.from({length:n},(_,i)=>({hash:hash('retained-'+i),actor:id(99),created:'2026-11-28T08:00:00Z',revokedAt:null,revoked:false}));
+ a.sessionRows=[...historical,...a.sessionRows.slice(11)];
+ a.baseline.user_sessions=historical.map(s=>s.hash).sort();
+ a.current.user_sessions=a.sessionRows.map(s=>s.hash).sort();
+ return a;
+}
+for(const n of [0,1,11,37])test('preserves variable historical census '+n,()=>{const a=withRetained(n),p=projectPostInventoryBaseline(a);assert.equal(p.sessionRows.length,n+14);assert.equal(a.current.user_sessions.length,n+17);assert.ok(a.baseline.user_sessions.every(h=>p.current.user_sessions.includes(h)));});
+test('rejects extra fresh session even when baseline count differs',()=>{const a=withRetained(37);const s={...a.sessionRows.at(-1),hash:hash('extra')};a.sessionRows.push(s);a.current.user_sessions.push(s.hash);a.current.user_sessions.sort();assert.throws(()=>projectPostInventoryBaseline(a),/SESSION_COUNT_DELTA/);});
+test('rejects altered retained row with equal total census',()=>{const a=withRetained(37),old=a.sessionRows[0].hash;a.sessionRows[0].hash=hash('changed');a.current.user_sessions=a.current.user_sessions.map(h=>h===old?a.sessionRows[0].hash:h).sort();assert.throws(()=>projectPostInventoryBaseline(a),/SESSION_HISTORY/);});
