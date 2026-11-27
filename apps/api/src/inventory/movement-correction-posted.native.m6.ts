@@ -103,6 +103,61 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
       assert.deepEqual(await db.approvalInstance.findUniqueOrThrow({where:{id:aid}}),before);
       assert.deepEqual(await db.approvalAction.findUniqueOrThrow({where:{id:action.id}}),action);
     };
+    // Raw approval + matching header cannot commit without ALL canonical
+    // effects. Test every source kind and a partial paired transfer.
+    const assertIncompleteReversal=async(row:typeof pending,actor:string,mode:'missing'|'partial'|'wrong-key'='missing')=>{
+      const tables:Record<string,{table:string;column:string;prefix:string}>={
+        GOODS_RECEIPT:{table:'goods_receipts',column:'goods_receipt_id',prefix:'receipt-reversal:'},
+        MATERIAL_ISSUE:{table:'material_issues',column:'material_issue_id',prefix:'material-issue-reversal:'},
+        MATERIAL_RETURN:{table:'material_returns',column:'material_return_id',prefix:'material-return-reversal:'},
+        STOCK_TRANSFER:{table:'stock_transfers',column:'stock_transfer_id',prefix:'stock-transfer-reversal:'}
+      };
+      const {table,column,prefix}=tables[row.sourceKind]!;
+      const before=await db.$queryRawUnsafe<unknown[]>(`SELECT * FROM ${table} WHERE id=$1::uuid`,row.sourceId);
+      const originalStock=await db.$queryRawUnsafe<unknown[]>(`SELECT * FROM stock_transactions WHERE ${column}=$1::uuid ORDER BY id`,row.sourceId);
+      assert.ok(originalStock.length>0);
+      await assert.rejects(db.$transaction(async tx=>{
+        const step=await tx.approvalStep.findFirstOrThrow({where:{approvalWorkflowId:row.approvalInstance.approvalWorkflowId,stepNo:row.approvalInstance.currentStepNo}});
+        await tx.approvalAction.create({data:{approvalInstanceId:row.approvalInstanceId,approvalStepId:step.id,
+          action:'APPROVE',actionByUserId:actor,comment:'Synthetic raw correction proof'}});
+        await tx.approvalInstance.update({where:{id:row.approvalInstanceId},data:{approvalState:'APPROVED',completedAt:new Date()}});
+        await tx.$executeRawUnsafe(`UPDATE ${table} SET reversed_at=$1,reversal_key=$2,reversed_by_user_id=$3::uuid,reversal_reason=$4 WHERE id=$5::uuid`,
+          new Date(),'ss16:'+row.id,actor,row.reason,row.sourceId);
+        if(mode!=='missing'){
+          // A real compensating row with a wrong effect key, or only one
+          // paired transfer leg, must not satisfy the deferred proof.
+          await tx.$executeRawUnsafe(`INSERT INTO stock_transactions
+            (id,company_id,warehouse_id,material_id,project_id,uom_id,goods_receipt_id,goods_receipt_item_id,material_issue_id,material_issue_item_id,
+             material_return_id,material_return_item_id,stock_transfer_id,stock_transfer_item_id,transfer_receipt_line_id,wbs_id,cost_code_id,activity_id,
+             movement_type,quantity,effect_key,reversal_of_id,posted_by_user_id)
+            SELECT $1::uuid,company_id,warehouse_id,material_id,project_id,uom_id,goods_receipt_id,goods_receipt_item_id,material_issue_id,material_issue_item_id,
+             material_return_id,material_return_item_id,stock_transfer_id,stock_transfer_item_id,transfer_receipt_line_id,wbs_id,cost_code_id,activity_id,
+             movement_type||'_REVERSAL',-quantity,$2||id::text,id,$3::uuid FROM stock_transactions
+             WHERE ${column}=$4::uuid AND reversal_of_id IS NULL ORDER BY id LIMIT 1`,
+            randomUUID(),mode==='wrong-key'?'incorrect-reversal-key:':prefix,actor,row.sourceId);
+        }
+      },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable}),/SS16 reversal ledger incomplete/);
+      assert.deepEqual(await db.$queryRawUnsafe<unknown[]>(`SELECT * FROM ${table} WHERE id=$1::uuid`,row.sourceId),before);
+      assert.deepEqual(await db.$queryRawUnsafe<unknown[]>(`SELECT * FROM stock_transactions WHERE ${column}=$1::uuid ORDER BY id`,row.sourceId),originalStock);
+      assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:row.approvalInstanceId}})).approvalState,'SUBMITTED');
+      assert.equal(await db.approvalAction.count({where:{approvalInstanceId:row.approvalInstanceId}}),0);
+    };
+    const assertOriginalTerminal=async(aid:string)=>{
+      const before=await db.approvalInstance.findUniqueOrThrow({where:{id:aid}});
+      assert.ok(['CANCELLED','APPROVED'].includes(before.approvalState));
+      const actions=await db.approvalAction.findMany({where:{approvalInstanceId:aid},orderBy:{id:'asc'}});
+      assert.ok(actions.length>0);
+      await assert.rejects(db.approvalInstance.update({where:{id:aid},data:{approvalState:'SUBMITTED',completedAt:null}}));
+      await assert.rejects(db.approvalInstance.update({where:{id:aid},data:{completedAt:new Date(before.completedAt!.getTime()+1000)}}));
+      for(const action of actions){
+        await assert.rejects(db.approvalAction.update({where:{id:action.id},data:{comment:'tampered terminal evidence'}}));
+        await assert.rejects(db.approvalAction.delete({where:{id:action.id}}));
+      }
+      await assert.rejects(db.approvalAction.create({data:{approvalInstanceId:aid,approvalStepId:actions[0]!.approvalStepId,
+        action:'REJECT',actionByUserId:actions[0]!.actionByUserId,comment:'late terminal action'}}));
+      assert.deepEqual(await db.approvalInstance.findUniqueOrThrow({where:{id:aid}}),before);
+      assert.deepEqual(await db.approvalAction.findMany({where:{approvalInstanceId:aid},orderBy:{id:'asc'}}),actions);
+    };
     const {acceptCorrection}=createRequire(join(process.cwd(),'package.json'))('./deploy/uat/ss16-correction-acceptance.mjs');
     type ProtocolActor={user:{id:string};session:{sessionToken:string;csrfToken:string}};
     const acceptViaHttp=async(row:typeof pending,maker:ProtocolActor,reviewer:ProtocolActor)=>{
@@ -116,6 +171,8 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
         }});
     };
     await assertInvalidBinding(pending);
+    await assertIncompleteReversal(pending,pm.userId);
+    await assertIncompleteReversal(pending,pm.userId,'wrong-key');
     await assert.rejects(db.approvalInstance.update({where:{id:pending.approvalInstanceId},data:{approvalState:'APPROVED',completedAt:new Date()}}),/SS16 completed decision invalid/);
     assert.equal(JSON.parse(createdText).data.id,pending.id);
     assert.equal((await get(requestPath,null)).status,401);
@@ -228,6 +285,11 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const cancellation = await post('movement-corrections/'+approvedCancel.id+'/approve',f.pm.session,{comment:'Reviewed and approved'});
     assert.equal(cancellation.status,201,await cancellation.text());
     assert.equal(await originalState(),'CANCELLED');
+    await assertOriginalTerminal(originalReceipt.approvalInstanceId!);
+    // Different eligible original checker, with no prior receipt action.
+    await db.userRole.create({data:{companyId:f.company.id,userId:f.jai.user.id,roleId:f.pm.role.id}});
+    assert.equal((await post('goods-receipts/'+draft.id+'/approve',f.jai.session,{postKey:randomUUID()})).status,409);
+    await assert.rejects(db.goodsReceipt.update({where:{id:draft.id},data:{postedAt:new Date(),postedByUserId:f.jai.user.id,postKey:randomUUID()}}));
     assert.equal(await cancelledStock(),0);
     assert.deepEqual(await db.goodsReceipt.findUniqueOrThrow({where:{id:draft.id}}),originalReceipt);
     await assert.rejects(goods.approve({auth:pm},draft.id,randomUUID()));
@@ -314,6 +376,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const rcCancel = await corrections.request({auth:rcStore},'GOODS_RECEIPT',linked.id,randomUUID(),'Incorrect submitted GR','CANCEL_UNPOSTED');
     assert.equal((await post(root+'/'+delivery.id+'/void',rc.store.session,voidIntent)).status,409);
     await corrections.decide({auth:rcPm},rcCancel.id,'APPROVE','Independent GR cancellation');
+    await assertOriginalTerminal(rcCancel.sourceApprovalInstanceId!);
     assert.deepEqual(await db.receivingDelivery.findUniqueOrThrow({where:{id:delivery.id}}),physicalBefore);
     assert.equal(await db.receivingDeliveryEvent.count({where:{deliveryId:delivery.id}}),physicalEvents);
     assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:linked.id}}),0);
@@ -344,6 +407,8 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await post('stock-transfers/'+legacyTransfer.id+'/reverse',tf.pm.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const legacyRequest = await corrections.request({auth:tStore},'STOCK_TRANSFER',legacyTransfer.id,randomUUID(),'Incorrect paired transfer');
     await assertInvalidBinding(legacyRequest);
+    await assertIncompleteReversal(legacyRequest,tPm.userId);
+    await assertIncompleteReversal(legacyRequest,tPm.userId,'partial');
     await acceptViaHttp(legacyRequest,tf.store,tf.pm);
     await assertFrozenDecision(legacyRequest.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),4);
@@ -362,6 +427,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:transferHeader.approvalInstanceId!}})).approvalState,'SUBMITTED');
     const custodyResult = await corrections.decide({auth:tPm},transferCorrection.id,'APPROVE','Independent transfer cancellation');
     assert.equal(custodyResult.approvalInstance.approvalState,'APPROVED');
+    await assertOriginalTerminal(transferHeader.approvalInstanceId!);
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:transferHeader.approvalInstanceId!}})).approvalState,'CANCELLED');
     assert.deepEqual(await db.stockTransfer.findUniqueOrThrow({where:{id:transfer.id}}),transferHeader);
     const custodyAfter = await db.transferCustody.findUniqueOrThrow({where:{transferId:transfer.id}});
@@ -387,6 +453,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(historicalApproval.approvalState,'APPROVED');
     const readyRequest = await corrections.request({auth:tStore},'STOCK_TRANSFER',ready.id,randomUUID(),'Approved but not dispatched','CANCEL_UNPOSTED');
     await corrections.decide({auth:tPm},readyRequest.id,'APPROVE','Cancel before physical dispatch');
+    await assertOriginalTerminal(historicalApproval.id);
     assert.deepEqual(await db.approvalInstance.findUniqueOrThrow({where:{id:historicalApproval.id}}),historicalApproval);
     const readyCustody = await db.transferCustody.findUniqueOrThrow({where:{transferId:ready.id}});
     assert.equal(await db.transferCustodyEvent.count({where:{transferId:ready.id,action:'CANCEL'}}),1);
@@ -440,6 +507,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overReq.approvalInstanceId}})).approvalState,'SUBMITTED');
     assert.equal(await db.stockTransaction.count({where:{materialIssueId:over.id}}),0);
     await corrections.decide({auth:mpPm},overReq.id,'APPROVE','Cancel submitted overage');
+    await assertOriginalTerminal(overAuth.approvalInstanceId!);
     assert.equal((await db.approvalInstance.findUniqueOrThrow({where:{id:overAuth.approvalInstanceId}})).approvalState,'CANCELLED');
     assert.equal(await db.materialPlanIssueAuthorization.count({where:{issueId:over.id}}),1);
     assert.deepEqual(await db.materialPlanIssueAllocation.findMany({where:{authorizationId:overAuth.id},orderBy:{id:'asc'}}),
@@ -455,6 +523,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await post('material-returns/'+returned.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const returnReq = await corrections.request({auth:mpStore},'MATERIAL_RETURN',returned.id,randomUUID(),'Incorrect return');
     await assertInvalidBinding(returnReq);
+    await assertIncompleteReversal(returnReq,mpPm.userId);
     await acceptViaHttp(returnReq,mp.store,mp.manager);
     await assertFrozenDecision(returnReq.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{materialReturnId:returned.id}}),2);
@@ -463,6 +532,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal((await post('material-issues/'+mp.historical.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const issueReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',mp.historical.id,randomUUID(),'Incorrect issue');
     await assertInvalidBinding(issueReq);
+    await assertIncompleteReversal(issueReq,mpPm.userId);
     await acceptViaHttp(issueReq,mp.store,mp.manager);
     await assertFrozenDecision(issueReq.approvalInstanceId);
     assert.equal(await db.stockTransaction.count({where:{materialIssueId:mp.historical.id}}),2);
