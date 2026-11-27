@@ -41,6 +41,7 @@ export async function runCommonSuccessorReadbacks({candidate,receipt,context}){
   need(context?.database==='m6_successor_rehearsal'&&context.db&&typeof context.verifyRuntime==='function'&&typeof context.withSessions==='function'&&typeof context.verifyFinal==='function'&&typeof context.siteTransport==='function'&&context.siteBinding&&context.ss16Binding&&context.certificationBinding&&context.hr,'CONTEXT');
   requireSuccessorOrigins(context.origin,context.webOrigin);
   const {verifyM6SiteReadback}=await import('./m6-parallel-02-site-readback.mjs');
+  const {verifyRemainingBoqReadback}=await import('./m6-boq-readback-continuation.mjs');
   const {observeSuccessorSS16Config}=await import('./m6-parallel-03-ss16-config.mjs');
   const {bindM604Certification,runM604CertificationReadback}=await import('./m6-parallel-04-certification-adapter.mjs');
   const {prepareHrSuccessorExit}=await import('./m6-hr-successor-exit.mjs');
@@ -53,6 +54,6 @@ export async function runCommonSuccessorReadbacks({candidate,receipt,context}){
     const config=await observeSuccessorSS16Config(context.db,context.ss16Binding);
     const cert=await bindM604Certification(context.db,context.certificationBinding);
     const hr=await prepareHrSuccessorExit({...context.hr,db:context.db,database:'m6_successor_rehearsal',verifyRuntime});
-    return {config,site:s=>verifyM6SiteReadback(context.siteBinding,context.siteTransport(s)),certification:s=>runM604CertificationReadback(cert,{origin:context.origin,cookies:s.certification}),hrDenials:s=>hr.verifyDenials(s.hr,undefined,{origin:context.origin,webOrigin:context.webOrigin}),hrFinish:()=>hr.finish()};
+    return {config,site:s=>context.siteContinuation?verifyRemainingBoqReadback(context.siteBinding,context.siteTransport(s),context.siteContinuation.raw,context.siteContinuation.prior):verifyM6SiteReadback(context.siteBinding,context.siteTransport(s)),certification:s=>runM604CertificationReadback(cert,{origin:context.origin,cookies:s.certification}),hrDenials:s=>hr.verifyDenials(s.hr,undefined,{origin:context.origin,webOrigin:context.webOrigin}),hrFinish:()=>hr.finish()};
   }});
 }
