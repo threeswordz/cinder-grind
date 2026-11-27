@@ -23,7 +23,8 @@ export async function assertRetainedCDMetadata({get,actors,finance,hr}) {
   for(const key of keys) id(actors[key].companyId);
   const company=id(finance.companyId),project=id(finance.projectId),claim=id(finance.claimId),cert=id(finance.certificationId),doc=id(finance.documentId);
   need(actors.BEN.companyId===company&&actors.NANCY.companyId===company,'FINANCE_COMPANY');
-  const hc=id(hr.companyId),employee=id(hr.employeeId);
+  const hc=id(hr.companyId),employee=id(hr.employeeId),attachmentEmployee=id(hr.attachmentEmployeeId);
+  need(employee!==attachmentEmployee,'HR_DISTINCT_SUBJECTS');
   need(actors.KOH.companyId===hc,'HR_COMPANY');
   need(Array.isArray(hr.privateCategories)&&hr.privateCategories.length>0&&new Set(hr.privateCategories.map(c=>c.category)).size===hr.privateCategories.length,'PRIVATE_COVERAGE');
   for(const c of hr.privateCategories)need(['identity','bank'].includes(c.category)&&Array.isArray(c.ids)&&c.ids.length>0&&c.ids.every(x=>uuid.test(x))&&Array.isArray(c.versions)&&c.versions.length===c.ids.length&&c.versions.every((v,i)=>Number.isSafeInteger(v)&&v>0&&(i===0||v>c.versions[i-1])),'PRIVATE_EXPECTED');
@@ -42,12 +43,13 @@ export async function assertRetainedCDMetadata({get,actors,finance,hr}) {
   need(c.id===cert&&c.companyId===company&&c.projectId===project&&c.claimId===claim&&c.state==='APPROVED'&&money(c.certifiedGross)===money(finance.certifiedGross)&&money(c.retainedAmount)===money(finance.retainedAmount),'CERTIFICATION_HISTORY');
   await denied(get,'FOREMAN',physicalPath);
   const base='/hr/companies/'+hc+'/employees/'+employee;
+  const documentBase='/hr/companies/'+hc+'/employees/'+attachmentEmployee;
   const e=await data(get,'KOH',base+'/employment');
   need(e.employee?.id===employee&&seq(e.employment?.revisions?.map(x=>x.version),hr.employmentVersions)&&e.employment?.currentVersion===hr.employmentVersions.at(-1),'EMPLOYMENT_HISTORY');
-  const d=await data(get,'KOH',base+'/documents');
+  const d=await data(get,'KOH',documentBase+'/documents');
   need(d.nextCursor===null&&Array.isArray(d.items)&&d.items.length===hr.attachments.length&&d.items.every((x,i)=>exactKeys(x,['id','version','createdAt'])&&x.id===hr.attachments[i].id&&x.version===hr.attachments[i].version),'ATTACHMENT_METADATA');
   await denied(get,'FOREMAN',base+'/employment');
-  await denied(get,'FOREMAN',base+'/documents');
+  await denied(get,'FOREMAN',documentBase+'/documents');
   for(const cat of hr.privateCategories){
     const path=base+'/private/'+cat.category;
     const h=await data(get,'KOH',path+'/history');

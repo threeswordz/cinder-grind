@@ -9,11 +9,12 @@ const token=/^[A-Za-z0-9_-]{20,256}$/;
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export function allowedReadbackPaths(binding){
  const {finance:f,hr:h}=binding;
- for(const v of [f.claimId,f.certificationId,h.companyId,h.employeeId,binding.foreignCompanyId])need(typeof v==='string'&&uid.test(v),'BINDING');
- const b='/hr/companies/'+h.companyId+'/employees/'+h.employeeId,p='/subcontracts/physical/claims/'+f.claimId;
+ for(const v of [f.claimId,f.certificationId,h.companyId,h.employeeId,h.attachmentEmployeeId,binding.foreignCompanyId])need(typeof v==='string'&&uid.test(v),'BINDING');
+ need(h.employeeId!==h.attachmentEmployeeId,'HR_DISTINCT_SUBJECTS');
+ const b='/hr/companies/'+h.companyId+'/employees/'+h.employeeId,documents='/hr/companies/'+h.companyId+'/employees/'+h.attachmentEmployeeId+'/documents',p='/subcontracts/physical/claims/'+f.claimId;
  const categories=h.privateCategories.map(x=>x.category);
  need(categories.length===2&&new Set(categories).size===2&&categories.every(x=>['identity','bank'].includes(x)),'CATEGORY');
- const hr=[b+'/employment',b+'/documents',...categories.flatMap(c=>[b+'/private/'+c,b+'/private/'+c+'/history'])];
+ const hr=[b+'/employment',documents,...categories.flatMap(c=>[b+'/private/'+c,b+'/private/'+c+'/history'])];
  return {BEN:new Set(['/auth/me',p]),NANCY:new Set(['/auth/me','/subcontracts/certifications/'+f.certificationId]),KOH:new Set(['/auth/me',...hr,'/hr/companies/'+binding.foreignCompanyId+'/employees/'+h.employeeId+'/employment']),FOREMAN:new Set(['/auth/me',p,...hr])};
 }
 async function parseResponse(response){
