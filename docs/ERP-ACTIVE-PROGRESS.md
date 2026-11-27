@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 87.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 202.5h → 0h · Full ERP 1,697.5h → 0h.**
+**M4 CLOSED 0h · M6 81.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 196.5h → 0h · Full ERP 1,691.5h → 0h.**
+
+**Latest native evidence (event213):** [Owner Mac batch PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020), exact `55420efa`, 35/35 tests; rate, site, authenticated C/D all PASS. M6-01 14→13h; M6-02 22→20h; M6-03 17h unchanged; M6-04 17.5→16h; M6-05 17→15.5h. Previous 87.5h +0 new scope +0 additional rework −6h provisional estimated remaining effort =81.5h. No labor claim. No repeat of authenticated sessions or prior business journeys. Bounded rate disposition, protected-byte and retained invoice/payment/BOQ proof, independent SS16 review and integrated release remain. No formal acceptance or Production.
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 

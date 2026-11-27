@@ -6283,6 +6283,86 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-213",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_RETAINED_MAC_BATCH_NATIVE_PASS",
+      "beforeHours": 14,
+      "afterHours": 13,
+      "sourceSha": "55420efa8eecda1f935b84c964ffd1dd32d2b92f",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020",
+        "https://github.com/threeswordz/cinder-grind/commit/55420efa8eecda1f935b84c964ffd1dd32d2b92f"
+      ],
+      "basis": "Native rate-history comparison: original fingerprint matched; one local reset, zero unexplained/changed/added buckets. Not causal proof or baseline acceptance.",
+      "blocker": "Owner bounded rate disposition; integrated release and preservation.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-02-213",
+      "date": "2026-11-27",
+      "packageId": "M6-02",
+      "kind": "M6_RETAINED_MAC_BATCH_NATIVE_PASS",
+      "beforeHours": 22,
+      "afterHours": 20,
+      "sourceSha": "55420efa8eecda1f935b84c964ffd1dd32d2b92f",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020",
+        "https://github.com/threeswordz/cinder-grind/commit/55420efa8eecda1f935b84c964ffd1dd32d2b92f"
+      ],
+      "basis": "Native retained original daily report, approved material plan, request, signed receipt metadata and two issue/reversal pairs, net zero. No credit for previous FM02/SS08.",
+      "blocker": "Remaining scoped functional/browser and integrated successor evidence; protected bytes.",
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-04-213",
+      "date": "2026-11-27",
+      "packageId": "M6-04",
+      "kind": "M6_RETAINED_MAC_BATCH_NATIVE_PASS",
+      "beforeHours": 17.5,
+      "afterHours": 16,
+      "sourceSha": "55420efa8eecda1f935b84c964ffd1dd32d2b92f",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020",
+        "https://github.com/threeswordz/cinder-grind/commit/55420efa8eecda1f935b84c964ffd1dd32d2b92f"
+      ],
+      "basis": "Native authenticated retained physical subcontract/certification metadata, denial, four-session batch preservation. Shared custody proof allocated once.",
+      "blocker": "Authorized protected bytes, invoice/payment/BOQ linkage and integrated release.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-05-213",
+      "date": "2026-11-27",
+      "packageId": "M6-05",
+      "kind": "M6_RETAINED_MAC_BATCH_NATIVE_PASS",
+      "beforeHours": 17,
+      "afterHours": 15.5,
+      "sourceSha": "55420efa8eecda1f935b84c964ffd1dd32d2b92f",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7219947020",
+        "https://github.com/threeswordz/cinder-grind/commit/55420efa8eecda1f935b84c964ffd1dd32d2b92f"
+      ],
+      "basis": "Native authenticated HR masked employment/private history for Foreman and attachment metadata for Koh; scoped denial and revocation. No repeated integrity credit.",
+      "blocker": "Authorized encrypted-file byte proof/key custody and integrated release.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6312,8 +6392,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1697.5,
-  "currentRollingTotalSemantics": "1697.5h = previous1698.5h minus 1h provisional distinct native C/D integrity verification. M6 87.5h, M7 50h, M8 65h, combined202.5h. No new scope/rework, actual labor unknown, all112 requirements retained; no formal acceptance change.",
+  "currentRollingTotalAfterPricedGapsHours": 1691.5,
+  "currentRollingTotalSemantics": "1691.5h = previous1697.5h minus 6h provisional distinct verified future-effort allowance for Owner Mac batch event213. M6 81.5h, M7 50h, M8 65h, combined196.5h. Scope0, additional rework0; labor unknown; all112 requirements retained, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
