@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,325.5h → 0h · prototype 69.5h → 0h** (M6 5.5h / M7 26h / M8 38h). Canonical ERP 1,615.5h; canonical prototype 120.5h.
+
+**Latest evidence (Events271–273):** [Tested residual source preparation and observer](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227484098), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/0cbc3f8174986dd84a9fdc94b380b309f94256d8), [DEC-054 clarification](https://github.com/threeswordz/cinder-grind/commit/803e7ccf59417bacb69730a52d309023e8978383). 38/38 actual local controlled-response tests, six exact GitHub blobs. Site fixture uses canonical Ben Cost BOQ self-approval, Store Site/Khaimook material-plan maker/checker, WBS/activity fixtures. Supplier source preparation reuses existing PUR07 chain or adds only missing synthetic reported events, exact document evidence. Native read-only source adapter implemented, live source/capability census and consolidated execution pending. No actual mutations or formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 3h |
+| M6-03 | 1h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **5.5h** |
+
+Next: unified source-fixture transport, exact native row/file delta capture, durable execution entry and browser proof; one stable independent review then exact synthetic authorization. Missing actual prerequisites could revise estimate. No repeat standalone preflight, historical browser replay, intermediate CI/Codex or Production.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,327h → 0h · prototype 71h → 0h** (M6 7h / M7 26h / M8 38h). Canonical ERP 1,617h; canonical prototype 122h.
 
 **Latest evidence (Event270):** [Residual integration primitives and native hooks](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227289774), [exact source](https://github.com/threeswordz/cinder-grind/commit/3c47de41267e132a94aa98eb3a5f66e205345f6e). Six exact tested blobs, 25/25 local tests PASS (transport7/document delta12/exclusive receipt6). Native admission/runtime hooks committed and read back; not yet native tested. M6-02 4.5→4h, M6-03 1.5h; shared preparation 0.5h retired once. No formal acceptance or actual mutation.
