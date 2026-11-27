@@ -285,6 +285,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const cancellation = await post('movement-corrections/'+approvedCancel.id+'/approve',f.pm.session,{comment:'Reviewed and approved'});
     assert.equal(cancellation.status,201,await cancellation.text());
     assert.equal(await originalState(),'CANCELLED');
+    await assert.rejects(db.approvalInstance.update({where:{id:originalReceipt.approvalInstanceId!},data:{approvalState:'SUBMITTED',completedAt:null}}),/SS16 original cancellation history immutable/);
     await assertOriginalTerminal(originalReceipt.approvalInstanceId!);
     // Different eligible original checker, with no prior receipt action.
     await db.userRole.create({data:{companyId:f.company.id,userId:f.jai.user.id,roleId:f.pm.role.id}});
@@ -414,6 +415,13 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyTransfer.id}}),4);
     const transferNet = await db.stockTransaction.aggregate({where:{stockTransferId:legacyTransfer.id},_sum:{quantity:true}});
     assert.equal(transferNet._sum.quantity?.toString(),'0');
+    const legacyUnposted=await okPost('stock-transfers',tf.store,tf.transferInput);
+    await okPost('stock-transfers/'+legacyUnposted.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
+    const legacyCancel=await corrections.request({auth:tStore},'STOCK_TRANSFER',legacyUnposted.id,randomUUID(),'Wrong legacy destination','CANCEL_UNPOSTED');
+    await corrections.decide({auth:tPm},legacyCancel.id,'APPROVE','Independent legacy cancellation');
+    await assertOriginalTerminal(legacyCancel.sourceApprovalInstanceId!);
+    assert.equal((await post('stock-transfers/'+legacyUnposted.id+'/approve',tf.pm.session,{postKey:randomUUID()})).status,409);
+    assert.equal(await db.stockTransaction.count({where:{stockTransferId:legacyUnposted.id}}),0);
     await okPost('transfer-custody/projects/'+tf.project.id+'/enable',tf.pm,{requestKey:randomUUID(),reason:'Disposable transfer policy'});
     const transfer = await okPost('stock-transfers',tf.store,tf.transferInput);
     await okPost('stock-transfers/'+transfer.id+'/submit',tf.store,{workflowCode:tf.workflow.workflowCode});
@@ -475,6 +483,13 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     const mpPm = await mp.sessions.resolve(mp.manager.session.sessionToken);
     assert.ok(mpStore && mpPm);
     mp.store.auth=mpStore;mp.manager.auth=mpPm;
+    const legacyIssue=await mp.issue('1',false);
+    await mp.issues.submit({auth:mpStore},legacyIssue.id,'MR-ISSUE');
+    const legacyIssueCancel=await corrections.request({auth:mpStore},'MATERIAL_ISSUE',legacyIssue.id,randomUUID(),'Wrong legacy issue','CANCEL_UNPOSTED');
+    await corrections.decide({auth:mpPm},legacyIssueCancel.id,'APPROVE','Independent issue cancellation');
+    await assertOriginalTerminal(legacyIssueCancel.sourceApprovalInstanceId!);
+    assert.equal((await post('material-issues/'+legacyIssue.id+'/approve',mp.manager.session,{postKey:randomUUID()})).status,409);
+    assert.equal(await db.stockTransaction.count({where:{materialIssueId:legacyIssue.id}}),0);
     await mp.controls.enable({auth:mp.ben.auth},mp.project.id,mp.enableInput());
     const over = await mp.issue('7',false);
     const intent = await mp.pin(over.id);
@@ -519,6 +534,15 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     // Posted issue and return both travel through independent correction.
     await mp.issues.submit({auth:mpStore},mp.historical.id,'MR-ISSUE');
     await mp.issues.approve({auth:mpPm},mp.historical.id,randomUUID());
+    const postedIssue=await mp.issues.get(mpStore,mp.historical.id);
+    const unpostedReturn=await mp.returns.create({auth:mpStore},{projectId:mp.project.id,warehouseId:mp.warehouse.id,
+      returnDate:new Date('2026-11-02'),lines:[{materialIssueItemId:postedIssue.items[0]!.id,quantity:new Prisma.Decimal('1')}]});
+    await mp.returns.submit({auth:mpStore},unpostedReturn.id,mp.returnWorkflow.workflowCode);
+    const returnCancel=await corrections.request({auth:mpStore},'MATERIAL_RETURN',unpostedReturn.id,randomUUID(),'Wrong return','CANCEL_UNPOSTED');
+    await corrections.decide({auth:mpPm},returnCancel.id,'APPROVE','Independent return cancellation');
+    await assertOriginalTerminal(returnCancel.sourceApprovalInstanceId!);
+    assert.equal((await post('material-returns/'+unpostedReturn.id+'/approve',mp.manager.session,{postKey:randomUUID()})).status,409);
+    assert.equal(await db.stockTransaction.count({where:{materialReturnId:unpostedReturn.id}}),0);
     const returned = await mp.sourceReturn(mp.historical.id,'1');
     assert.equal((await post('material-returns/'+returned.id+'/reverse',mp.manager.session,{reversalKey:randomUUID(),reason:'Bypass'})).status,409);
     const returnReq = await corrections.request({auth:mpStore},'MATERIAL_RETURN',returned.id,randomUUID(),'Incorrect return');

@@ -5,7 +5,7 @@ set -euo pipefail
 umask 077
 expected=${1:-}
 mode=${2:-both}
-[[ "$mode" = both || "$mode" = ss16-only || "$mode" = regressions-only || "$mode" = ss16-review ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
+[[ "$mode" = both || "$mode" = ss16-only || "$mode" = regressions-only || "$mode" = ss16-review || "$mode" = ss16-terminal ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
 [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo M6_FOCUSED_EXACT_SHA_REQUIRED; exit 1; }
 cd "$(git rev-parse --show-toplevel)"
 test "$(git rev-parse HEAD)" = "$expected"
@@ -35,6 +35,9 @@ if [[ "$mode" = both || "$mode" = ss16-only ]]; then
   echo "M6_SS16_AUTHORITY_PASS"
 else
   echo M6_PRIOR_WEB_AND_AUTHORITY_NOT_RERUN
+fi
+if [[ "$mode" = ss16-terminal ]]; then
+  echo M6_PRIOR_ACCEPTANCE_CONTRACTS_NOT_RERUN
 fi
 if [[ "$mode" = ss16-review ]]; then
   echo "===== CHANGED ACCEPTANCE CONTRACTS ====="
