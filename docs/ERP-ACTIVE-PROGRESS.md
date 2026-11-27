@@ -1,6 +1,26 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**M6 11h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 126h → 0h · canonical ERP 1,621h → 0h.**
+
+**Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h).
+
+**Latest evidence (Event260):** [Residual native zero-session readiness wired](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226686438), [isolated branch head](https://github.com/threeswordz/cinder-grind/commit/7449edd2e0f18b1d655149c41e529a5302d2b181). Seven new fixture tests; 47/47 focused local tests PASS (40 prior tests rechecked plus seven new). Readiness helper and test blobs verified. Native entry created and read back; native syntax and actual Mac execution pending. It preserves the Event258 receipt chain and discovers missing SS08/FM02 fixture and canonical role prerequisites in a read-only transaction, without sessions or mutations. M6-02 7.5→7h (0.5h estimated retirement, not actual labor), M6-03 2.5h unchanged. No production or formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 7h |
+| M6-03 | 2.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **11h** |
+
+Next: exact Mac zero-session residual discovery with syntax check. Then prepare exact bounded synthetic-only fixture/role execution plan and consolidate terminal verifiers. No replay of Event258 or earlier HR/subcontract journeys; no retained grants, additional full CI, or Production.
+
+Prior entries below are historical snapshots.
+
+
 **M6 11.5h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 126.5h → 0h · canonical ERP 1,621.5h → 0h.**
 
 **Provisional rebaselined ERP: 1,331.5h → 0h · prototype 75.5h → 0h** (M6 11.5h / M7 26h / M8 38h).
