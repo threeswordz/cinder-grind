@@ -1,6 +1,26 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**M6 13h → 0h · M7 50h → 0h · M8 65h → 0h · canonical prototype 128h → 0h · canonical ERP 1,623h → 0h.**
+
+**Provisional rebaselined ERP: 1,333h → 0h · prototype 77h → 0h** (M6 13h / M7 26h / M8 38h; pass4 planning estimate minus Event258 verified 3h, no new scope or rework).
+
+**Latest evidence (Event258):** [Owner Mac inventory terminal browser PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226508580), [exact operator](https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c). Canonical GR, converted quantities, partial custody, SS16 maker/checker and supplier advisory scope verified. Three fresh sessions revoked; 25 prior sessions, 171 non-auth tables, audit/HR/subcontract evidence and retained data/files/recovery preserved. No business mutation. Jai canonical role absent and full supplier lifecycle browser outstanding. No replay. M6-03 5.5→2.5h (3h estimated retirement, not actual labor); M6 16→13h. No formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 2.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **13h** |
+
+Next: consolidate residual Jai supplier role evidence with SS08 signed/dimension and FM02 weighted-plan proof; exact scoped authority for any synthetic grants or native sessions, no repeated inventory/HR/subcontract journey or full CI.
+
+Prior entries below are historical snapshots.
+
+
 **M4 CLOSED 0h · M6 16h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 131h → 0h · Full ERP 1,626h → 0h.**
 
 **Latest evidence (Event257):** [Owner Mac zero-session preflight PASS and permanent preflight direction](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226060530). Exact corrected operator b0cdc10c88cce746a240c35fcbbaab95dd30464c; all three source receipts bound, 25 previous sessions and HR/subcontract evidence preserved, retained data/files/recovery unchanged, previous inventory stage absent, zero new sessions or business mutation. Mandatory shared admission discipline recorded in BOUNDED-DEVELOPMENT-VERIFICATION.md and AGENTS.md. Authenticated browser remains pending exact corrected operator authority. M6-03 5.5h, M6 16h unchanged; no duplicate credit, no new scope or rework. No formal acceptance.
