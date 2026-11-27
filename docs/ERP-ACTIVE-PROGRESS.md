@@ -3,6 +3,22 @@
 <!-- current-work-m6 -->
 **Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
 
+**Latest evidence (Event264):** [Incomplete Prisma dependency tree](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226824401). Incremental frozen install reported up to date, but generation failed resolving locked @prisma/debug6.19.3 from engines. Fresh frozen install using separate store, then dependency checks, generation and conditional read-only readiness. No new application defect established. No earned credit or net rework increase.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 7h |
+| M6-03 | 2.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **11h** |
+
+Prior entries below are historical snapshots.
+
+
+**Provisional rebaselined ERP: 1,331h → 0h · prototype 75h → 0h** (M6 11h / M7 26h / M8 38h). Canonical ERP 1,621h; canonical prototype 126h.
+
 **Latest evidence (Event263):** [Prisma dependency resolution confirmed](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226773825). Owner probe PACKAGE_RESOLUTION/MODULE_NOT_FOUND. Restore exact lockfile dependencies using pnpm12.6.0, regenerate Prisma6.19.3 client for pinned app, verify load before one corrected read-only readiness invocation. No DB migrations, rebuild, session creation, grants, CI/Codex or prior browser replay. No earned credit or net rework increase.
 
 | Outstanding M6 package | Remaining |
