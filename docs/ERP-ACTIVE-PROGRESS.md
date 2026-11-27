@@ -1,7 +1,9 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 75h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 190h → 0h · Full ERP 1,685h → 0h.**
+**M4 CLOSED 0h · M6 72h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 187h → 0h · Full ERP 1,682h → 0h.**
+
+**Latest evidence (event227):** [SS16 review closure and integration](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222102266). Exact independent clean review `079fbacd`, five historical source findings resolved, PR456 closed unmerged. Consolidated [candidate `a5384c27`](https://github.com/threeswordz/cinder-grind/commit/a5384c27c95423437cd63ccc6eedb5ca79ca0b3e), 19 retained evidence paths copied byte-identically, complete tree 1,442 paths, zero conflicts/mismatches. M6-03 15.5→12.5h; M6 75 +0 scope +0 rework −3h =72h; full ERP1682h. Credit is provisional future effort for completed independent review/finding reconciliation only, not actual hours or duplicate test credit. Remaining package estimates 13/19/12.5/13.5/14. Historical acceptance/UOM/split custody and affected role/configuration proof remain integrated release gates. No new CI/Mac, no Production, no formal acceptance. Next develop common successor release path; bounded rate disposition remains Owner decision.
 
 **Latest evidence (event218):** [Owner Mac SS16 decision-history PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7220255231), exact `1877d1d5`; focused native1/1 and changed Chromium component PASS. Prior authority14/14, API/web build and migrations182/182 retained without duplicate credit. M6-03 17→15.5h; M6 76.5h +0 scope +0 additional rework −1.5h provisional remaining effort =75h. Independent DEC-022 review of GitHub code now next, no further Mac rerun or full CI for review. No formal acceptance or Production.
 

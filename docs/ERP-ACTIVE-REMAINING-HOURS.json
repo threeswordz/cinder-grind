@@ -6443,6 +6443,28 @@
       "verifiedCompletedScopeHours": 1.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-03-227",
+      "date": "2026-11-27",
+      "packageId": "M6-03",
+      "kind": "SS16_INDEPENDENT_SOURCE_REVIEW_AND_FINDING_RECONCILIATION_CLOSED",
+      "beforeHours": 15.5,
+      "afterHours": 12.5,
+      "sourceSha": "079fbacd305459798312817852f840f0b08a5631",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7222102266",
+        "https://github.com/threeswordz/cinder-grind/pull/456#issuecomment-7221981968",
+        "https://github.com/threeswordz/cinder-grind/pull/456#issuecomment-7222071301",
+        "https://github.com/threeswordz/cinder-grind/commit/a5384c27c95423437cd63ccc6eedb5ca79ca0b3e"
+      ],
+      "basis": "3h provisional remaining estimate retired only for independently cleared source-review/correction backlog and historical thread reconciliation. Five threads resolved and review-only PR closed unmerged. No repeated native retest/history credit or source consolidation credit.",
+      "blocker": "Historical acceptance consumers, converted UOM/split custody, actual authorized role/configuration and governed integrated release verification still outstanding.",
+      "reductionHours": 3,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 3,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -6472,7 +6494,7 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1685,
+  "currentRollingTotalAfterPricedGapsHours": 1682,
   "currentRollingTotalSemantics": "1685h = prior1686.5h minus1.5h distinct provisional forecast for event218. M6 75h, M7 50h, M8 65h, combined190h. Scope0, additional rework0, labor unknown, no formal acceptance change.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
