@@ -7298,6 +7298,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-261",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "OWNER_MAC_RESIDUAL_READINESS_BLOCKED_DIAGNOSTIC_CORRECTION",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "sourceSha": "7bc1ded1a6df4ab38f44f6d092ebec733aaec972",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226721192",
+        "https://github.com/threeswordz/cinder-grind/commit/7bc1ded1a6df4ab38f44f6d092ebec733aaec972"
+      ],
+      "basis": "Owner Mac syntax passed, readiness blocked with generic private failure and no session creation. Corrected diagnostic only: query-specific stages, allowlisted codes and error type, numeric operator line, no raw private exception text. Three standalone diagnostic cases PASS. No new completion credit; rework absorbed within M6-02.",
+      "blocker": "Root cause unknown pending one exact corrected read-only diagnostic invocation. No replay of passed inventory or other business journeys. Native acceptance pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7328,7 +7349,7 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1621,
-  "currentRollingTotalSemantics": "Event260: M6-02 7.5→7h, M6 11.5→11h, M7 50h, M8 65h, canonical prototype126h, ERP1621h. Distinct tested readiness preparation only; actual labor unknown; no formal acceptance. Provisional ERP1331h/prototype75h.",
+  "currentRollingTotalSemantics": "Event261: M6-02 7h unchanged, M6 11h, M7 50h, M8 65h, canonical prototype126h, ERP1621h. Owner Mac residual readiness blocked; diagnostic correction published, root cause unknown. Provisional ERP1331h/prototype75h. No new completion credit or net rework increase.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
