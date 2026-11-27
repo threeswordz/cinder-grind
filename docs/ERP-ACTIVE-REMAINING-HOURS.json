@@ -7235,6 +7235,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-03-258",
+      "date": "2026-11-28",
+      "packageId": "M6-03",
+      "kind": "OWNER_MAC_TERMINAL_INVENTORY_BROWSER_PASS",
+      "beforeHours": 5.5,
+      "afterHours": 2.5,
+      "sourceSha": "b0cdc10c88cce746a240c35fcbbaab95dd30464c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226508580",
+        "https://github.com/threeswordz/cinder-grind/commit/b0cdc10c88cce746a240c35fcbbaab95dd30464c"
+      ],
+      "basis": "Owner supplied exact-app actual browser PASS: canonical GR, converted quantities, partial custody, SS16 maker/checker and supplier advisory scope. Three fresh revoked sessions, 25 previous preserved, 171 non-auth tables and audit preserved, retained database/files/recovery unchanged. Retire 3h estimate for new terminal browser proof, no duplicate credit.",
+      "blocker": "Jai canonical PROCUREMENT_OFFICER role absent; full supplier lifecycle browser and applicable acceptance pending. Consolidate residual with M6-02; no replay of passed inventory. No grant changes without specific authority.",
+      "reductionHours": 3,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 3,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7264,8 +7285,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1626,
-  "currentRollingTotalSemantics": "1626h unchanged: Event257 actual zero-session preflight PASS; no duplicate credit for Event256 correction, no new scope/rework. M6 16h, M7 50h, M8 65h, combined131h. Native browser pending corrected exact authority; actual labor unknown, no formal acceptance.",
+  "currentRollingTotalAfterPricedGapsHours": 1623,
+  "currentRollingTotalSemantics": "1623h: Event258 actual Owner Mac inventory terminal browser PASS; M6-03 5.5→2.5h, M6 16→13h, M7 50h, M8 65h, combined128h. No new scope/rework; actual labor unknown; no formal acceptance. Provisional planning rebaseline separately 1333h, prototype77h, not canonical.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
