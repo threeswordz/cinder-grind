@@ -45,9 +45,12 @@ async function privateJson(path,max=1048576){
     const b=await f.readFile();try{need(b.length===s.size&&stable(s,await f.stat())&&stable(s,await lstat(path)),'RECEIPT_DRIFT');return JSON.parse(b.toString('utf8'));}finally{b.fill(0);}
   }finally{await f.close();}
 }
+let sessionExecutionStarted=false;
 async function main(){
-  need(process.argv[2]==='--run-authorized-inventory-terminal-browser','CONTINUATION_AUTHORITY');
-  const authority=verifyOperationalAuthority(['--run-authorized-operational-batch',...process.argv.slice(3)]);
+  const preflight=process.argv[2]==='--preflight-read-only-inventory';
+  need(preflight||process.argv[2]==='--run-authorized-inventory-terminal-browser','CONTINUATION_AUTHORITY');
+  if(preflight)need(process.argv.length===5&&/^[a-f0-9]{40}$/.test(process.argv[3])&&process.argv[4].startsWith('/'),'PREFLIGHT_ARGS');
+  const authority=preflight?{operatorSha:process.argv[3],application:process.argv[4],ownerAuthorizedSessions:false}:verifyOperationalAuthority(['--run-authorized-operational-batch',...process.argv.slice(3)]);
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_|^NODE_TLS_REJECT_UNAUTHORIZED$/.test(k)),'MAC_REQUIRED');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),app=await realpath(authority.application);
   const id=await readCheckoutIdentity(source),applicationId=await readCheckoutIdentity(app);
@@ -132,7 +135,14 @@ async function main(){
       try{const a=await dumpHandle.stat();need(a.isFile()&&a.uid===process.getuid()&&a.nlink===1&&!(a.mode&0o077)&&a.size>1024,'DUMP');const h=createHash('sha256');for await(const c of dumpHandle.createReadStream({autoClose:false}))h.update(c);need(stable(a,await dumpHandle.stat())&&stable(a,await lstat(dumpPath)),'DUMP_DRIFT');dumpSha=h.digest('hex');}finally{await dumpHandle.close();}
       const verifyPreserved=async()=>{await verify();need(same(old,await captureSuccessorDatabase(sourceDb,'proto_a_01',177))&&same(correction.log,await readLog())&&same(success,await privateJson(join(successStage,'batch-ready.json')))&&same(successStarted,await privateJson(join(successStage,'batch-started-private.json')))&&same(hrReady,await privateJson(join(completedHr,'batch-ready.json')))&&same(hrStarted,await privateJson(join(completedHr,'batch-started-private.json')))&&same(subcontractReady,await privateJson(join(completedSubcontract,'batch-ready.json')))&&same(subcontractStarted,await privateJson(join(completedSubcontract,'batch-started-private.json'))),'RETAINED_DB_OR_LOG_DRIFT');for(const k of Object.keys(files))need(same(files[k],await inventory(join(root,k))),'RETAINED_FILE_DRIFT');await verifyM6RecoveryCopy({root:recovery,expected:files,expectedDumpSha:dumpSha,readInventory:inventory});};
       for(const k of ['BEN','NANCY','KOH','FOREMAN'])need(cdBinding.actors[k].userId===binding.roster[k].userId&&same(cdBinding.actors[k].permissions,binding.roster[k].permissions),'CD_ACTOR_DRIFT');
-      const inventoryBinding=bindInventoryTerminal(sealedSnapshot,fixture,binding.roster),actors=['STORE_SITE','KHAIMOOK','PORN'].map(k=>binding.roster[k]),actorIds=actors.map(a=>a.userId).sort();
+      const rc=join(root,'receiving-upgrade'),tc=join(root,'transfer-continuation'),uc=join(root,'uom-upgrade');
+      for(const p of [rc,tc,uc])await directory(p);
+      const journeys={receiving:{ready:await privateJson(join(rc,'ready.json')),source:await privateJson(join(rc,'source-private.json')),journey:await privateJson(join(rc,'journey-private.json'))},transfer:{ready:await privateJson(join(tc,'ready.json')),source:await privateJson(join(tc,'source-source-private.json')),journey:await privateJson(join(tc,'source-journey-private.json'))},converted:{ready:await privateJson(join(uc,'ready.json')),journey:await privateJson(join(uc,'source-journey-private.json'))}};
+      const inventoryBinding=bindInventoryTerminal(sealedSnapshot,fixture,binding.roster,journeys),actors=['STORE_SITE','KHAIMOOK','PORN'].map(k=>binding.roster[k]),actorIds=actors.map(a=>a.userId).sort();
+      // The failed Event255 invocation stopped before this stage could exist. Never resume an ambiguous batch.
+      const existingStage=await lstat(runtimeStage).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});need(!existingStage,'INVENTORY_STAGE_ALREADY_EXISTS');
+      await verifyBeforeSessions();await verifyPreserved();
+      if(preflight)return {status:'M6_INVENTORY_READ_ONLY_PREFLIGHT_PASS',applicationSha:candidate.sha,operatorSha:id.sha,originalReceiptBound:true,convertedReceiptBound:true,transferReceiptBound:true,priorBatchSessionsPreserved:25,priorHrAuditPreserved:true,priorSubcontractEvidencePreserved:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,priorInventoryStageAbsent:true,sessionsCreated:0,businessMutationsPerformed:false,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};
       const auth={candidateSha:candidate.sha,candidateTree:candidate.tree,database:'m6_successor_rehearsal',ownerAuthorizedSessions:authority.ownerAuthorizedSessions,ownerAuthorizedInventoryReadback:true,retainedMutationAuthorized:false,productionAuthorized:false,actorIds};
       verifyRateBucketAdmission(await captureSuccessorAuthPreservation(db));
       const selection=await discoverBrowser();
@@ -143,7 +153,7 @@ async function main(){
         const owned=await prepareBrowser(selection,runtimeStage);let browser;
         try{browser=await startBrowser(owned.executable,runtimeStage);await verifyBeforeSessions();const before=await captureSuccessorAuthPreservation(db);verifyRateBucketAdmission(before);
           const batch=createSuccessorSessionBatch({candidate,authorization:auth,origin:runtime.origin,webOrigin:runtime.webOrigin,actors,verifyRuntime:runtime.verifyRuntime,verifyQuiescent:()=>successorRead(async()=>true)});
-          let browserProof,primary;try{await batch(async live=>{browserProof=await runInventoryTerminalBrowser({protocol:browser.protocol,binding:inventoryBinding,roster:binding.roster,sessions:live,authorization:auth,verifyRuntime:runtime.verifyRuntime});});}catch(e){primary=e;}
+          let browserProof,primary;try{sessionExecutionStarted=true;await batch(async live=>{browserProof=await runInventoryTerminalBrowser({protocol:browser.protocol,binding:inventoryBinding,roster:binding.roster,sessions:live,authorization:auth,verifyRuntime:runtime.verifyRuntime});});}catch(e){primary=e;}
           const after=await captureSuccessorAuthPreservation(db);
           const authProof=verifySuccessorAuthPreservation(before,after,{actorIds,allowBoundedRehearsalRateBucketChanges:authority.allowBoundedRehearsalRateBucketChanges});
           if(primary)throw primary;need(browserProof?.status==='M6_INVENTORY_TERMINAL_BROWSER_PASS'&&authProof.revokedNewSessions===3,'INVENTORY_PROOF');
@@ -156,5 +166,5 @@ async function main(){
   }finally{await db.$disconnect();}
 }
 if(process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null)===await realpath(new URL(import.meta.url))){
- try{console.log(JSON.stringify(await main(),null,2));}catch(e){console.log(JSON.stringify({status:'M6_INVENTORY_TERMINAL_BROWSER_BLOCKED',safeCode:/^(M6_|BROWSER_)[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'M6_INVENTORY_BROWSER_PRIVATE_FAILURE',automaticRetryAllowed:false,mayHaveCreatedSessions:true,secretsPrinted:false,productionAuthorized:false,milestone6Accepted:false}));process.exitCode=1;}
+ try{console.log(JSON.stringify(await main(),null,2));}catch(e){console.log(JSON.stringify({status:'M6_INVENTORY_TERMINAL_BROWSER_BLOCKED',safeCode:/^(M6_|BROWSER_)[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'M6_INVENTORY_BROWSER_PRIVATE_FAILURE',automaticRetryAllowed:false,mayHaveCreatedSessions:sessionExecutionStarted,secretsPrinted:false,productionAuthorized:false,milestone6Accepted:false}));process.exitCode=1;}
 }
