@@ -1,5 +1,6 @@
 // Residual M6 zero-session readiness: consume Event258 as evidence, never replay it.
-// No native runtime startup, database/file writes, login, role changes or release authority.
+// The standalone CLI remains read-only. A separately authorized consolidated caller
+// may consume the private admission context inside the existing client lifetime.
 import {constants} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {open,lstat,realpath} from 'node:fs/promises';
@@ -30,6 +31,7 @@ import {bindInventoryTerminal} from './m6-inventory-terminal-proof.mjs';
 import {projectPostSubcontractBaseline} from './m6-inventory-post-subcontract-baseline.mjs';
 import {projectPostInventoryBaseline} from './m6-post-inventory-admission.mjs';
 import {describeResidualReadiness} from './m6-residual-readiness.mjs';
+import {observeResidualRolePlan} from './m6-residual-role-writer.mjs';
 import {validateSiteBinding,assertSiteHistory} from './m6-retained-site-material.mjs';
 const planSha256='29dc83568b79bdb7d0b08fbd37bf8b5c8d7b1a4a8cc55549edf3ec2c67a02322';
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -56,9 +58,10 @@ const safeFailure=e=>{
  const line=typeof e?.stack==='string'?e.stack.match(/m6-residual-readiness-native\.mjs:(\d{1,4}):\d+/)?.[1]:null;
  return {status:'M6_RESIDUAL_READ_ONLY_READINESS_BLOCKED',safeCode:safe,phase,errorKind:kind,errorCode,operatorLine:line?Number(line):null,automaticRetryAllowed:false,mayHaveCreatedSessions:false,secretsPrinted:false,productionAuthorized:false,milestone6Accepted:false};
 };
-async function main(){
-  need(process.argv[2]==='--preflight-read-only-residual'&&process.argv.length===5&&/^[a-f0-9]{40}$/.test(process.argv[3])&&process.argv[4].startsWith('/'),'PREFLIGHT_ARGS');
-  const authority={operatorSha:process.argv[3],application:process.argv[4]};
+// A caller must independently bind authorization and seal an exclusive attempt
+// before any write. The context is process-local and never printed by the CLI.
+export async function withResidualNativeAdmission(authority,consume){
+  need(authority&&/^[a-f0-9]{40}$/.test(authority.operatorSha??'')&&typeof authority.application==='string'&&authority.application.startsWith('/')&&(consume===undefined||typeof consume==='function'),'PREFLIGHT_ARGS');
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_|^NODE_TLS_REJECT_UNAUTHORIZED$/.test(k)),'MAC_REQUIRED');
   mark('CHECKOUT');
   const source=resolve(fileURLToPath(new URL('../../',import.meta.url))),app=await realpath(authority.application);
@@ -222,10 +225,21 @@ async function main(){
       try{verifyRateBucketAdmission(authState);}catch(e){if(e.safeCode!=='M6_OPERATIONAL_LIVE_LOCAL_BUCKET')throw e;rateBucketReady=false;}
       mark('FINAL_CUSTODY');
       await verifyBeforeSessions();await verifyPreserved();
-      return {status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,historicalSessionRowsPreserved:binding.historicalSessionRowsPreserved,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};
+      const publicProof={status:'M6_RESIDUAL_READ_ONLY_READINESS_PASS',applicationSha:candidate.sha,operatorSha:id.sha,priorBatchSessionsPreserved:28,historicalSessionRowsPreserved:binding.historicalSessionRowsPreserved,inventoryReceiptBound:true,siteHistoryBound:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,rateBucketReady,...readiness,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false,secretsPrinted:false};;
+      if(!consume)return publicProof;
+      // Event266 is the only admitted starting state. Do not treat a partial
+      // prior mutation attempt, changed roster or expired proof as permission.
+      need(binding.historicalSessionRowsPreserved===129&&rateBucketReady&&readiness.site.signedReceiptPresent===true&&readiness.site.boqAllocationPresent===true&&readiness.site.issueDimensionsPresent===false&&readiness.site.threeLevelWbsPresent===false&&readiness.site.activityTypePresent===false&&readiness.fm02.planCount===0&&readiness.fm02.confirmedPlanCount===0&&readiness.fm02.eligiblePairCount===0&&readiness.supplier.eventCount===0,'EVENT266_START');
+      mark('RESIDUAL_ROLE_PLAN');
+      const roleContext={fixture,original:privateActors.actors,roster:binding.roster};
+      const rolePlan=await successorRead(tx=>observeResidualRolePlan(tx,roleContext));
+      await verifyBeforeSessions();await verifyPreserved();
+      mark('RESIDUAL_CONSUMER');
+      try{return await consume({candidate,operatorSha:id.sha,application:app,parentStage:stage,recovery,priorWebRoot:join(failedStage,'web'),db,initial:structuredClone(initial),binding,fixture,site,inventoryBinding,roleContext,rolePlan,authState,publicProof,retainedFileInventory:structuredClone(files),captureFixtureRows,inventory,verifyBeforeMutation:verifyBeforeSessions,verifyCustody:verifyPreserved,readKeyring:privateJson,password:cfg.databasePassword});}
+      finally{await verifyPreserved();}
     }finally{await sourceDb.$disconnect();}
   }finally{await db.$disconnect();}
 }
 if(process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null)===await realpath(new URL(import.meta.url))){
- try{console.log(JSON.stringify(await main(),null,2));}catch(e){console.log(JSON.stringify(safeFailure(e)));process.exitCode=1;}
+ try{need(process.argv[2]==='--preflight-read-only-residual'&&process.argv.length===5,'PREFLIGHT_ARGS');console.log(JSON.stringify(await withResidualNativeAdmission({operatorSha:process.argv[3],application:process.argv[4]}),null,2));}catch(e){console.log(JSON.stringify(safeFailure(e)));process.exitCode=1;}
 }
