@@ -7319,6 +7319,26 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261128-M6-02-262",
+      "date": "2026-11-28",
+      "packageId": "M6-02",
+      "kind": "OWNER_MAC_PRISMA_LOAD_BLOCKED",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "sourceSha": "7bc1ded1a6df4ab38f44f6d092ebec733aaec972",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226749151"
+      ],
+      "basis": "Owner exact-head diagnostic reports PRISMA_LOAD line82, identical client loading statement to Event258. Pinned package uses Prisma6.19.3; underlying error not yet identified. Dependency-only read-only probe next, no blind full operator rerun.",
+      "blocker": "Actual local module resolution/load cause unknown; classify generated client or dependency issue before repair. No new sessions reported; formal acceptance pending.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -7349,7 +7369,7 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1621,
-  "currentRollingTotalSemantics": "Event261: M6-02 7h unchanged, M6 11h, M7 50h, M8 65h, canonical prototype126h, ERP1621h. Owner Mac residual readiness blocked; diagnostic correction published, root cause unknown. Provisional ERP1331h/prototype75h. No new completion credit or net rework increase.",
+  "currentRollingTotalSemantics": "Event262: M6 11h unchanged; canonical ERP1621h/prototype126h; provisional ERP1331h/prototype75h. Residual blocked at Prisma module loading, dependency-only probe next. No earned credit.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
