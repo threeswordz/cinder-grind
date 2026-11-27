@@ -103,6 +103,7 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
       assert.deepEqual(await db.approvalAction.findUniqueOrThrow({where:{id:action.id}}),action);
     };
     await assertInvalidBinding(pending);
+    await assert.rejects(db.approvalInstance.update({where:{id:pending.approvalInstanceId},data:{approvalState:'APPROVED',completedAt:new Date()}}),/SS16 completed decision invalid/);
     assert.equal(JSON.parse(createdText).data.id,pending.id);
     assert.equal((await get(requestPath,null)).status,401);
     for (const actor of [f.store,f.pm]) {
@@ -247,6 +248,16 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
         steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:fixture.pm.role.id}]}}]}}});
     };
     await prepareActors(rc,'inventory.receipt.reverse');
+    // A genuine foreign workflow/approval with a reciprocal request ID is
+    // still not a valid approval for the original Company's source.
+    await assert.rejects(db.$transaction(async tx=>{
+      const workflow=await tx.approvalWorkflow.findUniqueOrThrow({where:{companyId_workflowCode:{companyId:rc.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION'}}});
+      const id=randomUUID(),approval=await tx.approvalInstance.create({data:{companyId:rc.company.id,approvalWorkflowId:workflow.id,
+        entityType:'MOVEMENT_CORRECTION',entityId:id,currentStepNo:1,approvalState:'SUBMITTED'}});
+      await tx.movementCorrectionRequest.create({data:{id,companyId:pending.companyId,sourceKind:pending.sourceKind,
+        sourceId:pending.sourceId,sourcePostedAt:pending.sourcePostedAt,requestKey:randomUUID(),reason:'Foreign approval binding',
+        requestedByUserId:pending.requestedByUserId,approvalInstanceId:approval.id}});
+    }),/SS16 reciprocal approval binding invalid/);
     const rcStore = await rc.sessions.resolve(rc.store.session.sessionToken);
     const rcPm = await rc.sessions.resolve(rc.pm.session.sessionToken);
     assert.ok(rcStore && rcPm);
@@ -393,6 +404,13 @@ test('SS16 draft: immutable correction request, configured PM decision and atomi
     assert.equal(overAuth.approval?.approvalState,'SUBMITTED');
     const overReq = await corrections.request({auth:mpStore},'MATERIAL_ISSUE',over.id,randomUUID(),'Incorrect overage source','CANCEL_UNPOSTED');
     assert.equal(overReq.sourceApprovalInstanceId,overAuth.approvalInstanceId);
+    const unrelated=await db.approvalInstance.findFirstOrThrow({where:{companyId:overReq.companyId,approvalState:'APPROVED',entityType:{not:'MOVEMENT_CORRECTION'}}});
+    await assert.rejects(db.movementCorrectionRequest.create({data:{id:randomUUID(),companyId:overReq.companyId,
+      sourceKind:overReq.sourceKind,sourceId:overReq.sourceId,sourcePostedAt:null,sourceApprovalInstanceId:overReq.sourceApprovalInstanceId,
+      sourceSubmittedAt:overReq.sourceSubmittedAt,requestKey:randomUUID(),reason:'Unrelated approved cancellation',
+      requestedByUserId:overReq.requestedByUserId,approvalInstanceId:unrelated.id}}),/SS16 reciprocal approval binding invalid/);
+    await assert.rejects(db.approvalInstance.update({where:{id:overReq.sourceApprovalInstanceId!},data:{entityId:randomUUID()}}),/SS16 original approval identity immutable/);
+
     // A PM without Store posting capability cannot cancel through the generic
     // approval service; only the exact in-transaction SS16 proof permits it.
     assert.equal(mpPm.permissions.includes('inventory.material_plan.issue.post'),false);

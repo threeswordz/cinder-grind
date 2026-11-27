@@ -58,6 +58,9 @@ export async function uomStageInventory(path){
  return rows;
 }
 export async function upgradeUom(operatorMain){
+ // Historical Mac UOM one-shot remains at its original immutable release.
+ // Current SS16 successor acceptance is disposable-only and cannot replay it.
+ demand(false,'UOM_HISTORICAL_EXECUTION_PIN_REQUIRED');
  const applicationSha=operatorMain;
  demand(process.platform==='darwin'&&process.getuid()>0,'UOM_UPGRADE_NONROOT_MAC_REQUIRED');
  demand(process.versions.node==='24.21.0','UOM_UPGRADE_NODE_24_21_0_REQUIRED');
