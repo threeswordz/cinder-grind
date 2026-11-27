@@ -1,6 +1,24 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+**Provisional rebaselined ERP: 1,327.5h → 0h · prototype 71.5h → 0h** (M6 7.5h / M7 26h / M8 38h). Canonical ERP 1,617.5h; canonical prototype 122.5h.
+
+**Latest evidence (Events268–269):** [SS08 and supplier adapters, exact audit preservation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227186733), [exact source](https://github.com/threeswordz/cinder-grind/commit/eb210a53496eb9434ce8695ece55d8d86af7c27e). Six published blobs match locally tested source; 24/24 focused mocked tests PASS. SS08 dimensional within-plan issue and fresh signed receipt, seven supplier advisory return events and exact audit-only row hash delta. M6-02 5→4.5h and M6-03 2.5→1.5h; estimated 1.5h preparation retired once. No native execution, replacement pass, actual grant or formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 4.5h |
+| M6-03 | 1.5h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **7.5h** |
+
+Next: integrate native source-bound fixture and transport, real row/file delta capture and durable receipt; stable independent DEC-022 review then exact synthetic execution authority. No repeat preflight-only run, previous browser replay, full CI/Codex at unstable head or Production.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,329h → 0h · prototype 73h → 0h** (M6 9h / M7 26h / M8 38h). Canonical ERP 1,619h; canonical prototype 124h.
 
 **Latest evidence (Event267):** [Residual role and FM02 components tested](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227080431), [exact source](https://github.com/threeswordz/cinder-grind/commit/6b63cf440931c5cea0d3c09d14a8d3a7e5f3e3e5). Six published blobs match locally tested source; 28/28 focused mocked tests PASS. Exact role plan and guarded transaction adapter, FM02 canonical HTTP sequence. No actual grant, DB/business mutation, native session or formal acceptance. M6-02 6.5→5h; estimated 1.5h preparation retired once.
