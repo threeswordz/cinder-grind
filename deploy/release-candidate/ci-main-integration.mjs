@@ -94,13 +94,13 @@ export async function inspectIntegration({sha, before, get, threads, ancestor, j
     r.repository?.full_name === REPO && r.head_repository?.full_name === REPO &&
     r.path === '.github/workflows/validate.yml' && r.name === 'Validate Construction ERP' &&
     r.status === 'completed' && r.conclusion === 'success' && Number.isSafeInteger(r.id) && r.id > 0 &&
-    Number.isSafeInteger(r.run_attempt) && r.run_attempt > 0 && stamp(r.updated_at) <= ready);
-  // More than one successful full run is not guessed away. Fall back to full.
+    Number.isSafeInteger(r.run_attempt) && r.run_attempt > 0 && stamp(r.updated_at) >= ready && stamp(r.updated_at) <= merged);
+  // Ready event now initiates full validation. Reuse only one completed full run\n  // after that exact ready transition and before merge; no earlier/late proof.
   need(runs.length === 1, 'FULL_PR_PROOF_AMBIGUOUS_OR_MISSING');
   const run = runs[0];
   const jobs = await get('actions/runs/' + run.id + '/attempts/' + run.run_attempt + '/jobs?per_page=100');
   need(Number.isSafeInteger(jobs.total_count) && jobs.total_count <= 100 && jobs.jobs?.length === jobs.total_count, 'FULL_JOB_INVENTORY');
-  const fullJobs=jobs.jobs.filter(j=>fullJobSucceeded(j,run.id)&&stamp(j.completed_at)<=ready);
+  const fullJobs=jobs.jobs.filter(j=>fullJobSucceeded(j,run.id)&&stamp(j.completed_at)>=ready&&stamp(j.completed_at)<=merged);
   need(fullJobs.length===1&&Number.isSafeInteger(fullJobs[0].id)&&fullJobs[0].id>0,'FULL_JOB_NOT_EXECUTED');
   need(fullPrIdentity(await jobLog(fullJobs[0].id),head,run.run_attempt,number,before),'EXACT_PR_BASE_RECEIPT_MISSING');
   return {schemaVersion:1, kind:'MAIN_INTEGRATION_REUSES_FULL_PR', repository:REPO,
