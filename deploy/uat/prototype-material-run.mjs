@@ -3,6 +3,7 @@
 import {SOURCE} from './prototype-actors.mjs';
 import {materialSourceHttp} from './prototype-material-source.mjs';
 import {runMaterialApiJourney} from './prototype-material-journey.mjs';
+import {requireDisposableCorrectionFixture,reverseDisposableSources} from './ss16-disposable-corrections.mjs';
 import {inspectMaterialPreconditions} from './prototype-material-preconditions.mjs';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 export async function executeMaterialRun(db,binding,configuration,origins,saveEvidence){
@@ -10,6 +11,7 @@ export async function executeMaterialRun(db,binding,configuration,origins,saveEv
   demand(configuration?.status==='MATERIAL_SYNTHETIC_CONFIGURATION_APPLIED'&&configuration.sourceSha===SOURCE&&
     configuration.projectId===f.projectId&&configuration.productionAuthorized===false&&
     typeof saveEvidence==='function','MATERIAL_RUN_CONFIGURATION_REQUIRED');
+  await requireDisposableCorrectionFixture(db,b,origins);
   const base={...origins,sourceSha:SOURCE,companyId:f.companyId,projectId:f.projectId,
     warehouseId:f.warehouseId,materialId:f.materialId,uomId:f.uomId,
     storeEmployeeId:b.actors.STORE_SITE.employeeId,foremanEmployeeId:b.actors.FOREMAN.employeeId,
@@ -28,7 +30,7 @@ export async function executeMaterialRun(db,binding,configuration,origins,saveEv
     const preconditions=await inspectMaterialPreconditions(db,{...b,sourceMapping:mapping});
     demand(preconditions.sourceMappingVerified,'MATERIAL_RUN_SOURCE_PROVENANCE_REQUIRED');
     result=await runMaterialApiJourney({...base,budgetRevisionId:mapping.budgetRevisionId,
-      budgetRevisionLineId:mapping.budgetRevisionLineId},sessions);
+      budgetRevisionLineId:mapping.budgetRevisionLineId},sessions,fetch,targets=>reverseDisposableSources(db,b,origins,targets));
     demand(JSON.stringify(await financial())===JSON.stringify(before),'MATERIAL_RUN_FINANCE_CHANGED');
     demand(await db.stockTransaction.count()===5&&await db.materialIssue.count()===2&&
       await db.materialReservation.count()===0,'MATERIAL_RUN_CANONICAL_HISTORY_CHANGED');

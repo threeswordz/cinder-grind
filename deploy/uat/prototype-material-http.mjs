@@ -61,9 +61,8 @@ export function materialJourneyHttp(binding,fetchImpl=fetch){
     let m=path.match(/^\/inventory\/material-plans\/([a-f0-9-]+)(?:\/(submit|decision))?$/);
     if(m){if(!m[2]&&method==='GET'&&(owned.plans.has(m[1])||pending.plans.has(m[1])))return;
       own(owned.plans,m[1]);if(m[2]&&method==='POST')return;fail();}
-    m=path.match(/^\/inventory\/material-issues\/([a-f0-9-]+)(\/reverse)?$/);
-    if(m){if(!m[2]&&method==='GET'&&(owned.issues.has(m[1])||pending.issues.has(m[1])))return;
-      own(owned.issues,m[1]);if(m[2]&&method==='POST')return;fail();}
+    m=path.match(/^\/inventory\/material-issues\/([a-f0-9-]+)$/);
+    if(m){if(method==='GET'&&(owned.issues.has(m[1])||pending.issues.has(m[1])))return;fail();}
     m=path.match(/^\/inventory\/material-plan-issues\/issues\/([a-f0-9-]+)(?:\/(preview|within-plan|overage))?$/);
     if(m){
       own(owned.issues,m[1]);if(!m[2]&&method==='GET')return;

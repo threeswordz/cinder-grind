@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {SOURCE,httpClient} from './prototype-actors.mjs';
+import {requireDisposableCorrectionFixture,reverseDisposableSources} from './ss16-disposable-corrections.mjs';
 import {validUomOrigins} from './prototype-uom-state.mjs';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const n4=x=>Number(x).toFixed(4);
@@ -14,6 +15,7 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
  demand(b.sourceSha===SOURCE&&validUomOrigins(api,web)&&
   source?.company?.id===f.companyId&&source?.material?.code==='PROTO_UOM_NEW',
   'UOM_PLAN_SYNTHETIC_BINDING_REFUSED');
+ await requireDisposableCorrectionFixture(db,b,{api,web});
  const boq=await db.boq.findFirst({where:{companyId:f.companyId,projectId:f.projectId},
   include:{sections:true,items:true}});
  const section=boq?.sections.find(z=>z.sectionCode==='PROTO_MATERIAL'&&z.isActive);
@@ -227,15 +229,10 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
   // Reversing a posted Issue with a live posted Return is prohibited. Reverse
   // the Return first, then the Issue, preserving all four immutable movements.
   phase='RETURN_REVERSE';
-  const returnReverse={reversalKey:requestKey(),
-   reason:'Synthetic credited return reversed before original plan issue'};
-  await call('STORE_SITE','UOM_PLAN_RETURN_REVERSE',returnPath+'/reverse',returnReverse);
-  await call('STORE_SITE','UOM_PLAN_RETURN_REVERSE_REPLAY',returnPath+'/reverse',returnReverse);
+  await reverseDisposableSources(db,b,{api,web},[{kind:'MATERIAL_RETURN',id:returned.id,materialId,key:requestKey(),reason:'Synthetic credited return reversed before original plan issue'}]);
   assert.equal(await balance(),'40.0000','Return reversal must remove10 credited stock pieces');
   phase='ISSUE_REVERSE';
-  const reverse={reversalKey:requestKey(),reason:'Synthetic within-plan reversal with immutable history'};
-  await call('STORE_SITE','UOM_PLAN_ISSUE_REVERSE','/inventory/material-issues/'+issue.id+'/reverse',reverse);
-  await call('STORE_SITE','UOM_PLAN_ISSUE_REVERSE_REPLAY','/inventory/material-issues/'+issue.id+'/reverse',reverse);
+  await reverseDisposableSources(db,b,{api,web},[{kind:'MATERIAL_ISSUE',id:issue.id,materialId,key:requestKey(),reason:'Synthetic within-plan reversal with immutable history'}]);
   assert.equal(await balance(),'60.0000','Canonical issue reversal must restore60 pieces');
   const original=await db.stockTransaction.findMany({where:{companyId:f.companyId}});
   for(const old of oldStock)assert.deepEqual(original.find(row=>row.id===old.id),old,'Pre-UOM stock mutated');
@@ -298,12 +295,7 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
    usedOverage.approvedRevision.lines[0].remainingQuantity==='0.0000',
    'UOM_PLAN_OVERAGE_EXACT_STOCK_USAGE_MISSING');
   phase='OVERAGE_REVERSAL';
-  const revertExcess={reversalKey:requestKey(),
-   reason:'Synthetic independently approved plan overage restored with original pin'};
-  await call('STORE_SITE','UOM_PLAN_OVERAGE_REVERSE',
-   '/inventory/material-issues/'+excessIssue.id+'/reverse',revertExcess);
-  await call('STORE_SITE','UOM_PLAN_OVERAGE_REVERSE_REPLAY',
-   '/inventory/material-issues/'+excessIssue.id+'/reverse',revertExcess);
+  await reverseDisposableSources(db,b,{api,web},[{kind:'MATERIAL_ISSUE',id:excessIssue.id,materialId,key:requestKey(),reason:'Synthetic independently approved plan overage restored with original pin'}]);
   assert.equal(await balance(),'60.0000','Overage issue reversal must restore stock60');
   const restoredUsage=await call('STORE_SITE','UOM_PLAN_OVERAGE_RESTORED_USAGE',
    '/inventory/material-plans/'+plan.id,undefined,200);

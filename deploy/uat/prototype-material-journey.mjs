@@ -4,7 +4,8 @@ import {randomUUID,createHash} from 'node:crypto';
 import {materialJourneyHttp} from './prototype-material-http.mjs';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const hash=b=>createHash('sha256').update(b).digest('hex');
-export async function runMaterialApiJourney(binding,sessions,fetchImpl=fetch){
+export async function runMaterialApiJourney(binding,sessions,fetchImpl=fetch,reverseSources){
+  demand(typeof reverseSources==='function','MATERIAL_SUCCESSOR_CORRECTION_ADAPTER_REQUIRED');
   const b=structuredClone(binding),c=materialJourneyHttp(b,fetchImpl),
     store=sessions.STORE_SITE,khaimook=sessions.KHAIMOOK,ben=sessions.BEN,foreman=sessions.FOREMAN;
   demand([store,khaimook,ben,foreman].every(a=>a?.cookie&&a?.csrf)&&
@@ -95,8 +96,8 @@ export async function runMaterialApiJourney(binding,sessions,fetchImpl=fetch){
   const approved=(await c.call(ben,'OVERAGE_FINAL_APPROVE','/inventory/material-plan-issues/authorizations/'+submitted.authorizationId+'/decision',201,decision())).value.data;
   demand(approved.status==='POSTED','MATERIAL_JOURNEY_OVERAGE_POST_FAILED');
   await balance('OVERAGE_STOCK','13.0000');
-  for(const issue of [overage,within])await c.call(store,'ISSUE_REVERSE','/inventory/material-issues/'+issue.id+'/reverse',201,
-    {reversalKey:randomUUID(),reason:'Synthetic physical issue reversal with retained history'});
+  const correction=await reverseSources([overage,within].map(issue=>({kind:'MATERIAL_ISSUE',id:issue.id,materialId:b.materialId,key:randomUUID(),reason:'Synthetic physical issue reversal with retained history'})));
+  c.observations.push(...correction.observations);
   await balance('FINAL_STOCK','20.0000');
   requestRead=await readRequest(request.id);
   demand(requestRead.lines[0].issuedQuantity==='0.0000'&&requestRead.lines[0].acknowledgedQuantity==='0.0000'&&
