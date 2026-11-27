@@ -17,13 +17,21 @@ export function projectPostInventoryBaseline({baseline,current,sessionRows,roste
  for(const k of ['receivingCanonicalGrVerified','convertedSourceAndStockRendered','partialDestinationCustodyVerified','ss16MakerCheckerControlsVerified','supplierAdvisoryScopeVerified','priorSessionsPreserved','rateBucketLifecycleBounded','auditRowsPreserved','priorHrAuditPreserved','priorSubcontractEvidencePreserved'])need(r[k]===true,'RECEIPT_'+k.toUpperCase());
  for(const k of ['jaiCanonicalRolePresent','supplierFullLifecycleBrowserVerified','businessMutationsPerformed','fullAffectedBrowserJourneysVerified','productionAuthorized','milestone6Accepted','secretsPrinted','automaticRetryAllowed'])need(r[k]===false,'RECEIPT_'+k.toUpperCase());
  // batch-ready.json lacks the two final stdout-only preservation flags; caller must recheck retained custody.
+ // priorBatchSessionsPreserved counts authorized batch sessions, not all
+ // retained session rows. Since correction.after the exact deltas are
+ // shared batch 11 + HR 1 + subcontract 2 + inventory 3 = 17.
  const old=baseline?.user_sessions,now=current?.user_sessions;
- need(Array.isArray(old)&&Array.isArray(now)&&Array.isArray(sessionRows)&&old.every(hex)&&new Set(old).size===old.length&&now.length===28&&sessionRows.length===28&&new Set(now).size===28&&now.every(hex)&&old.every(h=>now.includes(h)),'SESSION_CENSUS');
- need(same(sessionRows.map(s=>s.hash).sort(),[...now].sort())&&sessionRows.every(s=>uuid(s.actor)&&s.revoked===true&&Number.isFinite(Date.parse(s.created))&&Number.isFinite(Date.parse(s.revokedAt))&&Date.parse(s.created)<=Date.parse(s.revokedAt)),'SESSION_ROWS');
+ need(Array.isArray(old)&&Array.isArray(now)&&Array.isArray(sessionRows)&&old.every(hex)&&new Set(old).size===old.length&&now.every(hex)&&new Set(now).size===now.length,'SESSION_CENSUS');
+ need(now.length===old.length+17&&sessionRows.length===now.length,'SESSION_COUNT_DELTA');
+ need(old.every(h=>now.includes(h)),'SESSION_HISTORY');
+ need(same(sessionRows.map(s=>s.hash).sort(),[...now].sort()),'SESSION_ROWS');
  const oldSet=new Set(old),fresh=sessionRows.filter(s=>!oldSet.has(s.hash));
+ need(fresh.length===17&&fresh.every(s=>uuid(s.actor)&&s.revoked===true&&Number.isFinite(Date.parse(s.created))&&Number.isFinite(Date.parse(s.revokedAt))&&Date.parse(s.created)<=Date.parse(s.revokedAt)),'SESSION_FRESH_ROWS');
  const newest=actors.map(a=>fresh.filter(s=>s.actor===a).sort((x,y)=>Date.parse(y.created)-Date.parse(x.created))[0]);
  need(newest.every(Boolean)&&new Set(newest.map(s=>s.hash)).size===3,'SESSION_ACTORS');
  const removed=new Set(newest.map(s=>s.hash)),earlier=sessionRows.filter(s=>!removed.has(s.hash));
- need(earlier.length===25&&earlier.every(s=>Date.parse(s.revokedAt)<Math.min(...newest.map(x=>Date.parse(x.created)))),'SESSION_CHRONOLOGY');
+ need(earlier.length===old.length+14&&earlier.filter(s=>!oldSet.has(s.hash)).every(s=>Date.parse(s.revokedAt)<Math.min(...newest.map(x=>Date.parse(x.created)))),'SESSION_CHRONOLOGY');
+ // Historical baseline rows are preserved by exact hash; the caller has
+ // already checked no live sessions and must run the previous projections.
  return {current:{...current,user_sessions:now.filter(h=>!removed.has(h))},sessionRows:earlier};
 }
