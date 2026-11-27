@@ -1,7 +1,20 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 28.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 143.5h → 0h · Full ERP 1,638.5h → 0h.**
+**M4 CLOSED 0h · M6 27.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 142.5h → 0h · Full ERP 1,637.5h → 0h.**
+
+**Latest evidence (Event248):** [Targeted HR protected-download proof](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225314752), [exact operator](https://github.com/threeswordz/cinder-grind/commit/ab60acdde265aaf8c3a3fbe71de70e88833bd2df). 10/10 focused local tests PASS; native entry syntax PASS, not executed. Exactly one KOH session, one synthetic protected browser download and one canonical audit append need separate Owner approval. Both prior shared batches retained; no replay or additional CI. Exact source path comparison preserves historical evidence without blanket successor acceptance. M6-05 6→5h, M6 28.5→27.5h; scope0/rework0, actual labor unknown.
+
+| Current M6 package | Remaining |
+|---|---:|
+| M6-01 | 0.5h |
+| M6-02 | 9h |
+| M6-03 | 6.5h |
+| M6-04 | 6.5h |
+| M6-05 | 5h |
+| **M6 total** | **27.5h** |
+
+Prior entries below are historical snapshots.
 
 **Latest evidence (Event247):** [Owner Mac correction and shared operational continuation PASS](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225158999), [exact operator](https://github.com/threeswordz/cinder-grind/commit/e3d930b68c7c53d37399bc4cdf0a31d29af1584c). Two quantity-only grants and one audit row, 13 prior readbacks reused, 11 fresh sessions revoked, prior sessions preserved, 171 non-auth tables preserved, 15 HR denials, 26 browser module opens, zero additional browser logins. Retained files/database and recovery copy unchanged. No replay. M6 38→28.5h (−9.5h distinct new native evidence), scope0/rework0, actual labor unknown. Shared integration complete; M6-01 0.5h held for applicable exact-source acceptance/review. No formal milestone acceptance; full affected browser journeys remain false. No additional CI/Codex/Work/Production.
 
