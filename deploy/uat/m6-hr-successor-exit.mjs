@@ -6,6 +6,7 @@ import {captureHrSuccessorSnapshot,bindHrSuccessorDenials} from './m6-hr-success
 import {verifyHrSuccessorCustody} from './m6-hr-successor-boundaries.mjs';
 import {executeHrSuccessorDenials} from './m6-hr-successor-http.mjs';
 import {requireNoLiveSessions} from './m6-read-only-sessions.mjs';
+import {createHrFixtureProjection} from './m6-hr-fixture-projection.mjs';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('M6_HR_EXIT_'+code),{safeCode:'M6_HR_EXIT_'+code});};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
@@ -37,7 +38,8 @@ export function hrAccessProjection(snapshot){
  need(hr.length>0&&hrEdges.length>0,'ACCESS_COVERAGE');
  return {roles:sortRaw(roles),memberships:sortRaw(members),hrPermissions:sortRaw(hr),hrEdges:sortRaw(hrEdges)};
 }
-export async function captureHrAccessProjection(db,database='proto_a_01'){
+export async function captureHrAccessProjection(db,database='proto_a_01',fixtureProjection){
+ need(fixtureProjection===undefined||database==='m6_successor_rehearsal','FIXTURE_SCOPE');
  need(['proto_a_01','m6_successor_rehearsal'].includes(database),'DB_SCOPE');
  return db.$transaction(async tx=>{
   await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
@@ -45,7 +47,7 @@ export async function captureHrAccessProjection(db,database='proto_a_01'){
   need(ids.length===1&&ids[0].db===database&&ids[0].role==='proto_runtime'&&ids[0].ro==='on'&&ids[0].isolation==='repeatable read','DB_IDENTITY');
   await requireNoLiveSessions(tx);
   const snapshot={};for(const t of accessTables){const a=await tx.$queryRawUnsafe('SELECT to_jsonb(t)::text AS bytes FROM public."'+t+'" t LIMIT 10001');need(Array.isArray(a)&&a.length<=10000,'ACCESS_TABLE');snapshot[t]=a.map(r=>({__fm03_exact_row_json:r.bytes}));}
-  return hrAccessProjection(snapshot);
+  return hrAccessProjection(fixtureProjection?fixtureProjection.projectAccess(snapshot):snapshot);
  },{isolationLevel:'RepeatableRead',timeout:60000});
 }
 // A sealed post-upload SQL snapshot contains the historically attested HR
@@ -59,14 +61,16 @@ function normalizeSnapshot(snapshot){return Object.fromEntries(Object.entries(sn
 // Run before the existing synthetic session batch, pass only its pre-bound
 // callbacks to the coordinator, then finish AFTER all sessions are revoked.
 // No callback invocation is a substitute for independent runtime attestation.
-export async function prepareHrSuccessorExit({db,database='proto_a_01',ready,receipts,sealedSnapshot,oldKeys,preservedKeys,cdBinding,readFiles,verifyRuntime}){
+export async function prepareHrSuccessorExit({db,database='proto_a_01',ready,receipts,sealedSnapshot,oldKeys,preservedKeys,cdBinding,readFiles,verifyRuntime,fixtureReceipt}){
  need(typeof readFiles==='function'&&typeof verifyRuntime==='function','CONTEXT');
  verifyHrSealedPhase(ready,receipts);need(same(oldKeys,preservedKeys),'PRESERVED_KEYS');
+ need(fixtureReceipt===undefined||database==='m6_successor_rehearsal','FIXTURE_SCOPE');
+ const fixtureProjection=fixtureReceipt===undefined?undefined:createHrFixtureProjection(fixtureReceipt);
  const baseline=structuredClone(sealedSnapshot),expectedAccess=hrAccessProjection(baseline),expectedDocuments=sealedHrDocumentProjection(baseline),expectedKeys=structuredClone(oldKeys);
  const binding=bindHrSuccessorDenials(baseline,cdBinding);
- const capture=async()=>{await verifyRuntime();const snapshot=await captureHrSuccessorSnapshot(db,database),access=await captureHrAccessProjection(db,database),files=structuredClone(await readFiles());
+ const capture=async()=>{await verifyRuntime();const snapshot=await captureHrSuccessorSnapshot(db,database),access=await captureHrAccessProjection(db,database,fixtureProjection),files=structuredClone(await readFiles());
   need(same(expectedAccess,access),'HR_ACCESS_DRIFT');
-  const custody=verifyHrSuccessorCustody({before:baseline,after:snapshot,oldDocuments:expectedDocuments,currentDocuments:files?.documents,oldKeys:expectedKeys,currentKeys:files?.hrkeys});await verifyRuntime();return {snapshot:normalizeSnapshot(snapshot),access,files,custody};};
+  const custody=verifyHrSuccessorCustody({before:baseline,after:fixtureProjection?fixtureProjection.projectEmployees(snapshot):snapshot,oldDocuments:expectedDocuments,currentDocuments:files?.documents,oldKeys:expectedKeys,currentKeys:files?.hrkeys});await verifyRuntime();return {snapshot:normalizeSnapshot(snapshot),access,files,custody};};
  const before=await capture();let attempted=false,denials,finished=false;
  return Object.freeze({
   async verifyDenials(sessions,fetchImpl,origins={}){need(!attempted&&!finished,'NO_REPLAY');attempted=true;denials=await executeHrSuccessorDenials({binding,sessions,fetchImpl,origin:origins.origin,webOrigin:origins.webOrigin});return {status:denials.status,denials:denials.denials,positiveControls:denials.positiveControls};},
