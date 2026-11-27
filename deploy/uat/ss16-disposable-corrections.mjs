@@ -3,6 +3,7 @@
 import {SOURCE,httpClient} from './prototype-actors.mjs';
 import {acceptCorrection} from './ss16-correction-acceptance.mjs';
 import {readSS16Ledger,verifySS16Ledger} from './m6-parallel-03-ss16-ledger.mjs';
+import {readSS16Config,assertSS16Config} from './m6-parallel-03-ss16-config.mjs';
 const need=(ok,code)=>{if(!ok)throw Object.assign(new Error('SS16_FIXTURE_'+code),{safeCode:'SS16_FIXTURE_'+code});};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const kinds={MATERIAL_ISSUE:{route:'material-issues',model:'materialIssue',prefix:'inventory.issue'},
@@ -54,6 +55,8 @@ export async function reverseDisposableSources(db,b,origins,targets){
   else await tx.approvalWorkflow.create({data:{companyId:f.companyId,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',
    workflowName:'Disposable successor correction',steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,
     stepRoles:{create:[{roleId:actors.KHAIMOOK.roleId}]}}]}}});
+  const binding={companyId:f.companyId,storeUserId:actors.STORE_SITE.userId,pmUserId:actors.KHAIMOOK.userId,projectIds:[f.projectId],kinds:[...new Set(targets.map(t=>t.kind))]};
+  assertSS16Config(binding,await readSS16Config(tx,binding));
   return saved;
  },{isolationLevel:'Serializable'});
  const allowed=new Map();
