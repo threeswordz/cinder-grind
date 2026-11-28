@@ -1,0 +1,47 @@
+# Isolated test-driver branch only. Never merge this workflow into main or #466.
+name: M8 Release Contract Repair Focused Only
+on:
+  push:
+    branches: ['work-m8-contract-check-only-20261129']
+permissions:
+  contents: read
+jobs:
+  release-contract-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      EXACT_REPAIR: 'b281cd061012fd1e6c333f41d84a3a235f726651'
+    steps:
+      - name: Checkout exact repair, not the test driver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: 'b281cd061012fd1e6c333f41d84a3a235f726651'
+          persist-credentials: false
+      - name: Verify source pin
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXACT_REPAIR"
+          test -z "$(git status --porcelain)"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies only
+        run: pnpm install --frozen-lockfile
+      - name: Verify changed scripts and rerun only failed deployment-pack contract suite
+        run: |
+          bash -n deploy/release-candidate/rehearse-migration.sh
+          node --check deploy/release-candidate/ss16-recovery-witness.mjs
+          node --check deploy/release-candidate/hr-upgrade.mjs
+          node --check deploy/release-candidate/legacy-fixture.mjs
+          node --test deploy/release-candidate/*.test.mjs
+      - name: Record focused scope, not full PR validation
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXACT_REPAIR"
+          test -z "$(git status --porcelain)"
+          echo 'M8_RELEASE_CONTRACT_FOCUSED_PASS: no full PR/main CI, no database, browser, historical rehearsal or native Mac replay.'
