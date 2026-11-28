@@ -5,7 +5,7 @@ import {lstat,mkdir,open,realpath,readdir} from 'node:fs/promises';
 import {isAbsolute,join,relative,resolve} from 'node:path';
 import {sourceProcessTuple,sameSourceProcess} from './m7-source-process.mjs';
 import {normalizeInventory} from './m6-backup-receipts.mjs';
-import {createM7StorageRestore} from './m7-storage-restore.mjs';
+import {createM7SourceStorageCapture} from './m7-storage-restore.mjs';
 import {prepareM7PairedManifest,verifyM7PairedManifest} from './m7-paired-backup.mjs';
 const kinds=['documents','uploads','hrkeys'];
 const need=(ok,c)=>{if(!ok)throw Error('M7_CAPTURE_'+c);};
@@ -24,7 +24,7 @@ async function dumpDigest(p){
 }
 // Observer must independently collect schema, full row census, DB/cluster identity,
 // private file inventories and process custody, not echo caller-supplied hashes.
-export function createM7PairedCapture({parent,runId,sourceRoot,protectedRoots,anchor,observe,dump,copyStorage=createM7StorageRestore,sealManifest=prepareM7PairedManifest,verifyManifest=verifyM7PairedManifest}){
+export function createM7PairedCapture({parent,runId,sourceRoot,protectedRoots,anchor,observe,dump,copyStorage=createM7SourceStorageCapture,sealManifest=prepareM7PairedManifest,verifyManifest=verifyM7PairedManifest}){
   need(/^[a-f0-9]{12}$/.test(runId??'')&&Array.isArray(protectedRoots)&&protectedRoots.length>=2&&[observe,dump,copyStorage,sealManifest,verifyManifest].every(f=>typeof f==='function'),'CONTEXT');
   need(hex(anchor?.applicationSha,40)&&hex(anchor?.applicationTree,40)&&hex(anchor?.terminalSnapshotSha256,64)&&anchor.database==='m6_successor_rehearsal','ANCHOR');
   const pin=structuredClone(anchor),protectedPaths=[...protectedRoots,sourceRoot],root=join(parent,'m7-capture-'+runId),storage=Object.fromEntries(kinds.map(k=>[k,join(root,k)]));let attempted=false;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp,mkdir,realpath,writeFile,readFile,rm,symlink,readdir} from 'node:fs/promises';
+import {mkdtemp,mkdir,realpath,writeFile,readFile,rm,symlink,readdir,chmod,lstat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createM7PairedCapture} from './m7-paired-capture.mjs';
@@ -24,3 +24,6 @@ test('drift after dump retains partial capture, refuses manifest and replay',asy
 test('source symlink or altered bytes fails before dump; no overwrite or retry',async t=>{const f=await fixture(t),p=join(f.args.sourceRoot,'documents','f');await rm(p);await symlink(join(f.args.sourceRoot,'uploads','f'),p);const run=createM7PairedCapture(f.args);await assert.rejects(run(),/M7_STORAGE_/);assert.deepEqual(f.calls,[]);await assert.rejects(run(),/ALREADY_ATTEMPTED/);});
 test('invalid dump magic and occupied capture path fail closed',async t=>{const f=await fixture(t);f.args.dump=async({archive})=>writeFile(archive,Buffer.alloc(2048),{mode:0o600,flag:'wx'});await assert.rejects(createM7PairedCapture(f.args)(),/DUMP_FORMAT/);await assert.rejects(createM7PairedCapture(f.args)(),{code:'EEXIST'});});
 test('capture parent cannot alias protected source or application',async t=>{const f=await fixture(t);await assert.rejects(createM7PairedCapture({...f.args,parent:f.args.sourceRoot})(),/OVERLAP/);await assert.rejects(createM7PairedCapture({...f.args,parent:f.args.protectedRoots[1]})(),/OVERLAP/);assert.deepEqual(f.calls,[]);});
+test('captures the observed M6 0644 document under its private root, preserving source mode and sealing a 0600 copy',async t=>{const f=await fixture(t),p=join(f.args.sourceRoot,'documents','f');await chmod(p,0o644);const r=await createM7PairedCapture(f.args)();assert.equal(r.status,'M7_PAIRED_CAPTURE_SET_SEALED');assert.equal((await lstat(p)).mode&0o777,0o644);assert.equal((await lstat(join(f.root,'documents','f'))).mode&0o777,0o600);assert.equal(await verifyM7PairedManifest(r.manifestArgs),true);});
+test('live capture still rejects writable documents, loose directories, uploads and encryption keys',async t=>{for(const [entry,mode] of [['documents/f',0o664],['documents',0o755],['uploads/f',0o644],['hrkeys/f',0o644]]){const f=await fixture(t);await chmod(join(f.args.sourceRoot,entry),mode);await assert.rejects(createM7PairedCapture(f.args)(),/M7_STORAGE_PRIVATE/);assert.deepEqual(f.calls,[]);}});
+test('sealed restore cannot use live-source exception',async t=>{const f=await fixture(t);const r=await createM7PairedCapture(f.args)();await chmod(join(f.root,'documents','f'),0o644);await assert.rejects(verifyM7PairedManifest(r.manifestArgs));});
