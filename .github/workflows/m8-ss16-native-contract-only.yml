@@ -1,5 +1,5 @@
 # Isolated engineering driver; do not merge into the release branch or main.
-name: M8 SS16 Targeted Native Upgrade Recovery
+name: M8 Receiving and FM03 Targeted Browser Verification
 on:
   push:
     branches: ['work-m8-ss16-native-contract-only-20261129']
@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   validate:
-    name: ss16-native-contract-only
+    name: receiving-fm03-browser-only
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -25,7 +25,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_REPAIR: '5cafbbe2dd04bf56e1f19b7a998984c5ffab0602'
+      EXACT_REPAIR: '3e0d1ad540798115b082a885f4d1bdc53208e3b7'
       EXACT_BASELINE: '9417f07c609dbc091b5bbe2e09071c5e2c316459'
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
       RC_ENVIRONMENT: ci
@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: '5cafbbe2dd04bf56e1f19b7a998984c5ffab0602'
+          ref: '3e0d1ad540798115b082a885f4d1bdc53208e3b7'
           persist-credentials: false
       - name: Set up pinned pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -45,92 +45,22 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.21.0
-      - name: Install locked dependencies and verify exact source
+      - name: Verify exact source and compile API once
+        env:
+          DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_REPAIR"
           test -z "$(git status --porcelain)"
           pnpm install --frozen-lockfile
           pnpm prisma:generate
-          node deploy/release-candidate/ss16-release-contract.mjs "$EXACT_REPAIR" "$EXACT_BASELINE"
-          node --check deploy/release-candidate/ss16-recovery-witness.mjs
-          node --test deploy/release-candidate/ss16-recovery-constraints.test.mjs
-      - name: Exercise actual seven SS16 migrations and read-only witness on three owned disposable databases
-        shell: bash
+          pnpm build:api
+          node --check deploy/release-candidate/receiving-predecessor.mjs
+          node --check deploy/release-candidate/site-issue-predecessor.mjs
+          node --test deploy/release-candidate/receiving-contract.test.mjs deploy/release-candidate/site-issue-contract.test.mjs
+      - name: Verify only receiving and FM03 populated predecessor browser journeys
         env:
-          PG_CONTAINER: ${{ job.services.postgres.id }}
+          DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
         run: |
-          set -euo pipefail
-          work="$(mktemp -d /tmp/construction-erp-v10e-migration.XXXXXX)"
-          suffix="$(printf '%012x' "$GITHUB_RUN_ID")"
-          upgrade="construction_erp_v10e_upgrade_$suffix"
-          restored="construction_erp_v10e_hrrestore_$suffix"
-          rollback="construction_erp_v10e_rollback_$suffix"
-          sql() {
-            local db="$1"
-            shift
-            docker exec -i "$PG_CONTAINER" psql -X -qAt -v ON_ERROR_STOP=1 -U construction_erp -d "$db" "$@"
-          }
-          url() { printf 'postgresql://construction_erp:construction_erp_dev_only@localhost:5432/%s?schema=public' "$1"; }
-          cleanup() {
-            status=$?
-            trap - EXIT
-            git worktree remove "$work/base" || status=1
-            for db in "$upgrade" "$restored" "$rollback"; do
-              sql postgres -c "DROP DATABASE IF EXISTS $db WITH (FORCE)" || status=1
-            done
-            rm -rf "$work"
-            exit "$status"
-          }
-          trap cleanup EXIT
-          git worktree add --detach "$work/base" "$EXACT_BASELINE"
-          test "$(git -C "$work/base" rev-parse HEAD)" = "$EXACT_BASELINE"
-          for db in "$upgrade" "$restored" "$rollback"; do
-            sql postgres -c "CREATE DATABASE $db"
-          done
-          export DATABASE_URL="$(url "$upgrade")"
-          pnpm --filter @construction-erp/api exec prisma migrate deploy --schema "$work/base/apps/api/prisma/schema.prisma"
-          pnpm --filter @construction-erp/api exec prisma migrate status --schema "$work/base/apps/api/prisma/schema.prisma"
-          test "$(sql "$upgrade" -c 'SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')" = 177
-          history() {
-            sql "$1" -c "SELECT json_agg(t ORDER BY migration_name) FROM (SELECT migration_name, checksum FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL) t"
-          }
-          fingerprint() {
-            sql "$1" <<'SQL'
-          SELECT format('SELECT %L, count(*), encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text, '''' ORDER BY to_jsonb(t)::text), ''''), ''UTF8'')), ''hex'') FROM %I.%I t;', tablename, schemaname, tablename)
-          FROM pg_tables
-          WHERE schemaname='public' AND tablename NOT IN ('_prisma_migrations','movement_correction_requests')
-          ORDER BY tablename
-          \gexec
-          SQL
-          }
-          history "$upgrade" > "$work/prior-history.json"
-          fingerprint "$upgrade" > "$work/prior-rows"
-          test -s "$work/prior-rows"
-          docker exec "$PG_CONTAINER" pg_dump -U construction_erp -Fc --no-owner --no-privileges "$upgrade" > "$work/prior.dump"
-          pnpm prisma:migrate:deploy
-          pnpm --filter @construction-erp/api exec prisma migrate status
-          test "$(sql "$upgrade" -c 'SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')" = 184
-          history "$upgrade" > "$work/after-history.json"
-          fingerprint "$upgrade" > "$work/after-rows"
-          cmp "$work/prior-rows" "$work/after-rows"
-          test "$(sql "$upgrade" -c 'SELECT count(*) FROM movement_correction_requests')" = 0
-          node --input-type=module - "$work" <<'NODE'
-          import {readFileSync} from 'node:fs';
-          import {assertSs16AppliedHistory} from './deploy/release-candidate/ss16-release-contract.mjs';
-          const root=process.argv[2];
-          assertSs16AppliedHistory(JSON.parse(readFileSync(root+'/prior-history.json')),JSON.parse(readFileSync(root+'/after-history.json')));
-          console.log('SS16_NATIVE_177_TO_184_CHECKSUM_AND_HISTORICAL_ROWS_PASS');
-          NODE
-          node deploy/release-candidate/ss16-recovery-witness.mjs capture "$work/ss16-recovery-witness.json"
-          docker exec "$PG_CONTAINER" pg_dump -U construction_erp -Fc --no-owner --no-privileges "$upgrade" > "$work/upgraded.dump"
-          docker exec -i "$PG_CONTAINER" pg_restore -U construction_erp --exit-on-error --no-owner --no-privileges -d "$restored" < "$work/upgraded.dump"
-          DATABASE_URL="$(url "$restored")" node deploy/release-candidate/ss16-recovery-witness.mjs restored "$work/ss16-recovery-witness.json"
-          fingerprint "$restored" > "$work/restored-rows"
-          cmp "$work/after-rows" "$work/restored-rows"
-          docker exec -i "$PG_CONTAINER" pg_restore -U construction_erp --exit-on-error --no-owner --no-privileges -d "$rollback" < "$work/prior.dump"
-          DATABASE_URL="$(url "$rollback")" node deploy/release-candidate/ss16-recovery-witness.mjs rollback "$work/ss16-recovery-witness.json"
-          fingerprint "$rollback" > "$work/rollback-rows"
-          history "$rollback" > "$work/rollback-history.json"
-          cmp "$work/prior-rows" "$work/rollback-rows"
-          cmp "$work/prior-history.json" "$work/rollback-history.json"
-          echo 'M8_SS16_TARGETED_NATIVE_PASS: exact baseline upgrade, unchanged legacy row fingerprints, catalog recovery and predecessor rollback; not full PR, eight historical rehearsals, human UAT or production.'
+          node deploy/uat/receiving-browser-native.mjs
+          node deploy/uat/fm03-browser-native.mjs
+          echo M8_RECEIVING_FM03_TARGETED_BROWSER_PASS

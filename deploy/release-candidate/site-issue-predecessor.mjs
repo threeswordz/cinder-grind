@@ -1,3 +1,4 @@
+import {stripSs16ReleaseSchema,assertSs16SourceTree,assertSs16AppliedHistory} from './ss16-release-contract.mjs';
 import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
 import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
 import {stripPurchasingSchema,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
@@ -42,7 +43,10 @@ export async function prepareFm03Upgrade(databaseUrl){
   const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
-  const successor=stripSuccessorSchema(await readFile('apps/api/prisma/schema.prisma','utf8'));
+  const ss16=stripSs16ReleaseSchema(await readFile('apps/api/prisma/schema.prisma','utf8'));
+  assert.equal(stripSs16ReleaseSchema(schema).present,false,'Pinned predecessor unexpectedly contains SS16');
+  if(ss16.present)assertSs16SourceTree((await git(['rev-parse','HEAD'])).trim(),previous);
+  const successor=stripSuccessorSchema(ss16.text);
   const priorSuccessor=stripSuccessorSchema(schema);
   assert.equal(priorSuccessor.pur12||priorSuccessor.pur07,false,'Pinned predecessor unexpectedly contains successor layers');
   const purchasing=stripPurchasingSchema(successor.text);
@@ -92,12 +96,15 @@ export async function prepareFm03Upgrade(databaseUrl){
     WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   console.log('FM03_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
+  const afterMigrations=await db.$queryRaw`SELECT migration_name,checksum FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
+  if(ss16.present)assertSs16AppliedHistory(beforeMigrations,afterMigrations);
+  else assert.ok(afterMigrations.every(row=>!row.migration_name.includes('_ss16_')),'SS16 history without exact schema contract');
   const equipment=await verifyEquipmentHistoricalIncrement(db,beforeMigrations);
   await verifyEquipmentTriggerBindings(db,equipment.present);
   const after=await snapshot(true,equipment.ids);
   const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
   if(changed.length)console.log('FM03_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
-  assertHistoricalTables(before,after,false,false,false,false,false,false,true,true,true,true,true,true,true,true,successor.pur07,equipment.present);
+  assertHistoricalTables(before,after,false,false,false,false,false,false,true,true,true,true,true,true,true,true,successor.pur07,equipment.present,ss16.present);
   console.log('FM03_EXACT_POPULATED_PREDECESSOR_ALL_HISTORICAL_TABLES_AND_GRANTS_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }
