@@ -660,19 +660,54 @@ export class HrService {
     });
   }
 
-  private async attendanceSnapshot(tx: Tx, companyId: string, projectId: string | null, periodStart: Date) {
+  /** Review-only cross-Company reads are separate from ordinary Project routes.
+   * No site capture capability, permission switching or target grant inferred. */
+  private async attendanceReviewScope(tx: Tx, auth: AuthenticatedUserContext, companyId: string, projectId: string | null) {
+    if(!auth.permissions.includes('hr.attendance.review')) throw notFound();
+    await this.require(tx,auth,{companyId,category:'employment',action:'view'});
+    if(projectId!==null&&!await tx.project.count({where:{id:projectId,companyId,isActive:true}})) throw notFound();
+  }
+
+  attendanceReviewRead(supplied: AuthenticatedUserContext, companyId: string, projectId: string, periodRaw: unknown, versionRaw?: unknown) {
+    input.uuid(companyId);
+    input.uuid(projectId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    const version=versionRaw===undefined?undefined:input.integer(versionRaw,1);
+    return this.read(supplied,[],async(tx,auth)=>{
+      await this.attendanceReviewScope(tx,auth,companyId,projectId);
+      return this.attendanceSnapshot(tx,companyId,projectId,periodStart,version);
+    });
+  }
+
+  attendanceReviewHistory(supplied: AuthenticatedUserContext, companyId: string, projectId: string, periodRaw: unknown, beforeRaw?: unknown) {
+    input.uuid(companyId);
+    input.uuid(projectId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    const before=beforeRaw===undefined?undefined:input.integer(beforeRaw,1);
+    return this.read(supplied,[],async(tx,auth)=>{
+      await this.attendanceReviewScope(tx,auth,companyId,projectId);
+      const batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:projectId,periodStart}}});
+      if(!batch) return {items:[],nextBefore:null};
+      const rows=await tx.hrAttendanceRevision.findMany({where:{batchId:batch.id,...(before===undefined?{}:{version:{lt:before}})},
+        orderBy:{version:'desc'},take:51,select:{version:true,state:true,action:true,actorUserId:true,reason:true,createdAt:true}});
+      const items=rows.slice(0,50);
+      return {items,nextBefore:rows.length>50?items[items.length-1]!.version:null};
+    });
+  }
+
+  private async attendanceSnapshot(tx: Tx, companyId: string, projectId: string | null, periodStart: Date, version?: number) {
       const batch = await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:projectId??'OFFICE',periodStart}}});
       if (!batch) return null;
-      const revision = await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:batch.currentVersion}},select:{
+      const revision = await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:version??batch.currentVersion}},select:{
         version:true,state:true,action:true,reason:true,createdAt:true,
         lines:{orderBy:[{employeeId:'asc'},{workDate:'asc'},{startMinute:'asc'},{endMinute:'asc'}],
           select:{employeeId:true,workDate:true,startMinute:true,endMinute:true,workType:true,allocationId:true,allocation:{select:{targetCompanyId:true,targetProjectId:true}},employee:{select:{employeeCode:true,employeeName:true}}}},
       }});
-      if(!revision) throw conflict();
+      if(!revision) throw notFound();
       return {id:batch.id,projectId:batch.projectId,periodStart:batch.periodStart,...revision};
   }
 
-  attendanceWrite(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown, raw: unknown) {
+  attendanceWrite(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown, raw: unknown, reviewCompanyId?: string) {
     input.uuid(projectId);
     const periodStart=this.attendancePeriodStart(periodRaw), value=input.object(raw,['requestId','expectedVersion','action','lines','reason']);
     const action=input.choice(value.action,['CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT'] as const);
@@ -683,7 +718,8 @@ export class HrService {
     if((action==='EDIT'||action==='RETURN'||action==='HR_CORRECT')&&reason===null) input.invalid();
     if(action==='CREATE'&&expectedVersion!==0||action!=='CREATE'&&expectedVersion===0) input.invalid();
     const mode=action==='RETURN'||action==='HR_CORRECT'?'review':'manage';
-    const companyId=supplied.companyId;
+    const companyId=reviewCompanyId===undefined?supplied.companyId:input.uuid(reviewCompanyId);
+    if(reviewCompanyId!==undefined&&mode!=='review') throw notFound();
     return this.write(supplied,companyId,input.uuid(value.requestId),'ATTENDANCE_REVISION',
       {projectId,periodStart,action,expectedVersion,lines,reason},[],async(tx,auth)=>{
         let batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:projectId,periodStart}}});
@@ -712,7 +748,8 @@ export class HrService {
         await this.record(tx,auth,companyId,batch.id,'ATTENDANCE_REVISION',{projectId,revisionId:revision.id,version,state,attendanceAction:action,lineCount:snapshot.length,reasonRecorded:reason!==null});
         return {id:batch.id,version};
       }, async(tx,auth)=>{
-        await this.attendanceScope(tx,auth,projectId,mode);
+        if(reviewCompanyId!==undefined) await this.attendanceReviewScope(tx,auth,companyId,projectId);
+        else await this.attendanceScope(tx,auth,projectId,mode);
         // Review/return authority is not direct correction authority. The extra
         // capability and current Company employment entitlement are live-checked
         // before any replay receipt can be disclosed.

@@ -179,6 +179,30 @@ export class HrController {
     return { data: await this.hr.attendanceWrite(auth(request), projectId, periodStart, body) };
   }
 
+  @Get('companies/:companyId/projects/:projectId/attendance/:periodStart')
+  async attendanceReview(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string) {
+    return {data:await this.hr.attendanceReviewRead(auth(request),companyId,projectId,periodStart)};
+  }
+
+  @Get('companies/:companyId/projects/:projectId/attendance/:periodStart/history')
+  async attendanceHistory(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string, @Query() query: unknown) {
+    const value=input.object(query,['before']);
+    const before=value.before===undefined?undefined:typeof value.before==='string'&&/^[1-9][0-9]*$/.test(value.before)?Number(value.before):input.invalid();
+    return {data:await this.hr.attendanceReviewHistory(auth(request),companyId,projectId,periodStart,before)};
+  }
+
+  @Get('companies/:companyId/projects/:projectId/attendance/:periodStart/history/:version')
+  async attendanceHistoryVersion(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string, @Param('version') version: string) {
+    if(!/^[1-9][0-9]*$/.test(version)) input.invalid();
+    return {data:await this.hr.attendanceReviewRead(auth(request),companyId,projectId,periodStart,Number(version))};
+  }
+
+  @Post('companies/:companyId/projects/:projectId/attendance/:periodStart')
+  @UseGuards(CsrfGuard)
+  async attendanceReviewWrite(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string, @Body() body: unknown) {
+    return {data:await this.hr.attendanceWrite(auth(request),projectId,periodStart,body,companyId)};
+  }
+
   @Get('companies/:companyId/office-attendance/:periodStart')
   async officeAttendance(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('periodStart') periodStart: string) {
     return { data: await this.hr.officeAttendanceRead(auth(request), companyId, periodStart) };

@@ -194,7 +194,8 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic expired allocation',lines:[...original,{...foreignRow,allocationId:expired.id}]}));
       await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic wrong source allocation',lines:[...original,{...foreignRow,allocationId:wrongSource.id}]}));
       // Store performs the approved sending-site capture after HR returns.
-      await call(a.hr,root,201,command('RETURN',7,{reason:'Synthetic additional source record'}));
+      await call(a.hr,root,409,command('RETURN',7,{reason:'Synthetic self-return denied'}));
+      await call(a.nancy,root,201,command('RETURN',7,{reason:'Synthetic independent return'}));
       await call(a.store,root,201,command('EDIT',8,{reason:'Synthetic sending-site record',lines:[...original,sameRow,foreignRow]}));
       await call(a.store,root,201,command('RESUBMIT',9));
       const view=(await call(a.store,root,200)).data;
@@ -214,6 +215,23 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       assert.equal((await call(a.store,root,200)).data.version,13);
       const sealed=await db.hrAttendanceRevision.findUniqueOrThrow({where:{batchId_version:{batchId,version:10}},include:{lines:true}});
       assert.ok(sealed.lines.some(l=>l.allocationId===foreign.id));
+    });
+    await t.test('HR review routes bind explicit target Company, immutable versions and no site authority',async()=>{
+      const review='/hr/companies/'+f.company.id+'/projects/'+f.project.id+'/attendance/2026-11-16';
+      const other='/hr/companies/'+f.other.id+'/projects/'+f.foreignProject.id+'/attendance/2026-11-16';
+      const mismatch='/hr/companies/'+f.other.id+'/projects/'+f.project.id+'/attendance/2026-11-16';
+      await call(a.store,review,404);
+      await call(a.outsider,review,404);
+      await call(a.hr,mismatch,404);
+      assert.equal((await call(a.hr,other,200)).data,null);
+      assert.equal((await call(a.hr,review,200)).data.version,13);
+      const history=(await call(a.hr,review+'/history',200)).data;
+      assert.equal(history.items.length,13); assert.equal(history.items[0].version,13);
+      const old=(await call(a.hr,review+'/history/10',200)).data;
+      assert.ok(old.lines.some((x:any)=>x.allocation?.targetCompanyId===f.other.id));
+      await call(a.hr,review+'/history/99',404);
+      await call(a.hr,other,404,command('CREATE',0,{lines:[row]}));
+      assert.equal((await f.sessions.resolve(a.hr.session.sessionToken))!.companyId,f.company.id);
     });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
