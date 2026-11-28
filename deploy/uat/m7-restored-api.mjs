@@ -19,7 +19,7 @@ export function m7ApiEnvironment({plan,dbPort,url,keyring,mode}){
  need(/^m7_restore_[a-f0-9]{12}$/.test(plan?.database??'')&&plan.role===plan.database.replace('m7_restore_','m7_restore_role_')&&m7RestorePortAllowed(plan.port)&&Number.isInteger(dbPort)&&dbPort>=55472&&dbPort<=55479&&plan.port!==dbPort&&['correct','missing','wrong'].includes(mode),'CONTEXT');
  const u=new URL(url);need(u.protocol==='postgresql:'&&u.hostname==='127.0.0.1'&&u.port===String(dbPort)&&u.username===plan.role&&hex(u.password)&&u.pathname==='/'+plan.database&&!u.hash&&u.search==='?schema=public&connection_limit=1','DATABASE_URL');
  const keyId=mode==='missing'?'m7missing':'proto1';need(keyring&&Object.keys(keyring).length===1&&validKey(keyring[keyId]),'KEYRING');u.searchParams.set('application_name',appName(plan));
- need(['documents','uploads','hrkeys'].every(k=>plan.storage?.[k]===join(plan.root,k)),'STORAGE');
+ need(['documents','uploads'].every(k=>plan.storage?.[k]===join(plan.root,k))&&plan.storage?.hrkeys===join(plan.root,mode==='correct'?'hrkeys':'hrkeys-'+mode),'STORAGE');
  return {...env(),NODE_ENV:'uat',API_HOST:'127.0.0.1',API_PORT:String(plan.port),WEB_ORIGIN:'http://127.0.0.1:'+plan.port,DATABASE_URL:u.href,STORAGE_ROOT:plan.storage.documents,DOCUMENT_UPLOAD_TEMP_ROOT:plan.storage.uploads,HR_PRIVATE_KEYS:JSON.stringify(keyring),HR_PRIVATE_ACTIVE_KEY_ID:keyId};
 }
 const exec=promisify(execFile);
