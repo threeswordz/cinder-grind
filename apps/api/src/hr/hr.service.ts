@@ -12,6 +12,7 @@ import { sealHrPrivateAttachment, openHrPrivateAttachment,
   HR_PRIVATE_ATTACHMENT_MAX_BYTES, type HrAttachmentFile } from './hr-private-attachment-codec';
 import { HrPrivateCrypto, HrPrivateBinding } from './hr-private-crypto';
 import * as input from './hr-input';
+import { attendancePeriod, attendanceTransition, assertEmploymentDay, validateInterval, type AttendanceAction, type AttendanceState } from './attendance-contract';
 
 type Tx = Prisma.TransactionClient;
 type Requirement = { companyId: string; category: input.HrCategory | 'access'; action: 'view' | 'manage' };
@@ -79,7 +80,8 @@ export class HrService {
   }
 
   private write(supplied: AuthenticatedUserContext, companyId: string, requestId: string, operation: string,
-    body: unknown, requirements: Requirement[], action: (tx: Tx, auth: AuthenticatedUserContext) => Promise<Receipt>) {
+    body: unknown, requirements: Requirement[], action: (tx: Tx, auth: AuthenticatedUserContext) => Promise<Receipt>,
+    authorize?: (tx: Tx, auth: AuthenticatedUserContext) => Promise<void>) {
     input.uuid(companyId); input.uuid(requestId);
     return this.transaction(async tx => {
       // Shared ordering for writes, entitlement changes and cross-Company links.
@@ -88,6 +90,7 @@ export class HrService {
       }
       const auth = await this.actor(tx, supplied);
       for (const requirement of requirements) await this.require(tx, auth, requirement);
+      if (authorize) await authorize(tx, auth);
       const previous = await tx.hrReplay.findUnique({ where: { companyId_actorUserId_requestId: { companyId, actorUserId: auth.userId, requestId } } });
       if (previous && previous.operation !== operation) throw conflict();
       const canonical = Buffer.from(input.stable({ operation, companyId, actorUserId: auth.userId, body }), 'utf8');
@@ -517,6 +520,164 @@ export class HrService {
           isActive: row.isActive, version: row.version, reasonCode: data.reasonCode });
         return { id: row.id, version: row.version };
       });
+  }
+
+
+  /** Site attendance grants are separate capabilities; no existing HR or admin role
+   * acquires them from this change. For the first bounded site slice, both
+   * the work and employing Company must be the session Company. */
+  private async attendanceScope(tx: Tx, auth: AuthenticatedUserContext, projectId: string, mode: 'view' | 'manage' | 'review') {
+    const project = await tx.project.findFirst({ where: { id: projectId, companyId: auth.companyId, isActive: true }, select: { id: true } });
+    if (!project) throw notFound();
+    if (mode === 'review' || mode === 'view' && auth.permissions.includes('hr.attendance.review')) {
+      if (!auth.permissions.includes('hr.attendance.review')) throw notFound();
+      await this.require(tx, auth, { companyId: auth.companyId, category: 'employment', action: 'view' });
+      return;
+    }
+    if (!auth.permissions.includes('hr.attendance.site.' + mode)) throw notFound();
+    await this.projects.assertAccess(auth, projectId, tx);
+    const employeeId = await this.projects.activeEmployeeId(auth, tx);
+    // Site attendance must not use projects.access_all as recorder authority.
+    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) + 'T00:00:00.000Z');
+    if (!employeeId || !Number.isFinite(today.getTime()) || !await tx.projectMember.count({ where: {
+      projectId, employeeId, isActive: true, AND: [
+        { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+        { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      ],
+    } })) throw notFound();
+  }
+
+  private attendancePeriodStart(raw: unknown): Date {
+    const date = input.day(raw);
+    if (date.getUTCDate() !== 1 && date.getUTCDate() !== 16) input.invalid();
+    return date;
+  }
+
+  private parseAttendanceLines(raw: unknown, projectId: string, periodStart: Date) {
+    if (!Array.isArray(raw) || raw.length > 1000) input.invalid();
+    const lines = raw.map(item => {
+      const fields = input.object(item, ['employeeId','workDate','startMinute','endMinute','workType']);
+      const employeeId = input.uuid(fields.employeeId), workDate = input.day(fields.workDate);
+      const startMinute = input.integer(fields.startMinute), endMinute = input.integer(fields.endMinute);
+      const day = workDate.toISOString().slice(0,10);
+      try { validateInterval({ employeeId, projectId, workDate: day, startMinute, endMinute }); }
+      catch { input.invalid(); }
+      if (attendancePeriod(day).start !== periodStart.toISOString().slice(0,10)) input.invalid();
+      return { employeeId, workDate, startMinute, endMinute, workType: input.text(fields.workType, 100) };
+    });
+    // Stable ordering makes replay fingerprints and duplicate checks deterministic.
+    lines.sort((a,b) => a.employeeId.localeCompare(b.employeeId) || a.workDate.getTime()-b.workDate.getTime() || a.startMinute-b.startMinute || a.endMinute-b.endMinute);
+    const keys = lines.map(r => [r.employeeId,r.workDate.toISOString(),r.startMinute,r.endMinute].join(':'));
+    if (new Set(keys).size !== keys.length) input.invalid();
+    return lines;
+  }
+
+  private async bindAttendanceLines(tx: Tx, companyId: string, projectId: string,
+    lines: ReturnType<HrService['parseAttendanceLines']>) {
+    const employees = await tx.employee.findMany({ where: { companyId, id: { in: [...new Set(lines.map(l => l.employeeId))] } }, select: {
+      id: true, projectMembers: { where: { projectId, isActive: true }, select: { startDate: true, endDate: true } },
+      hrEmployment: { select: { currentVersion: true, revisions: { orderBy: { version: 'desc' }, take: 1,
+        select: { id: true, version: true, siteKind: true, startDate: true, endDate: true } } } },
+    } });
+    const byId = new Map(employees.map(e => [e.id,e]));
+    return lines.map(line => {
+      const employee = byId.get(line.employeeId), employment = employee?.hrEmployment, revision = employment?.revisions[0];
+      if (!employee || !employment || !revision || revision.version !== employment.currentVersion || revision.siteKind !== 'SITE' ||
+        !employee.projectMembers.some(m => (!m.startDate || m.startDate <= line.workDate) && (!m.endDate || m.endDate >= line.workDate))) throw notFound();
+      try { assertEmploymentDay(line.workDate.toISOString().slice(0,10), revision.startDate.toISOString().slice(0,10), revision.endDate?.toISOString().slice(0,10) ?? null); }
+      catch { input.invalid(); }
+      return { ...line, employmentRevisionId: revision.id };
+    });
+  }
+
+  private async assertAttendanceSubmission(tx: Tx, companyId: string, batchId: string, projectId: string,
+    lines: ReturnType<HrService['parseAttendanceLines']> & { employmentRevisionId?: string }[]) {
+    if (!lines.length) input.invalid();
+    const bound = await this.bindAttendanceLines(tx, companyId, projectId, lines);
+    if (bound.some((l,i) => l.employmentRevisionId !== lines[i]?.employmentRevisionId)) throw conflict();
+    // Resolve linked employment episodes from persisted HR person links. No
+    // other site's identity, time or project is returned to the recorder.
+    const ownIds = [...new Set(lines.map(l => l.employeeId))];
+    const ownLinks = await tx.hrPersonLink.findMany({ where: { employeeId: { in: ownIds } }, select: { employeeId: true, personId: true } });
+    const linked = await tx.hrPersonLink.findMany({ where: { personId: { in: [...new Set(ownLinks.map(l => l.personId))] } },
+      select: { employeeId: true, personId: true } });
+    const canonical = new Map(linked.map(l => [l.employeeId,l.personId]));
+    const identity = (employeeId: string) => canonical.get(employeeId) ?? employeeId;
+    const ids = [...new Set([...ownIds,...linked.map(l=>l.employeeId)])];
+    // Read current revisions only. Serializable writes reject concurrent
+    // conflicting submissions instead of admitting duplicate recorded time.
+    const others = await tx.hrAttendanceLine.findMany({ where: {
+      employeeId: { in: ids }, workDate: { in: [...new Map(lines.map(l=>[l.workDate.toISOString(),l.workDate])).values()] },
+      revision: { state: 'SUBMITTED', batchId: { not: batchId } },
+    }, select: { employeeId:true, workDate:true, startMinute:true, endMinute:true,
+      revision:{select:{version:true,batch:{select:{currentVersion:true}}}} } });
+    const intervals = [...lines,...others.filter(l=>l.revision.version===l.revision.batch.currentVersion)]
+      .map(l=>({identity:identity(l.employeeId),day:l.workDate.toISOString(),start:l.startMinute,end:l.endMinute}))
+      .sort((a,b)=>a.identity.localeCompare(b.identity)||a.day.localeCompare(b.day)||a.start-b.start||a.end-b.end);
+    let previous: typeof intervals[number] | undefined;
+    for(const interval of intervals) {
+      if(previous && previous.identity===interval.identity && previous.day===interval.day && interval.start<previous.end) throw conflict();
+      previous=interval;
+    }
+  }
+
+  attendanceRead(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown) {
+    input.uuid(projectId);
+    const periodStart = this.attendancePeriodStart(periodRaw);
+    return this.read(supplied, [], async (tx,auth) => {
+      await this.attendanceScope(tx,auth,projectId,'view');
+      const batch = await tx.hrAttendanceBatch.findUnique({where:{companyId_projectId_periodStart:{companyId:auth.companyId,projectId,periodStart}}});
+      if (!batch) return null;
+      const revision = await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:batch.currentVersion}},select:{
+        version:true,state:true,action:true,reason:true,createdAt:true,
+        lines:{orderBy:[{employeeId:'asc'},{workDate:'asc'},{startMinute:'asc'},{endMinute:'asc'}],
+          select:{employeeId:true,workDate:true,startMinute:true,endMinute:true,workType:true,employee:{select:{employeeCode:true,employeeName:true}}}},
+      }});
+      if(!revision) throw conflict();
+      return {id:batch.id,projectId:batch.projectId,periodStart:batch.periodStart,...revision};
+    });
+  }
+
+  attendanceWrite(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown, raw: unknown) {
+    input.uuid(projectId);
+    const periodStart=this.attendancePeriodStart(periodRaw), value=input.object(raw,['requestId','expectedVersion','action','lines','reason']);
+    const action=input.choice(value.action,['CREATE','EDIT','SUBMIT','RETURN','RESUBMIT'] as const);
+    const expectedVersion=input.integer(value.expectedVersion);
+    const lines=action==='CREATE'||action==='EDIT'?this.parseAttendanceLines(value.lines,projectId,periodStart):null;
+    if(lines===null && value.lines!==undefined) input.invalid();
+    const reason=value.reason===undefined?null:input.text(value.reason);
+    if((action==='EDIT'||action==='RETURN')&&reason===null) input.invalid();
+    if(action==='CREATE'&&expectedVersion!==0||action!=='CREATE'&&expectedVersion===0) input.invalid();
+    const mode=action==='RETURN'?'review':'manage';
+    const companyId=supplied.companyId;
+    return this.write(supplied,companyId,input.uuid(value.requestId),'ATTENDANCE_REVISION',
+      {projectId,periodStart,action,expectedVersion,lines,reason},[],async(tx,auth)=>{
+        let batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_projectId_periodStart:{companyId,projectId,periodStart}}});
+        if((batch?.currentVersion??0)!==expectedVersion) throw conflict();
+        if(action==='CREATE') {
+          if(batch) throw conflict();
+          batch=await tx.hrAttendanceBatch.create({data:{companyId,projectId,periodStart}});
+        }
+        if(!batch) throw notFound();
+        const prior=expectedVersion===0?null:await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:expectedVersion}},
+          include:{lines:{orderBy:[{employeeId:'asc'},{workDate:'asc'},{startMinute:'asc'},{endMinute:'asc'}]}}});
+        if(expectedVersion!==0&&!prior) throw conflict();
+        let state:AttendanceState='DRAFT';
+        if(prior) {
+          try { state=attendanceTransition(prior.state as AttendanceState,action as AttendanceAction,mode==='review'?'HR_REVIEWER':'SITE_RECORDER',expectedVersion,batch.currentVersion); }
+          catch { throw conflict(); }
+          if(action==='RETURN'&&prior.actorUserId===auth.userId) throw conflict();
+        }
+        const snapshot=lines!==null?await this.bindAttendanceLines(tx,companyId,projectId,lines):
+          prior!.lines.map(l=>({employeeId:l.employeeId,employmentRevisionId:l.employmentRevisionId,workDate:l.workDate,startMinute:l.startMinute,endMinute:l.endMinute,workType:l.workType}));
+        if(action==='SUBMIT'||action==='RESUBMIT') await this.assertAttendanceSubmission(tx,companyId,batch.id,projectId,snapshot);
+        const version=expectedVersion+1;
+        const revision=await tx.hrAttendanceRevision.create({data:{companyId,batchId:batch.id,version,state,action,actorUserId:auth.userId,reason}});
+        if(snapshot.length) await tx.hrAttendanceLine.createMany({data:snapshot.map(l=>({...l,companyId,revisionId:revision.id}))});
+        await tx.hrAttendanceBatch.update({where:{id:batch.id},data:{currentVersion:version}});
+        await this.record(tx,auth,companyId,batch.id,'ATTENDANCE_REVISION',{projectId,revisionId:revision.id,version,state,attendanceAction:action,lineCount:snapshot.length,reasonRecorded:reason!==null});
+        return {id:batch.id,version};
+      }, async(tx,auth)=>{await this.attendanceScope(tx,auth,projectId,mode);});
   }
 
   operational(supplied: AuthenticatedUserContext, projectId: string) {

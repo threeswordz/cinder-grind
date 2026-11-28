@@ -163,6 +163,17 @@ export class HrController {
     return { data: await this.hr.accessWrite(auth(request), companyId, body) };
   }
 
+  @Get('projects/:projectId/attendance/:periodStart')
+  async attendance(@Req() request: AuthenticatedRequest, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string) {
+    return { data: await this.hr.attendanceRead(auth(request), projectId, periodStart) };
+  }
+
+  @Post('projects/:projectId/attendance/:periodStart')
+  @UseGuards(CsrfGuard)
+  async attendanceWrite(@Req() request: AuthenticatedRequest, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string, @Body() body: unknown) {
+    return { data: await this.hr.attendanceWrite(auth(request), projectId, periodStart, body) };
+  }
+
   @Get('projects/:projectId/employees')
   @RequirePermissions('hr.operational.view')
   async operational(@Req() request: AuthenticatedRequest, @Param('projectId') projectId: string) {
