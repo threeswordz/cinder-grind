@@ -2,6 +2,25 @@
 
 <!-- current-work-m6 -->
 
+**Provisional rebaselined ERP: 1,324.75h → 0h · prototype 68.75h → 0h** (M6 4.75h / M7 26h / M8 38h). Canonical ERP 1,614.75h; canonical prototype 119.75h.
+
+**Latest evidence (Event276):** [Native append-only evidence adapter](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234134307), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/d563217a7b51a31fcbcd4ea287bf6f801b09222b). 7/7 actual local controlled Prisma-response tests and exact blob equality; isolated read-only transaction, selected document/audit/dispatch/progress rows and full 174-table census. No real PostgreSQL execution, site/SS08 full row delta, file bytes or formal acceptance. Shared preparation 0.25h estimated retirement only.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 2.5h |
+| M6-03 | 0.75h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **4.75h** |
+
+Next: phase-specific site/SS08 delta proof and actual runtime file verifier wiring, five-actor session lifecycle, unified entry/browser and attempt receipt; stable DEC-022 review, exact Owner authorization, one Mac execution and acceptance reconciliation. No Owner action now; no repeat standalone preflight or past browser replay, intermediate full CI/Codex or Production.
+
+Prior entries below are historical snapshots.
+
+
+
 **Provisional rebaselined ERP: 1,325h → 0h · prototype 69h → 0h** (M6 5h / M7 26h / M8 38h). Canonical ERP 1,615h; canonical prototype 120h.
 
 **Latest evidence (Event275):** [Ordered site fixture transport and corrected supplier evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234092432), [exact source](https://github.com/threeswordz/cinder-grind/commit/ae918f7707190527b6eda65db3d383cab6d2fbe2). Site 7/7 actual local controlled HTTP tests, exact blob equality; prior supplier 6/6 now actually executed with exact published hashes, no duplicate retirement. Optional activity type creation not tested. Site preparation 0.25h estimated retirement; no actual native or acceptance proof.
