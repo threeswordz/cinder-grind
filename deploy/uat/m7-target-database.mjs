@@ -5,7 +5,7 @@ import {promisify} from 'node:util';
 import {resolve,isAbsolute} from 'node:path';
 import {normalizeInventory} from './m6-backup-receipts.mjs';
 import {sourceProcessTuple} from './m7-source-process.mjs';
-import {schemaDefinitionDigest} from './m7-source-capture-adapter.mjs';
+import {restoredSchemaDefinitionDigest} from './m7-restored-schema.mjs';
 const need=(ok,c)=>{if(!ok)throw Error('M7_TARGET_DB_'+c);};
 const hex=(v,n=64)=>typeof v==='string'&&v.length===n&&/^[a-f0-9]+$/.test(v);
 const hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -72,7 +72,7 @@ export async function createM7TargetDatabase({claim,binding,source,captureRoot,e
    async inspectRestoredContent(p){pin(p);need(pg&&!contentVerified,'CONTENT_STATE');await claim.verifyPaths();await verifySource();const target=await pg.inspectDatabase(plan);need(target.cluster===cluster.cluster&&target.otherSessions===0&&!target.emptyAtDatabaseScope,'TARGET_STATE');
      await cluster.verifyIsolation();const relay=cluster.inspectRelay();need(relay.listening===true&&relay.address==='127.0.0.1'&&relay.port===dbPort,'RELAY');
      const client=makeClient(dbUrl());let census;try{census=await d.readCensus(client,target);}finally{await client.$disconnect();}
-     const schemaSha=schemaDefinitionDigest(await d.schemaDump({executable,cwd:application,containerId:cluster.containerId,plan}),plan.role);
+     const schemaSha=restoredSchemaDefinitionDigest(await d.schemaDump({executable,cwd:application,containerId:cluster.containerId,plan}),plan.role,capture.schemaSha);
      const inventories=Object.fromEntries(await Promise.all(kinds.map(async k=>[k+'Sha',hash(normalizeInventory(await inventory(plan.storage[k]),false))])));
      const result={schemaSha,rowsSha:census.rowsSha,...inventories};need(census.tables===174&&census.sessions===144&&census.activeSessions===0,'CONTENT_DRIFT_CENSUS');
      for(const [field,code] of [['schemaSha','SCHEMA'],['rowsSha','ROWS'],['documentsSha','DOCUMENTS'],['uploadsSha','UPLOADS'],['hrkeysSha','HRKEYS']])need(result[field]===capture[field],'CONTENT_DRIFT_'+code);

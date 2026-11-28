@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat,open,readdir,realpath} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
+import {normalizeInventory} from './m6-backup-receipts.mjs';
 const need=(ok,c)=>{if(!ok)throw Error('M7_PRIOR_'+c);};
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -59,7 +60,10 @@ export async function createM7SealedRecoveryGuard({root,pin,anchor,first,bindCap
 // Third consumed attempt reached database custody after creating the target DB.
 // Keep its stopped cluster and populated PGDATA intact; never restart it.
 export const blockedCustodyPin=Object.freeze({planSha256:'4c1625b46fd1b1304ac24809c8f792c507f559c5c287f394945976985fd437cf',proofSha256:'60bdcdde74ab1083ce1eb2724c212f70d3ea8f64a85bf68d237cb1f2f16894b4'});
-export async function createM7CustodyRecoveryGuard({root,pin,anchor,second,inspectStopped,inventory}){
+export const blockedSchemaPin=Object.freeze({planSha256:'6197328deeadae9db3f7aceef5b6e15035102cd9549e48fe972a931ece0a4ad9',proofSha256:'c427fae0c0ca5338d60799e26c0cfb9c672de3348167d4bf9bb91ba2abb29f2c'});
+export async function createM7CustodyRecoveryGuard(options){return createM7PopulatedAttemptGuard(options,false);}
+export async function createM7SchemaRecoveryGuard(options){return createM7PopulatedAttemptGuard(options,true);}
+async function createM7PopulatedAttemptGuard({root,pin,anchor,second,inspectStopped,inventory},schema){
  need(root===second?.firstRoot+'-recovery-'+second.proofSha256.slice(0,12)&&hex(pin?.planSha256)&&hex(pin?.proofSha256)&&typeof second.verify==='function'&&typeof second.capture==='function'&&typeof inspectStopped==='function'&&typeof inventory==='function','CUSTODY_CONTEXT');
  const cap=second.capture(),capPin=second.capturePin;
  async function observe(){
@@ -68,17 +72,23 @@ export async function createM7CustodyRecoveryGuard({root,pin,anchor,second,inspe
   const {planSha256,...plan}=a.value.plan??{}, {status,proofSha256,nativeRecoveryVerified,...proof}=r.value;
   need(a.value.status==='M7_NATIVE_ATTEMPT_CLAIMED'&&planSha256===pin.planSha256&&digest(plan)===planSha256&&status==='M7_RECOVERY_ATTEMPT_BLOCKED'&&proofSha256===pin.proofSha256&&digest(proof)===proofSha256&&nativeRecoveryVerified===false,'CUSTODY_PIN');
   need(['operatorSha','operatorTree','applicationSha','applicationTree','buildSha256','predecessorProofSha256','terminalSnapshotSha256','priorBlockedProofSha256'].every(k=>proof[k]===plan[k])&&proof.planSha256===planSha256&&plan.priorBlockedProofSha256===second.proofSha256&&plan.applicationSha===anchor.applicationSha&&plan.applicationTree===anchor.applicationTree&&plan.buildSha256===anchor.buildSha256&&plan.predecessorProofSha256===anchor.finalProofSha256&&plan.terminalSnapshotSha256===anchor.terminalSnapshotSha256&&plan.sourceDatabase===anchor.database,'CUSTODY_SOURCE');
-  need(proof.phase==='RECOVERY'&&proof.primary==='M7_OPERATOR_RECOVERY'&&proof.runnerPrimary==='M7_PG_DATABASE_CUSTODY'&&proof.cleanup===null&&proof.runnerCleanup===null&&proof.reusedCapture===true&&same(proof.completedModes,[])&&proof.revokedNewSessions===0&&proof.newHrDownloadAudits===0&&['sourceMutationAuthorized','automaticRetryAllowed','productionAuthorized','milestone7Accepted','humanUatCompleted','secretsPrinted'].every(k=>proof[k]===false),'CUSTODY_BLOCKED');
+  need(proof.phase==='RECOVERY'&&proof.primary==='M7_OPERATOR_RECOVERY'&&proof.runnerPrimary===(schema?'M7_TARGET_DB_CONTENT_DRIFT_SCHEMA':'M7_PG_DATABASE_CUSTODY')&&proof.cleanup===null&&proof.runnerCleanup===null&&proof.reusedCapture===true&&same(proof.completedModes,[])&&proof.revokedNewSessions===0&&proof.newHrDownloadAudits===0&&['sourceMutationAuthorized','automaticRetryAllowed','productionAuthorized','milestone7Accepted','humanUatCompleted','secretsPrinted'].every(k=>proof[k]===false),'CUSTODY_BLOCKED');
   need(plan.captureRunId===capPin.captureRunId&&plan.reusedCaptureManifestSha256===capPin.manifestSha256&&plan.reusedCaptureWitnessSha256===capPin.witnessSha256&&proof.manifestSha256===capPin.manifestSha256&&proof.witnessSha256===capPin.witnessSha256&&same(c.value,{manifestArgs:cap.manifestArgs,witness:cap.witness,witnessSha256:cap.witnessSha256}),'CUSTODY_CAPTURE');
   const runId=plan.targets?.[0]?.runId;need(/^[a-f0-9]{12}$/.test(runId??'')&&plan.targets[0].mode==='correct','CUSTODY_ID');
   const restore=join(root,'restore'),target=join(restore,'m7-restore-'+runId),creds=join(target,'pg-private'),data=join(target,'pgdata');
   const stopped=await inspectStopped({target,runId});need(hex(stopped),'CUSTODY_CONTAINER');
   const ids=[await directory(restore,['m7-restore-'+runId]),await directory(target,['documents','uploads','hrkeys','pgdata','pg-private']),await directory(creds,['admin-password','pgpass']),await directory(data,['pgdata'])];
-  for(const k of ['documents','uploads','hrkeys'])ids.push(await directory(join(target,k),[]));
+  for(const k of ['documents','uploads','hrkeys']){
+    if(!schema){ids.push(await directory(join(target,k),[]));continue;}
+    const p=join(target,k),before=await directory(p,await readdir(p));
+    const actual=normalizeInventory(await inventory(p),false),expected=normalizeInventory(cap.manifestArgs.expectedInventories[k],false);
+    need(same(actual,expected)&&same(before,await directory(p,await readdir(p))),'SCHEMA_STORAGE_DRIFT');
+    ids.push([before,actual]);
+  }
   for(const k of ['admin-password','pgpass']){const f=await receipt(join(creds,k),false);ids.push([f.identity,f.sha]);}
   const rows=await inventory(data);need(Array.isArray(rows)&&rows.some(r=>r[0]==='pgdata/PG_VERSION'&&r.length===3)&&rows.some(r=>r[0]==='pgdata/global/pg_control'&&r.length===3)&&!rows.some(r=>r[0]==='pgdata/postmaster.pid'),'CUSTODY_PGDATA');
   need(await inspectStopped({target,runId})===stopped&&same(rootId,await directory(root,names))&&await second.verify()===true,'CUSTODY_DRIFT');
   return digest([rootId,a.identity,a.sha,r.identity,r.sha,c.identity,c.sha,ids,stopped,rows]);
  }
- const baseline=await observe();return Object.freeze({root,firstRoot:second.firstRoot,secondRoot:second.root,proofSha256:pin.proofSha256,capturePin:capPin,capture:()=>structuredClone(cap),async verify(){need(await observe()===baseline,'CUSTODY_DRIFT');return true;}});
+ const baseline=await observe();return Object.freeze({root,firstRoot:second.firstRoot,secondRoot:schema?second.secondRoot:second.root,...(schema?{thirdRoot:second.root}:{}),proofSha256:pin.proofSha256,capturePin:capPin,capture:()=>structuredClone(cap),async verify(){need(await observe()===baseline,'CUSTODY_DRIFT');return true;}});
 }
