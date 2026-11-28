@@ -1,13 +1,15 @@
 // Explicitly authorized isolated configuration transaction. No runnable CLI.
 import {randomUUID} from 'node:crypto';
-import {planResidualRoles,residualRolePlanDigest,verifyResidualRoleAuthority,verifyResidualRoleDelta} from './m6-residual-role-plan.mjs';
+import {planResidualRoles,residualRolePlanDigest,verifyResidualRoleAuthority,verifyResidualRoleDelta,event284Specs} from './m6-residual-role-plan.mjs';
 const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_WRITER_'+c),{safeCode:'M6_RESIDUAL_WRITER_'+c});};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),sort=x=>[...x].sort();
 const tables={role:'roles',userRole:'user_roles',rolePermission:'role_permissions',auditLog:'audit_logs'};
 const include={company:true,employee:true,userRoles:{include:{role:{include:{rolePermissions:{include:{permission:true}}}}}}};
-export async function observeResidualRolePlan(tx,{fixture,original,roster}){
- const users=await tx.user.findMany({take:13,include}),roles=await tx.role.findMany({where:{companyId:fixture.companyId}}),permissions=await tx.permission.findMany({where:{permissionCode:{in:['schedule.programme.view','schedule.work_plan.confirm','schedule.work_plan.prepare','schedule.progress.record','procurement.po.view']}}}),project=await tx.project.findUnique({where:{id:fixture.projectId},include:{members:true}});
- return planResidualRoles({fixture,original,roster,users,roles,permissions,project});
+export async function observeResidualRolePlan(tx,{fixture,original,roster,inventoryBinding}){
+ need(inventoryBinding?.companyId===fixture.companyId&&inventoryBinding?.projectId===fixture.projectId&&typeof inventoryBinding.orderId==='string','PUR07_SCOPE');
+ const events=await tx.poDispatchEvent.findMany({where:{companyId:fixture.companyId,projectId:fixture.projectId,purchaseOrderId:inventoryBinding.orderId},take:3});const sends=events.filter(e=>e.kind==='DISPATCH'),acks=events.filter(e=>e.kind==='ACKNOWLEDGMENT');need(events.length===sends.length+acks.length&&sends.length<=1&&acks.length<=1&&(!sends.length||sends[0].acknowledgesEventId===null)&&(!acks.length||acks[0].acknowledgesEventId===sends[0]?.id),'PUR07_CHAIN');const needsPoEdit=acks.length===0;
+ const users=await tx.user.findMany({take:13,include}),roles=await tx.role.findMany({where:{companyId:fixture.companyId}}),permissions=await tx.permission.findMany({where:{permissionCode:{in:[...new Set(event284Specs(needsPoEdit).flatMap(x=>x[2]))]}}}),project=await tx.project.findUnique({where:{id:fixture.projectId},include:{members:true}});
+ return planResidualRoles({fixture,original,roster,users,roles,permissions,project,needsPoEdit});
 }
 export async function writeResidualRoles({db,context,plan,baseline,operatorSha,authorization,capture,verifyCustody,sealAttempt,sealCommitted}){
  verifyResidualRoleAuthority(plan,authorization,baseline,operatorSha);
@@ -28,9 +30,9 @@ export async function writeResidualRoles({db,context,plan,baseline,operatorSha,a
   await add('auditLog',{companyId:plan.companyId,entityType:'M6_RESIDUAL_SYNTHETIC_ROLES',entityId:plan.projectId,actorUserId:plan.adminUserId,action:'CONFIGURE',newValues:{syntheticOnly:true,planSha256:residualRolePlanDigest(plan),operatorSha,actors:plan.changes.map(c=>c.actor),productionAuthorized:false}});
   const users=await tx.user.findMany({take:13,include});need(users.length===12,'USER_CENSUS');
   for(const c of plan.changes){const u=users.find(x=>x.id===c.userId);need(u&&u.companyId===plan.companyId&&u.isActive===true&&u.userRoles.every(e=>e.companyId===plan.companyId&&e.role.companyId===plan.companyId&&e.role.isActive===true),'POST_SCOPE');const actualRoles=sort(u.userRoles.map(e=>e.role.roleCode)),actualPermissions=sort(new Set(u.userRoles.flatMap(e=>e.role.rolePermissions.map(p=>p.permission.permissionCode))));need(same(actualRoles,sort([...c.beforeRoles,...(c.createRole?[c.createRole]:[])]))&&same(actualPermissions,sort(new Set([...c.beforePermissions,...c.permissions.map(p=>p.code)]))),'POST_ROSTER');}
-  const after=await capture(tx);verifyResidualRoleDelta(before,after,added);
+  const after=await capture(tx);verifyResidualRoleDelta(before,after,added,plan.expected.role_permissions);
   return {before,after,added,ids,planSha256:residualRolePlanDigest(plan),operatorSha};
  },{isolationLevel:'Serializable',timeout:120000});
  await verifyCustody();await sealCommitted(committed);
- return {status:'M6_RESIDUAL_SYNTHETIC_ROLES_COMMITTED',rolesCreated:2,assignmentsCreated:2,permissionEdgesCreated:7,auditRowsAdded:1,historicalSessionRowsPreserved:129,sessionsCreated:0,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false};
+ return {status:'M6_RESIDUAL_SYNTHETIC_ROLES_COMMITTED',rolesCreated:2,assignmentsCreated:2,permissionEdgesCreated:plan.expected.role_permissions,auditRowsAdded:1,historicalSessionRowsPreserved:129,sessionsCreated:0,productionAuthorized:false,milestone6Accepted:false,automaticRetryAllowed:false};
 }
