@@ -636,6 +636,48 @@ export class HrService {
     }
   }
 
+  /** Record externally authorized assignment facts; never infer approval from
+   * a site membership or create target Project permissions. Both Company
+   * entitlements are required, including before replay. */
+  attendanceAllocationWrite(supplied: AuthenticatedUserContext, sourceCompanyId: string, sourceProjectId: string, raw: unknown) {
+    input.uuid(sourceCompanyId); input.uuid(sourceProjectId);
+    const value=input.object(raw,['requestId','action','targetCompanyId','targetProjectId','validFrom','validThrough','authorizationReference','allocationId']);
+    const action=input.choice(value.action,['CREATE','REVOKE'] as const);
+    const targetCompanyId=input.uuid(value.targetCompanyId),targetProjectId=input.uuid(value.targetProjectId);
+    if(sourceProjectId===targetProjectId) input.invalid();
+    const validFrom=action==='CREATE'?input.day(value.validFrom):null;
+    const validThrough=action==='CREATE'?input.day(value.validThrough):null;
+    const authorizationReference=input.text(value.authorizationReference,200);
+    const allocationId=action==='REVOKE'?input.uuid(value.allocationId):null;
+    if(action==='CREATE'&&(value.allocationId!==undefined||validFrom!>validThrough!)||
+       action==='REVOKE'&&(value.validFrom!==undefined||value.validThrough!==undefined)) input.invalid();
+    const requirements:Requirement[]=[...new Set([sourceCompanyId,targetCompanyId])].map(companyId=>({companyId,category:'employment',action:'view'}));
+    return this.write(supplied,sourceCompanyId,input.uuid(value.requestId),'ATTENDANCE_ALLOCATION',
+      {sourceProjectId,targetCompanyId,targetProjectId,action,validFrom,validThrough,authorizationReference,allocationId},
+      requirements,async(tx,auth)=>{
+        if(action==='CREATE'){
+          const existing=await tx.hrAttendanceAllocation.findFirst({where:{sourceCompanyId,sourceProjectId,targetCompanyId,targetProjectId,
+            revokedAt:null,validFrom:{lte:validThrough!},validThrough:{gte:validFrom!}}});
+          if(existing)throw conflict();
+          const row=await tx.hrAttendanceAllocation.create({data:{sourceCompanyId,sourceProjectId,targetCompanyId,targetProjectId,
+            validFrom:validFrom!,validThrough:validThrough!,authorizationReference}});
+          await this.record(tx,auth,sourceCompanyId,row.id,'ATTENDANCE_ALLOCATION_CREATE',{sourceProjectId,targetCompanyId,targetProjectId,referenceRecorded:true});
+          return {id:row.id,version:1};
+        }
+        const row=await tx.hrAttendanceAllocation.findFirst({where:{id:allocationId!,sourceCompanyId,sourceProjectId,targetCompanyId,targetProjectId}});
+        if(!row)throw notFound();
+        if(row.revokedAt)throw conflict();
+        await tx.hrAttendanceAllocation.update({where:{id:row.id},data:{revokedAt:new Date()}});
+        await this.record(tx,auth,sourceCompanyId,row.id,'ATTENDANCE_ALLOCATION_REVOKE',{sourceProjectId,targetCompanyId,targetProjectId,referenceRecorded:true});
+        return {id:row.id,version:2};
+      },async(tx,auth)=>{
+        if(!auth.permissions.includes('hr.attendance.allocation.manage'))throw notFound();
+        // Revocation remains possible for an inactive Project; never activate it.
+        if(!await tx.project.count({where:{id:sourceProjectId,companyId:sourceCompanyId,...(action==='CREATE'?{isActive:true}:{})}})||
+          !await tx.project.count({where:{id:targetProjectId,companyId:targetCompanyId,...(action==='CREATE'?{isActive:true}:{})}}))throw notFound();
+      });
+  }
+
   /** Explicitly configured source/target attendance assignments only; this
    * does not give the sender ordinary access to the receiving Project. */
   attendanceAllocationOptions(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown) {

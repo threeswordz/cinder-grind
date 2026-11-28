@@ -163,6 +163,12 @@ export class HrController {
     return { data: await this.hr.accessWrite(auth(request), companyId, body) };
   }
 
+  @Post('companies/:companyId/projects/:projectId/attendance-allocations')
+  @UseGuards(CsrfGuard)
+  async attendanceAllocationWrite(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('projectId') projectId: string, @Body() body: unknown) {
+    return {data:await this.hr.attendanceAllocationWrite(auth(request),companyId,projectId,body)};
+  }
+
   @Get('projects/:projectId/attendance/:periodStart/allocations')
   async attendanceAllocations(@Req() request: AuthenticatedRequest, @Param('projectId') projectId: string, @Param('periodStart') periodStart: string) {
     return { data: await this.hr.attendanceAllocationOptions(auth(request), projectId, periodStart) };

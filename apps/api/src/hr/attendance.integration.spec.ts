@@ -247,6 +247,33 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.hr,other,404,command('CREATE',0,{lines:[row]}));
       assert.equal((await f.sessions.resolve(a.hr.session.sessionToken))!.companyId,f.company.id);
     });
+    await t.test('allocation administration requires both HR Company entitlements, explicit capability and immutable target',async()=>{
+      const url='/hr/companies/'+f.company.id+'/projects/'+f.project.id+'/attendance-allocations';
+      const create={requestId:randomUUID(),action:'CREATE',targetCompanyId:f.other.id,targetProjectId:f.foreignProject.id,validFrom:'2026-11-24',validThrough:'2026-11-25',authorizationReference:'SYNTHETIC_EXTERNAL_APPROVAL'};
+      await call(a.hr,url,404,create);
+      await grant(a.hr,'hr.attendance.allocation.manage');
+      await grant(a.store,'hr.attendance.allocation.manage');
+      await call(a.store,url,404,create);
+      await call(a.hr,url,403,create,false);
+      await call(a.hr,url,404,{...create,targetCompanyId:f.hidden.id});
+      await call(a.hr,url,404,{...create,targetCompanyId:f.company.id});
+      await call(a.hr,url,422,{...create,validThrough:'2026-11-23'});
+      const created=(await call(a.hr,url,201,create)).data;
+      assert.equal(created.version,1);
+      assert.deepEqual((await call(a.hr,url,201,create)).data,created);
+      await call(a.hr,url,409,{...create,requestId:randomUUID()});
+      await call(a.hr,url,409,{...create,authorizationReference:'SYNTHETIC_CHANGED_REFERENCE'});
+      const revoke={requestId:randomUUID(),action:'REVOKE',targetCompanyId:f.other.id,targetProjectId:f.foreignProject.id,allocationId:created.id,authorizationReference:'SYNTHETIC_REVOKED'};
+      await call(a.hr,url,404,{...revoke,allocationId:randomUUID()});
+      assert.equal((await call(a.hr,url,201,revoke)).data.version,2);
+      assert.equal((await call(a.hr,url,201,revoke)).data.version,2);
+      await call(a.hr,url,409,{...revoke,requestId:randomUUID()});
+      assert.ok((await db.hrAttendanceAllocation.findUniqueOrThrow({where:{id:created.id}})).revokedAt);
+      const scope=await db.hrCompanyAccess.findFirstOrThrow({where:{companyId:f.other.id,userId:a.hr.user.id,category:'employment'}});
+      await db.hrCompanyAccess.update({where:{id:scope.id},data:{isActive:false}});
+      await call(a.hr,url,404,create);
+      await db.hrCompanyAccess.update({where:{id:scope.id},data:{isActive:true}});
+    });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
       await db.rolePermission.deleteMany({where:{roleId:a.store.role.id,permissionId:permission.id}});

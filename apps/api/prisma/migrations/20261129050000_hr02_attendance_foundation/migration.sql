@@ -157,5 +157,6 @@ FROM (VALUES
  (2,'hr.attendance.site.manage','Capture and submit attendance within assigned site scope'),
  (3,'hr.attendance.review','Review or return attendance within explicitly authorized HR Company scope'),
  (4,'hr.attendance.correct','Append reasoned HR corrections to submitted attendance in authorized Company scope'),
- (5,'hr.attendance.office.manage','Record and correct raw office attendance within explicit HR Company scope')
+ (5,'hr.attendance.office.manage','Record and correct raw office attendance within explicit HR Company scope'),
+ (6,'hr.attendance.allocation.manage','Record externally authorized sending and receiving Project assignments with explicit HR Company scope')
 ) AS capability(n,code,description) ON CONFLICT(permission_code) DO NOTHING;
