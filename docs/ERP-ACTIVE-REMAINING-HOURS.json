@@ -7592,6 +7592,27 @@
       "blocker": "Native source execution, actual row/file delta, unified entry and browser proof, independent review and Owner execution authority.",
       "reductionHours": 0.25,
       "verifiedCompletedScopeHours": 0.25
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "ae918f7707190527b6eda65db3d383cab6d2fbe2",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234092432",
+        "https://github.com/threeswordz/cinder-grind/commit/ae918f7707190527b6eda65db3d383cab6d2fbe2"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-02-275",
+      "packageId": "M6-02",
+      "kind": "SITE_FIXTURE_TRANSPORT_TESTED",
+      "beforeHours": 3,
+      "afterHours": 2.75,
+      "basis": "7/7 actual container controlled HTTP tests, exact source/test hashes. Event274 supplier exact-hash tests actually executed 6/6, no duplicate credit. 0.25h distinct site transport estimated retirement.",
+      "blocker": "Native row/file delta capture, unified operator, actual API/browser, independent review and Owner exact synthetic authorization. Optional type creation path not tested.",
+      "reductionHours": 0.25,
+      "verifiedCompletedScopeHours": 0.25
     }
   ],
   "unestimatedWork": [
@@ -7621,8 +7642,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1615.25,
-  "currentRollingTotalSemantics": "Event274: M6-02 3h, M6-03 0.75h, M6 5.25h, M7 50h, M8 65h, canonical prototype120.25h, ERP1615.25h; provisional ERP1325.25h/prototype69.25h. Tested controlled HTTP supplier preparation transport, native proof pending; actual labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1615,
+  "currentRollingTotalSemantics": "Event275: M6-02 2.75h, M6-03 0.75h, M6 5h, M7 50h, M8 65h, canonical prototype120h, ERP1615h; provisional ERP1325h/prototype69h. Actual controlled HTTP site7/7 and supplier6/6; native proof pending; measured labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
