@@ -1,6 +1,6 @@
 /** HR-02 raw attendance domain: no payroll, rounding, deductions or grants. */
 export type AttendanceState = 'DRAFT' | 'SUBMITTED' | 'RETURNED';
-export type AttendanceAction = 'EDIT' | 'SUBMIT' | 'RETURN' | 'RESUBMIT';
+export type AttendanceAction = 'EDIT' | 'SUBMIT' | 'RETURN' | 'RESUBMIT' | 'HR_CORRECT';
 export type ActorKind = 'SITE_RECORDER' | 'HR_REVIEWER';
 export type TimeInterval = Readonly<{ employeeId: string; projectId: string; workDate: string; startMinute: number; endMinute: number }>;
 
@@ -53,6 +53,9 @@ export function attendanceTransition(state: AttendanceState, action: AttendanceA
     if (action === 'SUBMIT' && state === 'DRAFT') return 'SUBMITTED';
     if (action === 'RESUBMIT' && state === 'RETURNED') return 'SUBMITTED';
   }
-  if (actor === 'HR_REVIEWER' && action === 'RETURN' && state === 'SUBMITTED') return 'RETURNED';
+  if (actor === 'HR_REVIEWER' && state === 'SUBMITTED') {
+    if (action === 'RETURN') return 'RETURNED';
+    if (action === 'HR_CORRECT') return 'SUBMITTED';
+  }
   throw new Error('ATTENDANCE_TRANSITION_DENIED');
 }

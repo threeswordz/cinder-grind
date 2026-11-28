@@ -47,3 +47,12 @@ test('unknown actor/action and stale versions fail closed',()=>{
   assert.throws(()=>t('RETURNED','SUBMIT','SITE_RECORDER',3,3));
   assert.throws(()=>t('DRAFT','APPROVE','SITE_RECORDER',1,1));
 });
+
+test('HR direct correction appends a submitted revision; never site edit or draft approval',()=>{
+  const t=c.attendanceTransition;
+  assert.equal(t('SUBMITTED','HR_CORRECT','HR_REVIEWER',6,6),'SUBMITTED');
+  assert.throws(()=>t('SUBMITTED','HR_CORRECT','SITE_RECORDER',6,6));
+  assert.throws(()=>t('DRAFT','HR_CORRECT','HR_REVIEWER',1,1));
+  assert.throws(()=>t('RETURNED','HR_CORRECT','HR_REVIEWER',3,3));
+  assert.throws(()=>t('SUBMITTED','HR_CORRECT','HR_REVIEWER',5,6));
+});

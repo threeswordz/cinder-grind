@@ -643,14 +643,14 @@ export class HrService {
   attendanceWrite(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown, raw: unknown) {
     input.uuid(projectId);
     const periodStart=this.attendancePeriodStart(periodRaw), value=input.object(raw,['requestId','expectedVersion','action','lines','reason']);
-    const action=input.choice(value.action,['CREATE','EDIT','SUBMIT','RETURN','RESUBMIT'] as const);
+    const action=input.choice(value.action,['CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT'] as const);
     const expectedVersion=input.integer(value.expectedVersion);
-    const lines=action==='CREATE'||action==='EDIT'?this.parseAttendanceLines(value.lines,projectId,periodStart):null;
+    const lines=action==='CREATE'||action==='EDIT'||action==='HR_CORRECT'?this.parseAttendanceLines(value.lines,projectId,periodStart):null;
     if(lines===null && value.lines!==undefined) input.invalid();
     const reason=value.reason===undefined?null:input.text(value.reason);
-    if((action==='EDIT'||action==='RETURN')&&reason===null) input.invalid();
+    if((action==='EDIT'||action==='RETURN'||action==='HR_CORRECT')&&reason===null) input.invalid();
     if(action==='CREATE'&&expectedVersion!==0||action!=='CREATE'&&expectedVersion===0) input.invalid();
-    const mode=action==='RETURN'?'review':'manage';
+    const mode=action==='RETURN'||action==='HR_CORRECT'?'review':'manage';
     const companyId=supplied.companyId;
     return this.write(supplied,companyId,input.uuid(value.requestId),'ATTENDANCE_REVISION',
       {projectId,periodStart,action,expectedVersion,lines,reason},[],async(tx,auth)=>{
@@ -672,7 +672,7 @@ export class HrService {
         }
         const snapshot=lines!==null?await this.bindAttendanceLines(tx,companyId,projectId,lines):
           prior!.lines.map(l=>({employeeId:l.employeeId,employmentRevisionId:l.employmentRevisionId,workDate:l.workDate,startMinute:l.startMinute,endMinute:l.endMinute,workType:l.workType}));
-        if(action==='SUBMIT'||action==='RESUBMIT') await this.assertAttendanceSubmission(tx,companyId,batch.id,projectId,snapshot);
+        if(action==='SUBMIT'||action==='RESUBMIT'||action==='HR_CORRECT') await this.assertAttendanceSubmission(tx,companyId,batch.id,projectId,snapshot);
         const version=expectedVersion+1;
         const revision=await tx.hrAttendanceRevision.create({data:{companyId,batchId:batch.id,version,state,action,actorUserId:auth.userId,reason}});
         if(snapshot.length) await tx.hrAttendanceLine.createMany({data:snapshot.map(l=>({...l,companyId,revisionId:revision.id}))});

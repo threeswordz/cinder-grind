@@ -94,11 +94,41 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await assert.rejects(db.hrAttendanceRevision.delete({where:{id:original.id}}));
       await assert.rejects(db.hrAttendanceBatch.update({where:{id:batchId},data:{currentVersion:4}}));
     });
+
+    await t.test('cross-site overlap is detected; authorized HR corrects without changing historical submission',async()=>{
+      // Existing assigned second site, not an access_all or cross-Company override.
+      for(const employeeId of [a.store.employee!.id,f.legacy.id]) {
+        await db.projectMember.create({data:{projectId:f.unassigned.id,employeeId,projectRole:'Synthetic second site'}});
+      }
+      const second=route(f.unassigned.id);
+      const secondRow={...row,startMinute:600,endMinute:750};
+      await call(a.store,second,201,command('CREATE',0,{lines:[secondRow]}));
+      await call(a.store,second,409,command('SUBMIT',1));
+      const corrected=[{...row,endMinute:600},{...row,startMinute:780,endMinute:1020}];
+      await call(a.store,root,404,command('HR_CORRECT',6,{reason:'Synthetic overlap resolution',lines:corrected}));
+      await call(a.hr,root,422,command('HR_CORRECT',6,{lines:corrected}));
+      await call(a.hr,root,409,command('HR_CORRECT',5,{reason:'Synthetic stale correction',lines:corrected}));
+      await call(a.hr,root,409,command('HR_CORRECT',6,{reason:'Synthetic invalid correction',lines:[row,{...row,startMinute:600,endMinute:780}]}));
+      // No HR employment Company grant: capability alone cannot authorize this.
+      await grant(a.outsider,'hr.attendance.review');
+      await call(a.outsider,root,404,command('HR_CORRECT',6,{reason:'Synthetic denied correction',lines:corrected}));
+      const correction=command('HR_CORRECT',6,{reason:'Synthetic reviewed time evidence',lines:corrected});
+      const result=await call(a.hr,root,201,correction);
+      assert.deepEqual((await call(a.hr,root,201,correction)).data,result.data);
+      const view=(await call(a.hr,root,200)).data;
+      assert.equal(view.state,'SUBMITTED'); assert.equal(view.version,7); assert.equal(view.action,'HR_CORRECT');
+      assert.equal(view.lines[0].endMinute,600);
+      const old=await db.hrAttendanceRevision.findUniqueOrThrow({where:{batchId_version:{batchId,version:6}},include:{lines:true}});
+      assert.ok(old.lines.some(l=>l.endMinute===720));
+      await call(a.store,second,201,command('SUBMIT',1));
+      assert.equal((await call(a.store,second,200)).data.state,'SUBMITTED');
+      assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),7);
+    });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
       await db.rolePermission.deleteMany({where:{roleId:a.store.role.id,permissionId:permission.id}});
       await call(a.store,root,404,resubmit);
-      assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),6);
+      assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),7);
       assert.deepEqual(await financialCounts(),before);
     });
   } finally {

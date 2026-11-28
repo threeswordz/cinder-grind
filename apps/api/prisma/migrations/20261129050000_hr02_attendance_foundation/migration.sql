@@ -16,9 +16,9 @@ CREATE TABLE hr_attendance_revisions (
  CONSTRAINT hr_attendance_revisions_batch_fkey FOREIGN KEY(company_id,batch_id) REFERENCES hr_attendance_batches(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_revisions_actor_fkey FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_revisions_values CHECK (version>0 AND state IN ('DRAFT','SUBMITTED','RETURNED')
- AND action IN ('CREATE','EDIT','SUBMIT','RETURN','RESUBMIT')
+ AND action IN ('CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT')
  AND (reason IS NULL OR length(btrim(reason))>0)
- AND (action NOT IN ('EDIT','RETURN') OR reason IS NOT NULL))
+ AND (action NOT IN ('EDIT','RETURN','HR_CORRECT') OR reason IS NOT NULL))
 );
 CREATE UNIQUE INDEX hr_attendance_revisions_batch_id_version_key ON hr_attendance_revisions(batch_id,version);
 CREATE UNIQUE INDEX hr_attendance_revisions_company_id_id_key ON hr_attendance_revisions(company_id,id);
@@ -47,6 +47,7 @@ BEGIN
     (prev_state IN ('DRAFT','RETURNED') AND NEW.action='EDIT' AND NEW.state=prev_state)
     OR (prev_state='DRAFT' AND NEW.action='SUBMIT' AND NEW.state='SUBMITTED')
     OR (prev_state='SUBMITTED' AND NEW.action='RETURN' AND NEW.state='RETURNED')
+    OR (prev_state='SUBMITTED' AND NEW.action='HR_CORRECT' AND NEW.state='SUBMITTED')
     OR (prev_state='RETURNED' AND NEW.action='RESUBMIT' AND NEW.state='SUBMITTED')
   ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_TRANSITION' USING ERRCODE='23514'; END IF;
  END IF;
