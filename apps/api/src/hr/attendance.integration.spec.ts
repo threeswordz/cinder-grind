@@ -54,6 +54,7 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await grant(a.store,'hr.attendance.site.view');
       await grant(a.store,'hr.attendance.site.manage');
       await grant(a.hr,'hr.attendance.review');
+      await grant(a.hr,'hr.attendance.correct');
       await call(a.store,root,403,create,false);
       await call(a.store,route(f.foreignProject.id),404,create);
       await call(a.store,route(f.unassigned.id),403,create);
@@ -111,6 +112,9 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.hr,root,409,command('HR_CORRECT',6,{reason:'Synthetic invalid correction',lines:[row,{...row,startMinute:600,endMinute:780}]}));
       // No HR employment Company grant: capability alone cannot authorize this.
       await grant(a.outsider,'hr.attendance.review');
+      await grant(a.outsider,'hr.attendance.correct');
+      await grant(a.nancy,'hr.attendance.review');
+      await call(a.nancy,root,404,command('HR_CORRECT',6,{reason:'Synthetic review-only denial',lines:corrected}));
       await call(a.outsider,root,404,command('HR_CORRECT',6,{reason:'Synthetic denied correction',lines:corrected}));
       const correction=command('HR_CORRECT',6,{reason:'Synthetic reviewed time evidence',lines:corrected});
       const result=await call(a.hr,root,201,correction);

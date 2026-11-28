@@ -679,7 +679,13 @@ export class HrService {
         await tx.hrAttendanceBatch.update({where:{id:batch.id},data:{currentVersion:version}});
         await this.record(tx,auth,companyId,batch.id,'ATTENDANCE_REVISION',{projectId,revisionId:revision.id,version,state,attendanceAction:action,lineCount:snapshot.length,reasonRecorded:reason!==null});
         return {id:batch.id,version};
-      }, async(tx,auth)=>{await this.attendanceScope(tx,auth,projectId,mode);});
+      }, async(tx,auth)=>{
+        await this.attendanceScope(tx,auth,projectId,mode);
+        // Review/return authority is not direct correction authority. The extra
+        // capability and current Company employment entitlement are live-checked
+        // before any replay receipt can be disclosed.
+        if(action==='HR_CORRECT'&&!auth.permissions.includes('hr.attendance.correct')) throw notFound();
+      });
   }
 
   operational(supplied: AuthenticatedUserContext, projectId: string) {

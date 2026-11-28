@@ -117,5 +117,6 @@ SELECT ('b0295000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid, code, 'HR', d
 FROM (VALUES
  (1,'hr.attendance.site.view','Read attendance within assigned site scope'),
  (2,'hr.attendance.site.manage','Capture and submit attendance within assigned site scope'),
- (3,'hr.attendance.review','Review or return attendance within explicitly authorized HR Company scope')
+ (3,'hr.attendance.review','Review or return attendance within explicitly authorized HR Company scope'),
+ (4,'hr.attendance.correct','Append reasoned HR corrections to submitted attendance in authorized Company scope')
 ) AS capability(n,code,description) ON CONFLICT(permission_code) DO NOTHING;
