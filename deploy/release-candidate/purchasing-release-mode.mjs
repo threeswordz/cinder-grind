@@ -1,3 +1,4 @@
+import {ss16Mode,assertSs16ReleaseEvidence} from './ss16-release-contract.mjs';
 import {pur12Migration,pur07Migration} from './purchasing-successor-schema-preparation.mjs';
 // Versioned purchasing outer modes. This parser is not schema admission.
 import {pur04Migration} from './pur04-schema-preparation.mjs';
@@ -9,13 +10,15 @@ function peel(mode,layer){
  :{present:false,prior:mode};
 }
 export function purchasingMode(mode){
- const seven=peel(mode,'pur07'),twelve=peel(seven.prior,'pur12');
+ const ss16=ss16Mode(mode);
+ const seven=peel(ss16.prior,'pur07'),twelve=peel(seven.prior,'pur12');
  const one=peel(twelve.prior,'pur01'),four=peel(one.prior,'pur04');
  if(typeof four.prior==='string'&&/^migration-aware-pur(?:01|04|07|12)-/.test(four.prior))throw Error('Invalid purchasing mode order');
- return {pur07:seven.present,pur12:twelve.present,pur01:one.present,pur04:four.present,prior:four.prior,version:seven.present?25:twelve.present?24:one.present?23:four.present?22:null};
+ return {pur07:seven.present,pur12:twelve.present,pur01:one.present,pur04:four.present,prior:four.prior,version:ss16.present?26:seven.present?25:twelve.present?24:one.present?23:four.present?22:null,...(ss16.present?{ss16:true}:{})};
 }
 export const purchasingEvidenceKeys=Object.freeze(['SchemaUpgrade','SourceContractTests','HistoricalPreservation','PairedRecovery','ExternalHrKeyAndDocumentRecovery']);
 export function assertPurchasingEvidence(rehearsal){
+ assertSs16ReleaseEvidence(rehearsal);
  const mode=purchasingMode(rehearsal.releaseMode);
  if(!mode.version)return mode;
  if(rehearsal.version!==mode.version)throw Error('Purchasing evidence version mismatch');

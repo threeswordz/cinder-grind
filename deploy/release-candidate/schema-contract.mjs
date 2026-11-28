@@ -1,3 +1,4 @@
+import {stripSs16ReleaseSchema,wrapSs16Mode} from './ss16-release-contract.mjs';
 import {classifySuccessorPreparation} from './purchasing-successor-schema-preparation.mjs';
 import {classifyPurchasingPreparation} from './pur01-schema-preparation.mjs';
 import {stripPm02Schema,normalizeSchema as normalizePm02Schema} from './pm02-schema-preparation.mjs';
@@ -251,6 +252,12 @@ function classifyPrePm02(previous,candidate){
 // Bounded outer layer. Preserve all pre-PM02 checks, including unchanged
 // synthetic classifier fixtures that have no PurchaseRequestLine model.
 export function classifySchema(previous,candidate){
+ const oldSs16=stripSs16ReleaseSchema(previous),newSs16=stripSs16ReleaseSchema(candidate);
+ if(oldSs16.present&&!newSs16.present)throw Error('SS16 correction schema removal prohibited');
+ if(!oldSs16.present&&newSs16.present)return wrapSs16Mode(classifyPreSs16(previous,newSs16.text));
+ return classifyPreSs16(oldSs16.text,newSs16.text);
+}
+function classifyPreSs16(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  // Only exact PUR12/PUR07 increments may wrap earlier bounded purchasing
  // migrations; legacy synthetic fixtures retain the previous classifier.

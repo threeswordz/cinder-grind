@@ -1,3 +1,5 @@
+import {ss16MigrationNames,ss16EvidenceKeys} from './ss16-release-contract.mjs';
+import {projectPreSs16TestSchema} from './historical-schema-test-projection.mjs';
 // Run the ACTUAL inline consolidated-evidence acceptance blocks, not copies.
 // Synthetic version-20 FM02 outer wrappers cover every historical predecessor.
 // No PostgreSQL, build, browser, Mac, production environment or full CI.
@@ -110,23 +112,27 @@ for(const [name,tail,predecessor] of entries){
 const candidateSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
 // Keep each exact predecessor independently visible, even if another fails.
 for(const [name,tail,predecessor] of entries){
-  test(name+' real Git predecessor retains exact FM02 path inside version-25 layered receipt',()=>{
+  test(name+' real Git predecessor retains exact FM02 path inside version-26 SS16 layered receipt',()=>{
     const source=execFileSync('git',['show',predecessor+':apps/api/prisma/schema.prisma'],
       {cwd:root,encoding:'utf8'});
+    const historicalMode=classifySchema(source,projectPreSs16TestSchema(candidateSchema));
+    assert.equal(purchasingMode(historicalMode).version,25,'Historical purchasing version remains strict');
     const actualMode=classifySchema(source,candidateSchema);
     const purchasing=purchasingMode(actualMode);
     const pm02=pm02Mode(purchasing.prior);
     assert.deepEqual([purchasing.pur07,purchasing.pur12,purchasing.pur01,purchasing.pur04,pm02.present],[true,true,true,true,true],
       'Current candidate must preserve every exact purchasing/PM02 layer: '+name);
-    assert.equal(purchasing.version,25);
+    assert.equal(purchasing.version,26);
+    assert.equal(purchasing.ss16,true);
     assert.equal(pm02.prior,prefix+tail,'Historical FM02 and earlier mode must remain exact: '+name);
     assert.equal(fm02Mode(pm02.prior).present,true);
     const data=fixture(name,tail,predecessor);
-    data.version=25;
+    data.version=26;
     data.releaseMode=actualMode;
     Object.assign(data.rehearsal,{
-      version:25,releaseMode:actualMode,
-      migrationNames:[...new Set([...migrationNames,...Object.keys(pm02Migrations),pur04Migration,pur01Migration,pur12Migration,pur07Migration])],
+      version:26,releaseMode:actualMode,
+      migrationNames:[...new Set([...migrationNames,...Object.keys(pm02Migrations),pur04Migration,pur01Migration,pur12Migration,pur07Migration,...ss16MigrationNames])],
+      ...Object.fromEntries(ss16EvidenceKeys.map(key=>[key,'PASS'])),
       pm02HistoricalPreservation:'PASS',pm02PairedRecovery:'PASS',pm02ExternalHrKeyAndDocumentRecovery:'PASS',
       ...Object.fromEntries(['pur04','pur01','pur12','pur07'].flatMap(layer=>purchasingEvidenceKeys.map(key=>[layer+key,'PASS']))),
     });
@@ -138,11 +144,11 @@ for(const [name,tail,predecessor] of entries){
     const wrong=structuredClone(data);wrong.rehearsal.previousReleaseCommit='0'.repeat(40);
     assert.notEqual(runInline(block,wrong).status,0,'Wrong predecessor accepted: '+name);
     if(name==='material-uom'){
-      for(const key of ['pm02HistoricalPreservation','fm02HistoricalPreservation',...['pur04','pur01','pur12','pur07'].flatMap(layer=>purchasingEvidenceKeys.map(suffix=>layer+suffix))]){
+      for(const key of [...ss16EvidenceKeys,'pm02HistoricalPreservation','fm02HistoricalPreservation',...['pur04','pur01','pur12','pur07'].flatMap(layer=>purchasingEvidenceKeys.map(suffix=>layer+suffix))]){
         const missing=structuredClone(data);delete missing.rehearsal[key];
         assert.notEqual(runInline(block,missing).status,0,'Missing layered receipt accepted: '+key);
       }
-      const wrongVersion=structuredClone(data);wrongVersion.rehearsal.version=24;
+      const wrongVersion=structuredClone(data);wrongVersion.rehearsal.version=25;
       assert.notEqual(runInline(block,wrongVersion).status,0,'Wrong nested version accepted');
     }
   });
