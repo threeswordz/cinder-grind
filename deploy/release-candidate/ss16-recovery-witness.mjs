@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import {readFileSync,writeFileSync,realpathSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {exactSs16Checksums,assertSs16AppliedHistory} from './ss16-release-contract.mjs';
+import {canonicalSs16RecoveryConstraints} from './ss16-recovery-constraints.mjs';
 const [phase,file]=process.argv.slice(2);
 assert.ok(['capture','restored','rollback'].includes(phase)&&file);
 assert.equal(process.env.GITHUB_ACTIONS,'true');
@@ -45,7 +46,7 @@ try{
   assert.deepEqual(functions.map(r=>r.name).sort(),expectedFunctions);
   const replaced=await tx.$queryRawUnsafe("SELECT p.proname AS name,pg_get_functiondef(p.oid) AS definition FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('erp_receiving_header_guard','erp_mpi_approval_guard','erp_mpi_receipt_guard') ORDER BY p.proname");
   assert.equal(replaced.length,3);
-  const constraints=await tx.$queryRawUnsafe("SELECT conname AS name,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid='public.movement_correction_requests'::regclass ORDER BY conname");
+  const constraints=canonicalSs16RecoveryConstraints(await tx.$queryRawUnsafe("SELECT conname AS name,pg_get_constraintdef(oid) AS definition,contype::text AS kind,convalidated AS validated,connoinherit AS no_inherit,condeferrable AS deferrable,condeferred AS deferred FROM pg_constraint WHERE conrelid='public.movement_correction_requests'::regclass ORDER BY conname"));
   assert.ok(constraints.some(r=>r.name==='movement_correction_exact_source_pin'));
   const indexes=await tx.$queryRawUnsafe("SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND tablename='movement_correction_requests' ORDER BY indexname");
   assert.ok(indexes.some(r=>r.indexname==='movement_correction_request_replay_key'));
