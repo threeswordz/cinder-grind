@@ -1,12 +1,13 @@
 {
-  "status": "PREPARATION_ONLY_NOT_RELEASE_OR_EXECUTION_AUTHORITY",
-  "date": "2026-11-28",
+  "status": "INTEGRATED_CANDIDATE_PUBLISHED_NOT_VALIDATED_OR_RELEASE_AUTHORITY",
+  "date": "2026-11-29",
   "commonBase": "70013b5139292ef33563447f8937c8f132feabd2",
   "observedMain": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
   "sources": [
     {
       "role": "finalM6Application",
       "sha": "3e35105edac7151aeca800c1175af736a99f6009",
+      "tree": "319f843a36b880971fe0cba5d0c58eb01f68c044",
       "ahead": 2,
       "behind": 0,
       "paths": [
@@ -27,6 +28,7 @@
     {
       "role": "terminalM6Operator",
       "sha": "501a93747cc1a268a42205233a4533c719af25aa",
+      "tree": "dc1642fcb41351ca005c06d2a403059862015b49",
       "ahead": 179,
       "behind": 0,
       "paths": [
@@ -558,8 +560,9 @@
     },
     {
       "role": "reviewedM7Operator",
-      "sha": "620ccd59ee9fed4b8b5fc7196caa6d1e9980b8ab",
-      "ahead": 33,
+      "sha": "6f7f0f81afe23c62ffddb3f06ed01e5cae3061a9",
+      "tree": "b2dc076e791a401f348f93a495c2e23358e87aa2",
+      "ahead": 41,
       "behind": 0,
       "paths": [
         {
@@ -568,6 +571,10 @@
         },
         {
           "path": "deploy/uat/m7-authenticated-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-blocked-capture-continuation.mjs",
           "status": "added"
         },
         {
@@ -643,6 +650,10 @@
           "status": "added"
         },
         {
+          "path": "deploy/uat/m7-postgres-oid.test.mjs",
+          "status": "added"
+        },
+        {
           "path": "deploy/uat/m7-postgres-restore.mjs",
           "status": "added"
         },
@@ -688,6 +699,14 @@
         },
         {
           "path": "deploy/uat/m7-restored-api.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-schema.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-schema.test.mjs",
           "status": "added"
         },
         {
@@ -777,7 +796,7 @@
       ]
     }
   ],
-  "uniqueDeltaPathCount": 187,
+  "uniqueDeltaPathCount": 191,
   "overlap": [],
   "staticM7DependencyScan": {
     "productionModuleCount": 26,
@@ -848,19 +867,37 @@
         "blob": "d4573aef7408d54b76cce6f77d6509bdcb3d4bca",
         "changedInAnyDelta": false
       }
-    ]
+    ],
+    "status": "HISTORICAL_SCAN_620ccd59_REFRESH_REQUIRED_FOR_FINAL_INTEGRATED_AUDIT"
   },
   "requiredBeforeIntegration": [
-    "M7 actual native recovery exit and final exact source rebind",
-    "re-read all heads and regenerate manifest on drift",
-    "candidate tree path/blob equality and forward-only migration preservation",
-    "focused affected tests, final independent review and required Owner-authorized full validation"
+    "Mac independently verify entire union tree including modes and untouched paths; affected build/test checks",
+    "Final integrated security audit and requirement evidence reconciliation",
+    "Stable independent review, Owner-authorized full PR and actual full main validation, governed integration and technical freeze"
   ],
   "notExecuted": [
-    "native recovery",
-    "candidate integration",
+    "Mac integrated tests",
+    "integrated independent review",
     "CI",
-    "runtime tests",
-    "merge"
-  ]
+    "main merge",
+    "freeze"
+  ],
+  "nativeEvidence": {
+    "m6": "0615e1cd86a2142eba287a8a7660e3d530558d6bcebc7d2cf0dda7222261b6cb",
+    "m7": "a384e7927f2c9b321de0ad1fb7e47670352e5914705aa2fd499fdda5a38ca373",
+    "m7Review": "https://github.com/threeswordz/cinder-grind/pull/464#issuecomment-7242239567",
+    "m7Closure": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7242470608"
+  },
+  "integratedCandidate": {
+    "branch": "work-m8-integrated-candidate-20261129",
+    "sha": "eeee4970b89adca284913063384ef851178b6fe9",
+    "tree": "84bec23e43adc8382e01007df63595188550c34b",
+    "parents": [
+      "501a93747cc1a268a42205233a4533c719af25aa",
+      "3e35105edac7151aeca800c1175af736a99f6009",
+      "6f7f0f81afe23c62ffddb3f06ed01e5cae3061a9"
+    ],
+    "pathSetsVerifiedRelativeToEachSource": true,
+    "fullTreeModeAndBlobEqualityMacPending": true
+  }
 }
