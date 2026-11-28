@@ -538,7 +538,9 @@ export class HrService {
     await this.projects.assertAccess(auth, projectId, tx);
     const employeeId = await this.projects.activeEmployeeId(auth, tx);
     // Site attendance must not use projects.access_all as recorder authority.
-    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) + 'T00:00:00.000Z');
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const part = (name: string) => parts.find(p=>p.type===name)?.value;
+    const today = new Date(part('year')+'-'+part('month')+'-'+part('day')+'T00:00:00.000Z');
     if (!employeeId || !Number.isFinite(today.getTime()) || !await tx.projectMember.count({ where: {
       projectId, employeeId, isActive: true, AND: [
         { OR: [{ startDate: null }, { startDate: { lte: today } }] },
@@ -591,7 +593,7 @@ export class HrService {
   }
 
   private async assertAttendanceSubmission(tx: Tx, companyId: string, batchId: string, projectId: string,
-    lines: ReturnType<HrService['parseAttendanceLines']> & { employmentRevisionId?: string }[]) {
+    lines: (ReturnType<HrService['parseAttendanceLines']>[number] & { employmentRevisionId: string })[]) {
     if (!lines.length) input.invalid();
     const bound = await this.bindAttendanceLines(tx, companyId, projectId, lines);
     if (bound.some((l,i) => l.employmentRevisionId !== lines[i]?.employmentRevisionId)) throw conflict();
