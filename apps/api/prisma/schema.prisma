@@ -8,6 +8,9 @@ datasource db {
 }
 
 model Company {
+  glAccounts GlAccount[]
+  glPeriods GlPeriod[]
+  glRuleRevisions GlRuleRevision[]
   movementCorrectionRequests MovementCorrectionRequest[]
   poDispatchEvents PoDispatchEvent[]
   materialPlanPolicies MaterialPlanProjectPolicy[]
@@ -254,6 +257,7 @@ model Employee {
 }
 
 model User {
+  glJournalActors GlJournal[] @relation("GlJournalActor")
   movementCorrectionRequests MovementCorrectionRequest[] @relation("MovementCorrectionRequester")
   poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
@@ -682,6 +686,7 @@ model SystemSetting {
 
 
 model Project {
+  glJournalLines GlJournalLine[]
   poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
   receivingDeliveries ReceivingDelivery[]
@@ -4490,4 +4495,87 @@ model MovementCorrectionRequest {
   @@unique([companyId, sourceKind, sourceId, requestKey], map: "movement_correction_request_replay_key")
   @@index([companyId, sourceKind, sourceId], map: "movement_correction_source_idx")
   @@map("movement_correction_requests")
+}
+
+model GlAccount {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  code String @db.VarChar(50)
+  name String @db.VarChar(200)
+  accountType String @map("account_type") @db.VarChar(20)
+  isActive Boolean @default(true) @map("is_active")
+  company Company @relation(fields:[companyId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  lines GlJournalLine[]
+  @@unique([companyId,id])
+  @@unique([companyId,code])
+  @@map("gl_accounts")
+}
+
+model GlPeriod {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  startDate DateTime @map("start_date") @db.Date
+  endDate DateTime @map("end_date") @db.Date
+  closedAt DateTime? @map("closed_at") @db.Timestamptz(6)
+  company Company @relation(fields:[companyId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  journals GlJournal[]
+  @@unique([companyId,id])
+  @@unique([companyId,startDate])
+  @@map("gl_periods")
+}
+
+model GlRuleRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  ruleCode String @map("rule_code") @db.VarChar(50)
+  version Int
+  sourceType String @map("source_type") @db.VarChar(50)
+  evidenceReference String @map("evidence_reference") @db.VarChar(200)
+  company Company @relation(fields:[companyId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  journals GlJournal[]
+  @@unique([companyId,id])
+  @@unique([companyId,ruleCode,version])
+  @@map("gl_rule_revisions")
+}
+
+model GlJournal {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  periodId String @map("period_id") @db.Uuid
+  ruleRevisionId String @map("rule_revision_id") @db.Uuid
+  sourceEventKey String @map("source_event_key") @db.VarChar(200)
+  sourceType String @map("source_type") @db.VarChar(50)
+  postingDate DateTime @map("posting_date") @db.Date
+  currencyCode String @default("THB") @map("currency_code") @db.VarChar(3)
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reversesJournalId String? @map("reverses_journal_id") @db.Uuid
+  sealedAt DateTime? @map("sealed_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  period GlPeriod @relation(fields:[companyId,periodId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journals_period_fkey")
+  ruleRevision GlRuleRevision @relation(fields:[companyId,ruleRevisionId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journals_rule_fkey")
+  actor User @relation("GlJournalActor",fields:[companyId,actorUserId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journals_actor_fkey")
+  reverses GlJournal? @relation("GlJournalReversal",fields:[companyId,reversesJournalId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journals_reversal_fkey")
+  reversal GlJournal? @relation("GlJournalReversal")
+  lines GlJournalLine[]
+  @@unique([companyId,id])
+  @@unique([companyId,sourceEventKey])
+  @@unique([companyId,reversesJournalId])
+  @@map("gl_journals")
+}
+
+model GlJournalLine {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  journalId String @map("journal_id") @db.Uuid
+  lineNo Int @map("line_no")
+  accountId String @map("account_id") @db.Uuid
+  projectId String? @map("project_id") @db.Uuid
+  side String @db.VarChar(6)
+  amountSatang BigInt @map("amount_satang")
+  journal GlJournal @relation(fields:[companyId,journalId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journal_lines_journal_fkey")
+  account GlAccount @relation(fields:[companyId,accountId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journal_lines_account_fkey")
+  project Project? @relation(fields:[companyId,projectId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"gl_journal_lines_project_fkey")
+  @@unique([journalId,lineNo])
+  @@index([companyId,accountId])
+  @@map("gl_journal_lines")
 }
