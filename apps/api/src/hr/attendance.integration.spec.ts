@@ -172,10 +172,17 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       const same=await makeAllocation(f.company.id,f.unassigned.id);
       const foreign=await makeAllocation(f.other.id,f.foreignProject.id);
       const expired=await makeAllocation(f.other.id,f.foreignProject.id,'2026-11-18','2026-11-19');
+      const wrongSource=await db.hrAttendanceAllocation.create({data:{
+        sourceCompanyId:f.company.id,sourceProjectId:f.unassigned.id,targetCompanyId:f.other.id,targetProjectId:f.foreignProject.id,
+        validFrom:new Date('2026-11-20'),validThrough:new Date('2026-11-20'),authorizationReference:'SYNTHETIC_OTHER_SENDER_ONLY'}});
+      await assert.rejects(db.hrAttendanceAllocation.create({data:{
+        sourceCompanyId:f.company.id,sourceProjectId:f.project.id,targetCompanyId:f.company.id,targetProjectId:f.foreignProject.id,
+        validFrom:new Date('2026-11-20'),validThrough:new Date('2026-11-20'),authorizationReference:'SYNTHETIC_BAD_COMPANY_PAIR'}}));
       const opts=(await call(a.store,root+'/allocations',200)).data;
       assert.ok(opts.some((x:any)=>x.id===same.id));
       assert.ok(opts.some((x:any)=>x.id===foreign.id));
       assert.ok(opts.every((x:any)=>!('authorizationReference' in x)));
+      assert.ok(!opts.some((x:any)=>x.id===wrongSource.id));
       await call(a.store,route(f.foreignProject.id),404);
       await call(a.store,route(f.foreignProject.id)+'/allocations',404);
       const original=[{...row,endMinute:600},{...row,startMinute:780,endMinute:1020}];
@@ -185,6 +192,7 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       const foreignRow={...row,startMinute:1020,endMinute:1080,allocationId:foreign.id};
       await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic invalid allocation',lines:[...original,{...foreignRow,allocationId:randomUUID()}]}));
       await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic expired allocation',lines:[...original,{...foreignRow,allocationId:expired.id}]}));
+      await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic wrong source allocation',lines:[...original,{...foreignRow,allocationId:wrongSource.id}]}));
       // Store performs the approved sending-site capture after HR returns.
       await call(a.hr,root,201,command('RETURN',7,{reason:'Synthetic additional source record'}));
       await call(a.store,root,201,command('EDIT',8,{reason:'Synthetic sending-site record',lines:[...original,sameRow,foreignRow]}));
