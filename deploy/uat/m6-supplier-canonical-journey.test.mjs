@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {priorScopeEvidence} from './m6-residual-denial-target.mjs';
 import {createSupplierCanonicalJourney,supplierBindingDigest} from './m6-supplier-canonical-journey.mjs';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 function harness(){
- const keys=['companyId','projectId','orderId','foreignOrderId','ackEventId','ackDocumentId','transitDocumentId','delayDocumentId','conditionDocumentId','handoverDocumentId','originalDeliveryId','originalDeliveryLineId','jaiUserId','storeUserId','pmUserId'];
+ const keys=['companyId','projectId','orderId','denialOrderId','ackEventId','ackDocumentId','transitDocumentId','delayDocumentId','conditionDocumentId','handoverDocumentId','originalDeliveryId','originalDeliveryLineId','jaiUserId','storeUserId','pmUserId'];
  const b={...Object.fromEntries(keys.map((k,i)=>[k,id(i+1)])),conditionChecksum:'a'.repeat(64),handoverChecksum:'b'.repeat(64),supplierSignatory:'Synthetic supplier',revisedDate:'2026-11-28',returnQuantity:'1',observedQuantity:'4',goodQuantity:'3'};
+ b.supplierDenialTarget={id:b.denialOrderId,kind:'LIVE_FOREIGN_ORDER',priorEvidence:null};
  const operatorSha='a'.repeat(40),calls=[],opts={source:true,delta:true,badAt:-1,wrongTrace:false,stockEffect:false};let version=0,previous=null,state=null,delta;
  const initial={purchaseOrderId:b.orderId,projectId:b.projectId,approvedLatest:true,case:null,expectedPreviousEventId:null,advisoryOnly:true,stockEffect:false,financeEffect:false};
  const stages=['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED','DISCREPANCY_REPORTED','PM_REVIEWED','CLAIM_RECORDED','RETURN_DISPATCH_RECORDED'];
@@ -13,10 +15,12 @@ function harness(){
  const args={binding:b,operatorSha,authorization:{applicationSha:'70013b5139292ef33563447f8937c8f132feabd2',database:'m6_successor_rehearsal',operatorSha,bindingSha256:supplierBindingDigest(b),ownerAuthorizedSupplierJourney:true,retainedMutationAuthorized:false,productionAuthorized:false},request,verifyRuntime:async()=>{},verifySources:async()=>opts.source,verifyDelta:async x=>{delta=x;return opts.delta;}};
  return {args,calls,opts,delta:()=>delta};
 }
-test('seven ordered audit-only transitions, scoped denials and exact source trace',async()=>{const a=harness(),run=createSupplierCanonicalJourney(a.args),r=await run();assert.equal(r.events,7);assert.equal(r.replacementJourneyVerified,false);assert.equal(a.calls.length,12);assert.deepEqual(a.delta().expected,{audit_logs:7});assert.equal(a.calls[3].body.recordedPoAcknowledgmentEventId,a.args.binding.ackEventId);assert.equal(a.calls[10].body.returnQuantity,'1');await assert.rejects(run(),/NO_REPLAY/);});
+test('seven ordered audit-only transitions, scoped denials and exact source trace',async()=>{const a=harness(),run=createSupplierCanonicalJourney(a.args),r=await run();assert.equal(r.events,7);assert.equal(r.foreignOrderDenied,true);assert.equal(a.calls[9].body.evidenceDocumentId,a.args.binding.delayDocumentId);assert.equal(r.replacementJourneyVerified,false);assert.equal(a.calls.length,12);assert.deepEqual(a.delta().expected,{audit_logs:7});assert.equal(a.calls[3].body.recordedPoAcknowledgmentEventId,a.args.binding.ackEventId);assert.equal(a.calls[10].body.returnQuantity,'1');await assert.rejects(run(),/NO_REPLAY/);});
 test('rejects absent source proof before HTTP',async()=>{const a=harness();a.opts.source=false;await assert.rejects(createSupplierCanonicalJourney(a.args)(),/SOURCE_PROOF/);assert.equal(a.calls.length,0);});
 test('rejects wrong held quantity, duplicate evidence or invalid authority before HTTP',()=>{for(const change of [a=>a.binding.returnQuantity='2',a=>a.binding.handoverDocumentId=a.binding.conditionDocumentId,a=>a.authorization.productionAuthorized=true]){const a=harness();change(a.args);a.args.authorization.bindingSha256=supplierBindingDigest(a.args.binding);assert.throws(()=>createSupplierCanonicalJourney(a.args));assert.equal(a.calls.length,0);}});
 test('unexpected status stops and prevents retry',async()=>{const a=harness();a.opts.badAt=5;const run=createSupplierCanonicalJourney(a.args);await assert.rejects(run(),/HTTP_201/);assert.equal(a.calls.length,6);await assert.rejects(run(),/NO_REPLAY/);});
 test('stock effect fails closed',async()=>{const a=harness();a.opts.stockEffect=true;await assert.rejects(createSupplierCanonicalJourney(a.args)(),/EVENT/);assert.equal(a.calls.length,4);});
 test('wrong signed trace fails closed',async()=>{const a=harness();a.opts.wrongTrace=true;await assert.rejects(createSupplierCanonicalJourney(a.args)(),/RETURN_TRACE/);assert.equal(a.delta(),undefined);});
 test('requires exact delta proof',async()=>{const a=harness();a.opts.delta=false;await assert.rejects(createSupplierCanonicalJourney(a.args)(),/DELTA/);});
+
+test('absent-order denial is not labeled a live foreign-order test',async()=>{const a=harness(),b=a.args.binding;b.supplierDenialTarget={id:b.denialOrderId,kind:'ABSENT_ORDER_PRIOR_NATIVE_SCOPE',priorEvidence:{...priorScopeEvidence}};a.args.authorization.bindingSha256=supplierBindingDigest(b);const r=await createSupplierCanonicalJourney(a.args)();assert.equal(r.foreignOrderDenied,false);assert.equal(r.absentOrderDenied,true);assert.equal(r.priorNativeScopeEvidenceReused,true);});
