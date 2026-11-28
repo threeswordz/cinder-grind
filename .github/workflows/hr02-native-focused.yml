@@ -1,0 +1,69 @@
+name: HR02 focused native candidate
+on:
+  push:
+    branches: ['work-hr02-native-focused-20261129']
+permissions:
+  contents: read
+jobs:
+  hr02-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      EXACT_CANDIDATE: 49b8f24727c07cb074ec807ec5da82929da9e0b6
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+    steps:
+      - name: Checkout exact HR02 candidate (not driver)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.EXACT_CANDIDATE }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify candidate and unchanged historical migrations
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+          test "$(git rev-parse HEAD^{tree})" = "e5b071218519a2d23fe45c20ee28d0106a1e0ee0"
+          test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
+          test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Generate and validate exact schema
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Apply migrations on owned empty PostgreSQL only
+        run: |
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Compile API and execute HR02 focused tests
+        run: |
+          pnpm --filter @construction-erp/api build
+          cp apps/api/src/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-contract.spec.cjs
+          node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
+      - name: Record exact focused result
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+          printf '%s\n' "HR02_FOCUSED_NATIVE_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false"
