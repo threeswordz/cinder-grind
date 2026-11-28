@@ -23,7 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_CANDIDATE: 3ca1b42a4a4f5d102777c0c971d72cd1637124b5
+      EXACT_CANDIDATE: 36f4cdd9eb42f0380320381ae915fef89c93cb83
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       NODE_ENV: test
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Verify candidate and unchanged historical migrations
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "312bbb9fda07ef48610d4b85432eca1fa5594135"
+          test "$(git rev-parse HEAD^{tree})" = "fd2a07296d7646d737006244bc592fce74d248cd"
           test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
           test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
       - name: Set up pnpm
@@ -64,6 +64,20 @@ jobs:
           cp apps/api/src/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-contract.spec.cjs
           cp apps/api/src/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs
           node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
+      - name: Verify independent HR03 and ACC01 exact domain contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse a4b5ae3655ae99ada2bec4f27525a70550eddcfc^{tree})" = "9d77dde0ab36791dd027d6f40f06021c04aeb8c3"
+          test "$(git rev-parse 420d090e08aa0e77bc11e8021e748ea08eb6bf4d^{tree})" = "95f720031e7664e7bf5dde5e8eac5eb210b15878"
+          T=$(mktemp -d)
+          mkdir "$T/hr03" "$T/acc01"
+          git show a4b5ae3655ae99ada2bec4f27525a70550eddcfc:apps/api/src/hr/requests/request-contract.ts > "$T/hr03/request-contract.ts"
+          git show a4b5ae3655ae99ada2bec4f27525a70550eddcfc:apps/api/src/hr/requests/request-contract.spec.cjs > "$T/hr03/request-contract.spec.cjs"
+          git show 420d090e08aa0e77bc11e8021e748ea08eb6bf4d:apps/api/src/accounting/ledger-contract.ts > "$T/acc01/ledger-contract.ts"
+          git show 420d090e08aa0e77bc11e8021e748ea08eb6bf4d:apps/api/src/accounting/ledger-contract.spec.cjs > "$T/acc01/ledger-contract.spec.cjs"
+          pnpm --filter @construction-erp/api exec tsc --strict --skipLibCheck --target es2022 --module commonjs "$T/hr03/request-contract.ts" "$T/acc01/ledger-contract.ts"
+          node --test "$T/hr03/request-contract.spec.cjs" "$T/acc01/ledger-contract.spec.cjs"
+          printf '%s\n' 'HR03_ACC01_EXACT_DOMAIN_CONTRACTS_PASS'
       - name: Record exact focused result
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
