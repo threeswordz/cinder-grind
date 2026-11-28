@@ -23,7 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_CANDIDATE: 49b8f24727c07cb074ec807ec5da82929da9e0b6
+      EXACT_CANDIDATE: 326473a7a5108058de07adecbed3b79567ddc9c5
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       NODE_ENV: test
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Verify candidate and unchanged historical migrations
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "e5b071218519a2d23fe45c20ee28d0106a1e0ee0"
+          test "$(git rev-parse HEAD^{tree})" = "ef2191f538b70006166947662929ca8d718a1331"
           test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
           test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
       - name: Set up pnpm
