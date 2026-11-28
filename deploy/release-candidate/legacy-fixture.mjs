@@ -1,3 +1,4 @@
+import {assertSs16AppliedHistory} from './ss16-release-contract.mjs';
 import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
 import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
 const successors=successorFlags();
@@ -180,9 +181,10 @@ try {
   } else {
     const before = load(snapshotPath);
     const after = await snapshot(before);
+    if(process.env.SS16_SCHEMA_UPGRADE==='YES')assertSs16AppliedHistory(before.migrations,after.migrations);
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,after.equipmentPresent);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,after.equipmentPresent,process.env.SS16_SCHEMA_UPGRADE==='YES');
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
