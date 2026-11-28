@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { z } from 'zod';
+import { apiRequest } from '../api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert, Box, Button, CircularProgress, MenuItem, Paper, Stack,
@@ -145,6 +147,9 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
             }} />}
         {!companiesQuery.isError && user.permissions.includes('hr.attendance.office.manage') &&
           <HrOfficeAttendancePanel key={user.id+':'+companyId} user={user} companyId={companyId} language={language} />}
+        {user.permissions.includes('hr.attendance.review') &&
+          companies.some(company => company.id === companyId && company.permissions.includes('hr.employment.view')) &&
+          <HrAttendanceReview key={user.id+':'+companyId} user={user} companyId={companyId} language={language}/>}
         <Paper variant="outlined">
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
             <Button onClick={() => void employeesQuery.refetch()} disabled={employeesQuery.isFetching}>{t.reload}</Button>
@@ -222,5 +227,90 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
               companies.some(company => company.id === companyId &&
                 company.permissions.includes('hr.documents.manage'))} />}
       </>}
+  </Stack>;
+}
+
+/** Bounded HR review: existing scoped endpoints; no role grants or salary data. */
+const reviewVersion=z.number().int().positive();
+const reviewMeta=z.object({version:reviewVersion,state:z.enum(['DRAFT','SUBMITTED','RETURNED']),
+  action:z.enum(['CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT']),reason:z.string().nullable(),createdAt:z.string()});
+const reviewSnapshot=reviewMeta.extend({projectId:z.string().uuid(),periodStart:z.string(),lines:z.array(z.object({
+  employee:z.object({employeeCode:z.string(),employeeName:z.string()}),workDate:z.string(),
+  startMinute:z.number().int().min(0).max(1439),endMinute:z.number().int().min(1).max(1440),workType:z.string(),
+  allocation:z.object({targetCompanyId:z.string().uuid(),targetProjectId:z.string().uuid()}).nullable()
+})).max(1000)});
+const reviewHistory=z.object({items:z.array(reviewMeta).max(50),nextBefore:reviewVersion.nullable()});
+const reviewLabels={
+  en:{title:'Site attendance review',project:'Project ID',period:'Period start (1st or 16th)',open:'Open',refresh:'Refresh',history:'Revision history',current:'Current version',older:'Older versions',newest:'Newest versions',none:'No attendance recorded.',error:'Attendance unavailable or access changed.',reason:'Return reason',send:'Return to site for correction',returned:'Return recorded.',worker:'Employee',day:'Date',start:'In',end:'Out',work:'Work type',destination:'Allocated destination',version:'Version',state:'State'},
+  th:{title:'ตรวจสอบเวลาทำงานไซต์',project:'รหัสโครงการ',period:'วันเริ่มงวด (วันที่ 1 หรือ 16)',open:'เปิด',refresh:'รีเฟรช',history:'ประวัติการแก้ไข',current:'รุ่นปัจจุบัน',older:'รุ่นเก่ากว่า',newest:'รุ่นล่าสุด',none:'ยังไม่มีข้อมูลเวลาทำงาน',error:'ไม่สามารถเข้าถึงข้อมูลหรือสิทธิ์เปลี่ยนแปลง',reason:'เหตุผลที่ส่งคืน',send:'ส่งคืนไซต์เพื่อแก้ไข',returned:'บันทึกการส่งคืนแล้ว',worker:'พนักงาน',day:'วันที่',start:'เข้า',end:'ออก',work:'ประเภทงาน',destination:'โครงการที่จัดสรร',version:'รุ่น',state:'สถานะ'},
+  'zh-TW':{title:'工地出勤審查',project:'專案 ID',period:'期間開始日（1 日或 16 日）',open:'開啟',refresh:'重新整理',history:'修訂歷史',current:'目前版本',older:'較早版本',newest:'最新版本',none:'尚無出勤記錄。',error:'出勤資料無法使用或存取權限已變更。',reason:'退回原因',send:'退回工地更正',returned:'已記錄退回。',worker:'員工',day:'日期',start:'上班',end:'下班',work:'工作類型',destination:'分配目的地',version:'版本',state:'狀態'},
+} satisfies Record<Language,Record<string,string>>;
+function HrAttendanceReview({user,companyId,language}:{user:CurrentUser;companyId:string;language:Language}){
+  const t=reviewLabels[language];
+  const [project,setProject]=useState('');
+  const [period,setPeriod]=useState('');
+  const [target,setTarget]=useState<{project:string;period:string}|null>(null);
+  return <Paper variant="outlined" sx={{p:2}}><Stack spacing={2}>
+    <Typography variant="h6">{t.title}</Typography>
+    <Stack direction={{xs:'column',sm:'row'}} gap={1}>
+      <TextField size="small" label={t.project} value={project} onChange={e=>{setProject(e.target.value);setTarget(null);}}/>
+      <TextField size="small" type="date" label={t.period} slotProps={{inputLabel:{shrink:true}}} value={period} onChange={e=>{setPeriod(e.target.value);setTarget(null);}}/>
+      <Button disabled={!z.string().uuid().safeParse(project.trim()).success||!/^\d{4}-\d{2}-(01|16)$/.test(period)} onClick={()=>setTarget({project:project.trim(),period})}>{t.open}</Button>
+    </Stack>
+    {target&&<HrAttendanceReviewPeriod key={companyId+':'+target.project+':'+target.period} user={user} companyId={companyId} projectId={target.project} period={target.period} language={language}/>}
+  </Stack></Paper>;
+}
+function HrAttendanceReviewPeriod({user,companyId,projectId,period,language}:{user:CurrentUser;companyId:string;projectId:string;period:string;language:Language}){
+  const t=reviewLabels[language];
+  const [version,setVersion]=useState<number|null>(null);
+  const [before,setBefore]=useState<number|null>(null);
+  const [reason,setReason]=useState('');
+  const [reasonVersion,setReasonVersion]=useState<number|null>(null);
+  const [requestId,setRequestId]=useState(()=>crypto.randomUUID());
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState(false);
+  const [returned,setReturned]=useState(false);
+  const route='/hr/companies/'+encodeURIComponent(companyId)+'/projects/'+encodeURIComponent(projectId)+'/attendance/'+encodeURIComponent(period);
+  const key=['hr02-review',user.id,user.companyId,companyId,projectId,period];
+  const current=useQuery({queryKey:[...key,'current'],queryFn:async()=>z.object({data:reviewSnapshot.nullable()}).parse(await apiRequest<unknown>(route)).data,
+    retry:false,gcTime:0,refetchInterval:15000,refetchOnWindowFocus:true});
+  const history=useQuery({queryKey:[...key,'history',before],queryFn:async()=>z.object({data:reviewHistory}).parse(await apiRequest<unknown>(route+'/history'+(before===null?'':'?before='+before))).data,
+    enabled:current.isSuccess&&current.data!==null,retry:false,gcTime:0,refetchOnWindowFocus:true});
+  const previous=useQuery({queryKey:[...key,'version',version],queryFn:async()=>z.object({data:reviewSnapshot.nullable()}).parse(await apiRequest<unknown>(route+'/history/'+version)).data,
+    enabled:version!==null&&current.isSuccess&&current.data!==null,retry:false,gcTime:0,refetchOnWindowFocus:true});
+  const clock=(m:number)=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const snapshot=version===null?current.data:previous.data;
+  const selectVersion=(v:number|null)=>{setVersion(v);setReason('');setRequestId(crypto.randomUUID());setError(false);setReturned(false);};
+  const submitReturn=async()=>{
+    if(busy||version!==null||!current.isSuccess||current.isFetching||current.data?.state!=='SUBMITTED'||reasonVersion!==current.data.version||!reason.trim())return;
+    setBusy(true);setError(false);setReturned(false);
+    try{
+      await apiRequest<unknown>(route,{method:'POST',body:JSON.stringify({requestId,expectedVersion:current.data.version,action:'RETURN',reason:reason.trim()})});
+      setReason('');setRequestId(crypto.randomUUID());setReturned(true);setBefore(null);
+      await Promise.all([current.refetch(),history.refetch()]);
+    }catch{setError(true);await current.refetch();}
+    finally{setBusy(false);}
+  };
+  if(current.isError||history.isError||previous.isError)return <Alert severity="warning">{t.error}</Alert>;
+  if(!current.isSuccess)return <CircularProgress size={24}/>;
+  if(!current.data)return <Typography>{t.none}</Typography>;
+  return <Stack spacing={2}>
+    <Stack direction="row" gap={1}><Button disabled={busy} onClick={()=>selectVersion(null)}>{t.current}</Button>
+      <Button disabled={busy} onClick={()=>{void current.refetch();void history.refetch();if(version!==null)void previous.refetch();}}>{t.refresh}</Button></Stack>
+    <Typography variant="subtitle2">{t.history}</Typography>
+    {history.data?.items.map(r=><Stack direction="row" gap={1} key={r.version} alignItems="center">
+      <Button disabled={busy} onClick={()=>selectVersion(r.version)}>{t.version} {r.version}</Button><Typography variant="body2">{r.state} · {r.action} · {r.createdAt.slice(0,10)}</Typography>
+    </Stack>)}
+    <Stack direction="row" gap={1}><Button disabled={before===null||busy} onClick={()=>setBefore(null)}>{t.newest}</Button>
+      <Button disabled={!history.data?.nextBefore||busy} onClick={()=>setBefore(history.data?.nextBefore??null)}>{t.older}</Button></Stack>
+    {snapshot&&<><Typography>{t.version} {snapshot.version} · {t.state}: {snapshot.state}</Typography>
+      {snapshot.reason&&<Typography variant="body2">{snapshot.reason}</Typography>}
+      <TableContainer><Table size="small"><TableHead><TableRow>{[t.worker,t.day,t.start,t.end,t.work,t.destination].map(v=><TableCell key={v}>{v}</TableCell>)}</TableRow></TableHead>
+      <TableBody>{snapshot.lines.map((r,i)=><TableRow key={i}><TableCell>{r.employee.employeeCode} — {r.employee.employeeName}</TableCell>
+        <TableCell>{r.workDate.slice(0,10)}</TableCell><TableCell>{clock(r.startMinute)}</TableCell><TableCell>{clock(r.endMinute)}</TableCell><TableCell>{r.workType}</TableCell>
+        <TableCell>{r.allocation?r.allocation.targetCompanyId+' / '+r.allocation.targetProjectId:'—'}</TableCell></TableRow>)}</TableBody></Table></TableContainer></>}
+    {error&&<Alert severity="warning">{t.error}</Alert>}{returned&&<Alert severity="success">{t.returned}</Alert>}
+    {version===null&&current.data.state==='SUBMITTED'&&<><TextField label={t.reason} value={reason} disabled={busy} inputProps={{maxLength:1000}} onChange={e=>{setReason(e.target.value);setReasonVersion(current.data.version);setRequestId(crypto.randomUUID());setError(false);}}/>
+      <Button variant="contained" disabled={busy||current.isFetching||reasonVersion!==current.data.version||!reason.trim()} onClick={()=>void submitReturn()}>{t.send}</Button></>}
   </Stack>;
 }
