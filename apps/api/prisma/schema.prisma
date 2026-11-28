@@ -223,6 +223,7 @@ model Material {
 }
 
 model Employee {
+  hrAttendanceLines HrAttendanceLine[]
   requestedMaterialRequests MaterialRequest[] @relation("MaterialRequestRequester")
   receivedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestRecipient")
   issuedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestIssuer")
@@ -254,6 +255,7 @@ model Employee {
 }
 
 model User {
+  hrAttendanceRevisions HrAttendanceRevision[] @relation("HrAttendanceActor")
   movementCorrectionRequests MovementCorrectionRequest[] @relation("MovementCorrectionRequester")
   poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
@@ -682,6 +684,7 @@ model SystemSetting {
 
 
 model Project {
+  hrAttendanceBatches HrAttendanceBatch[]
   poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
   receivingDeliveries ReceivingDelivery[]
@@ -3399,6 +3402,7 @@ model HrEmployment {
 }
 
 model HrEmploymentRevision {
+  attendanceLines HrAttendanceLine[]
   id String @id @default(uuid()) @db.Uuid
   companyId String @map("company_id") @db.Uuid
   employmentId String @map("employment_id") @db.Uuid
@@ -4490,4 +4494,54 @@ model MovementCorrectionRequest {
   @@unique([companyId, sourceKind, sourceId, requestKey], map: "movement_correction_request_replay_key")
   @@index([companyId, sourceKind, sourceId], map: "movement_correction_source_idx")
   @@map("movement_correction_requests")
+}
+
+model HrAttendanceBatch {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  periodStart DateTime @map("period_start") @db.Date
+  currentVersion Int @default(0) @map("current_version")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  revisions HrAttendanceRevision[]
+  @@unique([companyId, projectId, periodStart])
+  @@unique([companyId, id])
+  @@map("hr_attendance_batches")
+}
+
+model HrAttendanceRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+  version Int
+  state String @db.VarChar(12)
+  action String @db.VarChar(12)
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String? @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  batch HrAttendanceBatch @relation(fields: [companyId, batchId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  actor User @relation("HrAttendanceActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lines HrAttendanceLine[]
+  @@unique([batchId, version])
+  @@unique([companyId, id])
+  @@map("hr_attendance_revisions")
+}
+
+model HrAttendanceLine {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  revisionId String @map("revision_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  employmentRevisionId String @map("employment_revision_id") @db.Uuid
+  workDate DateTime @map("work_date") @db.Date
+  startMinute Int @map("start_minute")
+  endMinute Int @map("end_minute")
+  workType String @map("work_type") @db.VarChar(100)
+  revision HrAttendanceRevision @relation(fields: [companyId, revisionId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  employmentRevision HrEmploymentRevision @relation(fields: [employmentRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([revisionId, employeeId, workDate, startMinute, endMinute])
+  @@index([companyId, employeeId, workDate])
+  @@map("hr_attendance_lines")
 }
