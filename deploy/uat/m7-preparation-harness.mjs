@@ -8,11 +8,11 @@ const sameDb = (a,b) => ['cluster','oid','database','role'].every(k => a?.[k] ==
 // injection is for synthetic preparation tests, not evidence or authorization.
 export async function createM7PreparationHarness(input, deps) {
   const {manifestArgs,witness,witnessSha256,claimOptions,adapter,verification} = input;
-  need(methods.every(k => typeof adapter?.[k] === 'function') && typeof verification?.readPreservation === 'function', 'ADAPTER');
+  need(methods.every(k => typeof adapter?.[k] === 'function') && typeof verification?.readPreservation === 'function' && typeof verification?.readSnapshot === 'function' && verification.sourceSnapshot && Array.isArray(verification.expectedAudits), 'ADAPTER');
   const d = deps ?? Object.assign({}, ...await Promise.all([
     import('./m7-capture-contract.mjs'), import('./m7-paired-backup.mjs'),
     import('./m7-isolated-restore.mjs'), import('./m7-restore-sequence.mjs'),
-    import('./m7-restored-verification.mjs'), import('./m7-storage-restore.mjs')
+    import('./m7-restored-verification.mjs'), import('./m7-storage-restore.mjs'), import('./m7-authenticated-evidence.mjs')
   ]));
   const sourceWitness = structuredClone(witness), manifest = structuredClone(manifestArgs);
   const binding = await d.bindM7Capture({manifestArgs:manifest,witness:sourceWitness,witnessSha256,verifyManifest:d.verifyM7PairedManifest});
@@ -20,6 +20,7 @@ export async function createM7PreparationHarness(input, deps) {
   need(claimOptions?.candidate?.sha === capture.sha && claimOptions.candidate.tree === capture.tree && claimOptions.protectedRoots?.capture === manifest.root, 'CLAIM_BINDING');
   const inputs = structuredClone(claimOptions);
   const fixture = structuredClone(verification.fixture), actors = structuredClone(verification.actors);
+  const sourceSnapshot = structuredClone(verification.sourceSnapshot), expectedAudits = structuredClone(verification.expectedAudits);
   let attempted = false;
   return async function runPreparationOnce() {
     need(!attempted, 'ALREADY_ATTEMPTED'); attempted = true;
@@ -69,8 +70,9 @@ export async function createM7PreparationHarness(input, deps) {
         need(observed.keyMode === 'correct' && observed.manifestSha === binding.manifestSha,'API_KEY_OR_MANIFEST_DRIFT');
         return {...target,isolated:true};
       };
-      result = await d.verifyM7Restored({target,fixture,actors,inspectTarget,readPreservation:verification.readPreservation,fetchImpl:verification.fetchImpl,mode:'correct'});
-      need(result.status === 'M7_VERIFICATION_PREPARATION_CHECK_PASS' && result.sessionsRevoked === true && result.preservationMatched === true,'VERIFICATION_INCOMPLETE');
+      const probe = d.createM7AuthenticatedEvidenceProbe({sourceSnapshot,expectedAudits,actors,readSnapshot:async()=>{await inspectTarget();return verification.readSnapshot(plan,structuredClone(initialDb));},verifyHttp:d.verifyM7Restored});
+      result = await probe({target,fixture,actors,inspectTarget,readPreservation:verification.readPreservation,fetchImpl:verification.fetchImpl,mode:'correct'});
+      need(result.status === 'M7_AUTHENTICATED_EVIDENCE_PASS' && result.sessionProof?.newRevokedSessions === 4 && result.sessionProof?.activeSessions === 0,'VERIFICATION_INCOMPLETE');
       await inspectTarget();
     } catch (e) { primary = safe(e); }
     finally {
@@ -82,6 +84,6 @@ export async function createM7PreparationHarness(input, deps) {
       try { await inspectSource(); if (claim) await claim.verifyPaths(); }
       catch (e) { preservation = safe(e); }
     }
-    return Object.freeze({status:primary || cleanup || preservation ? 'M7_PREPARATION_COMPOSITION_BLOCKED' : 'M7_PREPARATION_COMPOSITION_PASS',primary,cleanup,preservation,verificationCode:/^M7_VERIFY_[A-Z_]+$/.test(result?.code ?? '') ? result.code : null,actualCaptureVerified:false,nativeRecoveryVerified:false,milestone7Accepted:false,productionAuthorized:false});
+    return Object.freeze({status:primary || cleanup || preservation ? 'M7_PREPARATION_COMPOSITION_BLOCKED' : 'M7_PREPARATION_COMPOSITION_PASS',primary,cleanup,preservation,verificationCode:/^M7_VERIFY_[A-Z_]+$/.test(result?.httpCode ?? '') ? result.httpCode : null,persistedCode:/^M7_[A-Z0-9_]+$/.test(result?.code ?? '') ? result.code : null,actualCaptureVerified:false,nativeRecoveryVerified:false,milestone7Accepted:false,productionAuthorized:false});
   };
 }

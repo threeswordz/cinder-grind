@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {bindM7Session} from './m7-persisted-evidence.mjs';
 
 // Preparation only. Caller must bind an independently inspected isolated API,
 // private pre-capture fixture expectations and read-only preservation adapter.
@@ -24,10 +25,10 @@ async function bytes(r,expected,hr){
 const evidenceFields=['businessRows','historicalAuditRows','documentInventory','keyInventory','sourceInventory','grants'];
 function snapshot(s){need(s&&evidenceFields.every(k=>sha(s[k])),'PRESERVATION_SNAPSHOT');return evidenceFields.map(k=>s[k]);}
 
-export async function verifyM7Restored({target,fixture,actors,inspectTarget,readPreservation,fetchImpl=fetch,mode='correct'}){
+export async function verifyM7Restored({target,fixture,actors,inspectTarget,readPreservation,fetchImpl=fetch,mode='correct',onIssuedSession}){
  let failure='M7_VERIFY_UNEXPECTED',cleanup=true,passed=false;const sessions=[];
  try{
- need(['correct','missing','wrong'].includes(mode)&&typeof inspectTarget==='function'&&typeof readPreservation==='function','CONTEXT');
+ need(['correct','missing','wrong'].includes(mode)&&typeof inspectTarget==='function'&&typeof readPreservation==='function'&&(onIssuedSession===undefined||typeof onIssuedSession==='function'),'CONTEXT');
  const u=new URL(target.api);need(u.protocol==='http:'&&u.hostname==='127.0.0.1'&&u.port&&u.port!=='33071'&&u.pathname==='/api/v1'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.href===target.api,'TARGET');
  need(sha(target.manifestSha)&&/^[a-f0-9]{40}$/.test(target.appSha)&&target.keyMode===mode,'TARGET_BINDING');
  const bind=async()=>{const actual=await inspectTarget();need(actual?.isolated===true&&actual.api===target.api&&actual.manifestSha===target.manifestSha&&actual.appSha===target.appSha&&actual.keyMode===mode,'TARGET_IDENTITY');};
@@ -41,7 +42,7 @@ export async function verifyM7Restored({target,fixture,actors,inspectTarget,read
  const deny=async(path,s,statuses=[403,404])=>{const r=await call(path,s);await discard(r);need(statuses.includes(r.status),'DENIAL');};
  const live={};
  try{
- for(const k of keys){const a=actors[k],r=await call('/auth/login',null,'POST',{email:a.email,password:a.password});const cookie=r.headers.get('set-cookie')?.split(';',1)[0];const s={cookie,csrf:null};if(cookie&&/^erp_session=[A-Za-z0-9_-]{20,256}$/.test(cookie))sessions.push(s);need(r.status===201&&sessions.includes(s),'LOGIN');const data=await json(r);s.csrf=data?.csrfToken;need(typeof s.csrf==='string'&&s.csrf.length>0,'CSRF');const me=await call('/auth/me',s);need(me.status===200,'ME');const m=await json(me);need(m?.id===a.id&&m.companyId===company&&same(sorted(m.roleCodes),sorted(a.roles))&&same(sorted(m.permissions),sorted(a.permissions)),'ACTOR_DRIFT');live[k]=s;}
+ for(const k of keys){const a=actors[k],r=await call('/auth/login',null,'POST',{email:a.email,password:a.password});const cookie=r.headers.get('set-cookie')?.split(';',1)[0];const s={cookie,csrf:null};if(cookie&&/^erp_session=[A-Za-z0-9_-]{20,256}$/.test(cookie))sessions.push(s);need(r.status===201&&sessions.includes(s),'LOGIN');const data=await json(r);s.csrf=data?.csrfToken;need(typeof s.csrf==='string'&&s.csrf.length>0,'CSRF');const me=await call('/auth/me',s);need(me.status===200,'ME');const m=await json(me);need(m?.id===a.id&&m.companyId===company&&same(sorted(m.roleCodes),sorted(a.roles))&&same(sorted(m.permissions),sorted(a.permissions)),'ACTOR_DRIFT');if(onIssuedSession)await onIssuedSession(bindM7Session(a.id,s.cookie,s.csrf));live[k]=s;}
  need(new Set(sessions.map(s=>s.cookie)).size===4,'SESSION_ALIAS');
  const p='/documents/projects/'+project, h='/hr/companies/'+company+'/employees/'+employee+'/documents', hd=h+'/'+hr.id+'/download';
  await bytes(await call(p+'/'+ordinary.id+'/download',live.reader),ordinary,false);
