@@ -79,8 +79,11 @@ test('creation outcomes alone cannot authorize a write; successful scoped parent
     await assert.rejects(c.call(actor,'EARLY_WRITE',routes[kind]+'/'+id+action,201,{}),denied);
     assert.equal(calls,1);
     await c.call(actor,'READ',routes[kind]+'/'+id,200);
-    if(kind!=='requests')await c.call(actor,'SCOPED_WRITE',routes[kind]+'/'+id+action,201,{});
-    assert.equal(calls,kind==='requests'?2:3);
+    if(kind==='plans')await c.call(actor,'SCOPED_WRITE',routes[kind]+'/'+id+action,201,{});
+    // SS16: even a verified owned issue cannot use the former direct reverse
+    // route. The approved correction workflow has separate acceptance tests.
+    if(kind==='issues')await assert.rejects(c.call(actor,'LEGACY_REVERSE_DENIED',routes[kind]+'/'+id+action,201,{}),denied);
+    assert.equal(calls,kind==='plans'?3:2);
   }
 });
 
@@ -165,7 +168,9 @@ test('only readback-derived child IDs and a source-linked upload can reach recei
   await assert.rejects(c.call(actor,'FOREIGN_DOCUMENT',routes.requests+'/'+request+'/receipts',201,
     {...receipt,documentId:randomUUID()}),denied);
   await c.call(actor,'RECEIPT',routes.requests+'/'+request+'/receipts',201,receipt);
-  await c.call(actor,'REVERSE',routes.issues+'/'+issue+'/reverse',201,{reversalKey:randomUUID()});
+  const beforeLegacyReverse=seen.length;
+  await assert.rejects(c.call(actor,'LEGACY_REVERSE_DENIED',routes.issues+'/'+issue+'/reverse',201,{reversalKey:randomUUID()}),denied);
+  assert.equal(seen.length,beforeLegacyReverse);
   assert.equal(c.observations.length,seen.length);
   assert.ok(c.observations.every(x=>!JSON.stringify(x).includes('PRIVATE')));
 });

@@ -1,5 +1,5 @@
 import {
-  Body,
+  ConflictException, Body,
   Controller,
   Get,
   Param,
@@ -330,18 +330,10 @@ export class StockTransferController {
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('inventory.transfer.reverse')
   async reverse(
-    @Req() request: AuthenticatedRequest,
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() body: unknown,
+    @Req() _request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) _id: string,
+    @Body() _body: unknown,
   ) {
-    const input = inventoryObject(body);
-    return {
-      data: await this.transfers.reverse(
-        auditContext(request),
-        id,
-        requiredInventoryString(input, 'reversalKey', 120),
-        requiredInventoryString(input, 'reason', 1000),
-      ),
-    };
+    throw new ConflictException({ code: 'SS16_CORRECTION_APPROVAL_REQUIRED' });
   }
 }

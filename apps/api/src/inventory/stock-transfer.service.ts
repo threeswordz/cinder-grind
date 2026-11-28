@@ -1,3 +1,4 @@
+import { reversalReplayState } from './movement-reversal-replay';
 import {activatedStockMaterials} from './material-uom-active-source';
 import {createHash} from 'node:crypto';
 import {inventoryUuid} from './inventory-validation';
@@ -289,7 +290,7 @@ export class StockTransferService {
     ]) {
       await this.access.assertAccess(auth, projectId, db);
     }
-    return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) } : null };
+    return { ...row, custody: custody ? { cancelled: Boolean(await db.transferCustodyEvent.findFirst({where:{transferId:id,action:'CANCEL'},select:{id:true}})), ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) } : null };
   }
 
   async create(
@@ -762,9 +763,9 @@ export class StockTransferService {
     id: string,
     reversalKey: string,
     reason: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
         await tx.$executeRawUnsafe(
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'stock-transfer-reverse:' + id,
@@ -773,9 +774,9 @@ export class StockTransferService {
         const transfer = await this.get(context.auth, id, tx);
         if (transfer.custody) context = { ...context, auth: await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.reverse']) };
         if (transfer.custody) for (const projectId of new Set(transfer.items.map(item => item.destinationProjectId))) await this.access.assertAccess(context.auth, projectId, tx);
-        if (transfer.reversedAt && transfer.reversalKey === reversalKey) {
-          return transfer;
-        }
+        const replay = reversalReplayState(transfer, reversalKey, reason);
+        if (replay === 'CONFLICT') throw new ConflictException({ code: 'STOCK_TRANSFER_REVERSAL_REPLAY_CONFLICT' });
+        if (replay === 'MATCH') return transfer;
         if (!transfer.postedAt || transfer.reversedAt) {
           throw new ConflictException({ code: 'STOCK_TRANSFER_NOT_REVERSIBLE' });
         }
@@ -896,9 +897,9 @@ export class StockTransferService {
           tx,
         );
         return this.get(context.auth, id, tx);
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private dimension(

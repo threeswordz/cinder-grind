@@ -13,6 +13,7 @@ import { ReceivingService } from '../inventory/receiving.service';
 import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { receivingFixture } from '../inventory/receiving-test-fixture';
 import { DocumentTargetsService } from '../documents/document-targets.service';
+import { DocumentsService } from '../documents/documents.service';
 import { SupplierDeliveryCaseService } from './supplier-delivery-case.service';
 
 // One genuinely posted, separately checked GR in a fresh disposable Company.
@@ -105,8 +106,33 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
     const review = await supplier.transition(ctx(pm), f.po.id,
       input('PM_REVIEW_DISCREPANCY', 1, discrepancy.expectedPreviousEventId,
         { pmDecision: 'REQUEST_REPLACEMENT' }) as never);
+    // Purchasing has generic Project-document access, not the protected
+    // Receiving Delivery source permission. Do not relax that boundary or
+    // manufacture an alias to the original condition photo.
+    assert.ok(jai.permissions.includes('documents.document.view'));
+    assert.ok(!jai.permissions.includes('inventory.receiving.view'));
+    await assert.rejects(supplier.transition(ctx(jai), f.po.id,
+      input('JAI_RECORD_CLAIM', 2, review.expectedPreviousEventId) as never),
+      (err: unknown) => {
+        if (!err || typeof err !== 'object' || !('getResponse' in err) ||
+            typeof err.getResponse !== 'function') return false;
+        const response = err.getResponse();
+        return !!response && typeof response === 'object' && 'code' in response &&
+          response.code === 'SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED';
+      });
+    assert.equal(await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    }), 2, 'Denied protected photo must not append a claim event');
+    const claimBytes = Buffer.from('%PDF-1.4\nSynthetic supplier replacement claim correspondence '+randomUUID()+'\n');
+    const claimDocument = await app.get(DocumentsService).uploadProjectDocument(
+      ctx(store), f.project.id, f.documentType.id, {
+        originalname: 'supplier-replacement-claim.pdf', mimetype: 'application/pdf',
+        size: claimBytes.length, buffer: claimBytes,
+      });
+    assert.notEqual(claimDocument.id, original.discrepancyDocumentId);
     const claim = await supplier.transition(ctx(jai), f.po.id,
-      input('JAI_RECORD_CLAIM', 2, review.expectedPreviousEventId) as never);
+      input('JAI_RECORD_CLAIM', 2, review.expectedPreviousEventId,
+        { evidenceDocumentId: claimDocument.id }) as never);
     // A genuinely NEW delivery after Jai's claim, not a correction or the
     // originally damaged inbound delivery.
     await new Promise<void>(resolve => setTimeout(resolve, 30));

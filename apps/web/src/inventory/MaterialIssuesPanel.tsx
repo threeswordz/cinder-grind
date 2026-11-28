@@ -1,3 +1,4 @@
+import { MovementCorrectionPanel } from './MovementCorrectionPanel';
 import {
   Alert,
   Button,
@@ -16,13 +17,12 @@ import { inventoryApi } from '../api/inventory';
 import { materialPlanIssuesApi } from '../api/material-plan-issues';
 import { MaterialPlanIssueControls, type PlanIssueIntent } from './MaterialPlanIssueControls';
 
-export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) {
+export function MaterialIssuesPanel({ permissions, roleCodes = [], userId = '', companyId = '' }: { permissions: string[]; roleCodes?: string[]; userId?: string; companyId?: string }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.issue.create');
   const canReadPlan = permissions.includes('inventory.material_plan.view') && permissions.includes('inventory.issue.view');
   const canSubmit = permissions.includes('inventory.issue.submit');
   const canApprove = permissions.includes('inventory.issue.approve');
-  const canReverse = permissions.includes('inventory.issue.reverse');
   const [projectId, setProjectId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [stockKey, setStockKey] = useState('');
@@ -32,10 +32,8 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
-  const [reason, setReason] = useState('');
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
-  const [reversalKeys] = useState(() => new Map<string, string>());
   // Persist pending intents beyond privilege-masking refetch/unmount.
   // Render them only when current issue, policy and history are reauthorized.
   const [pendingPlanActions, setPendingPlanActions] = useState<Record<string, PlanIssueIntent>>({});
@@ -426,35 +424,10 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   </Button>
                 </Stack>
               ) : null}
-              {canReverse && current.postedAt && !current.reversedAt ? (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <TextField
-                    label="Reversal reason"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    sx={{ flexGrow: 1 }}
-                  />
-                  <Button
-                    disabled={!reason.trim() || mutation.isPending}
-                    onClick={() => {
-                      let key = reversalKeys.get(current.id);
-                      if (!key) {
-                        key = crypto.randomUUID();
-                        reversalKeys.set(current.id, key);
-                      }
-                      perform(() =>
-                        inventoryApi.reverseMaterialIssue(
-                          current.id,
-                          key!,
-                          reason.trim(),
-                        ),
-                      );
-                    }}
-                  >
-                    Reverse Issue
-                  </Button>
-                </Stack>
-              ) : null}
+              <MovementCorrectionPanel key={companyId+':'+userId+':'+current.id} kind="MATERIAL_ISSUE" sourceId={current.id}
+                permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId}
+                reverseEligible={Boolean(current.postedAt && !current.reversedAt)} cancelEligible={Boolean(current.submittedAt && !current.postedAt && (current.approvalInstance?.approvalState==='SUBMITTED' || scopedHistory?.items[0]?.approval?.approvalState==='SUBMITTED'))}
+                onChanged={refresh} />
             </Stack>
           </CardContent>
         </Card>

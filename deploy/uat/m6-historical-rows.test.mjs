@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {addedColumns,addedTables,validateBaseline,fingerprintSql,compareHistoricalRows} from './m6-historical-rows.mjs';
+const hash='a'.repeat(64),names=Array.from({length:166},(_,i)=>'migration_'+i);
+const special=['_prisma_migrations','permissions','user_sessions',...Object.keys(addedColumns)];
+const baseline=()=>[...special,...Array.from({length:168-special.length},(_,i)=>'table_'+i)].map(table=>({table,rows:1,sha256:hash}));
+function tx({mismatch=[],extra=false,nonEmpty=false,permissionAddition=false,nonNull=false}={}){
+ const queries=[];return {queries,async $queryRawUnsafe(sql){queries.push(sql);if(sql.includes('pg_catalog.pg_tables'))return [...baseline().map(r=>r.table),...addedTables,...(extra?['unexpected']:[])].map(tablename=>({tablename}));const table=sql.match(/FROM public\."([a-z_0-9]+)"/)?.[1];assert.ok(table);if(sql.includes(" IS NOT NULL"))return [{rows:nonNull&&table==='customers'?1n:0n}];if(addedTables.includes(table))return [{rows:nonEmpty&&table===addedTables[0]?1n:0n}];if(permissionAddition&&table==='permissions'&&!sql.includes("NOT IN ('equipment.custody.view')"))return [{rows:2n,sha256:'b'.repeat(64)}];return [{rows:1n,sha256:mismatch.includes(table)?'b'.repeat(64):hash}];}};
+}
+test('fingerprint SQL retains original SQL JSONB bytes and ordering',()=>{const s=fingerprintSql('activity_progress');assert.match(s,/to_jsonb\(t\) - ARRAY\['completed_quantity','source_budget_revision_line_id','source_uom_id'\]::text\[\]/);assert.match(s,/string_agg\(h,'' ORDER BY h\)/);assert.match(s,/sha256\(convert_to/);});
+test('migration filter restricts original names',()=>{const s=fingerprintSql('_prisma_migrations',{oldMigrationNames:names});assert.match(s,/WHERE t.migration_name IN \('migration_0'/);assert.throws(()=>fingerprintSql('_prisma_migrations',{oldMigrationNames:[...names.slice(0,-1),"x');DROP TABLE a;--"]}));});
+test('reject injection and arbitrary permission exclusions',()=>{assert.throws(()=>fingerprintSql('users;DROP TABLE users'));assert.throws(()=>fingerprintSql('permissions',{excludedPermissions:['admin']}));assert.throws(()=>fingerprintSql('users',{excludedPermissions:['equipment.custody.view']}));});
+test('reject duplicate and missing baseline rows',()=>{let b=baseline();b[1]=b[0];assert.throws(()=>validateBaseline(b));assert.throws(()=>validateBaseline(b.slice(1)));});
+test('complete match',async()=>{const r=await compareHistoricalRows(tx(),baseline(),names);assert.deepEqual(r,{originalTablesCompared:168,originalTablesMatched:168,mismatchedTables:[],nonEmptyAddedTables:[],nonNullAddedColumns:[],historicalDatabaseRowsVerified:true});});
+test('session and business mismatch never waived',async()=>{const r=await compareHistoricalRows(tx({mismatch:['user_sessions','customers']}),baseline(),names);assert.deepEqual(r.mismatchedTables,['customers','user_sessions']);assert.equal(r.historicalDatabaseRowsVerified,false);});
+test('exact approved permission additions can match old digest',async()=>{const r=await compareHistoricalRows(tx({permissionAddition:true}),baseline(),names);assert.equal(r.historicalDatabaseRowsVerified,true);});
+test('unexpected table blocked',async()=>assert.rejects(compareHistoricalRows(tx({extra:true}),baseline(),names),{safeCode:'M6_HISTORICAL_ROW_TABLE_SET_DRIFT'}));
+test('new populated table not silently accepted',async()=>{const r=await compareHistoricalRows(tx({nonEmpty:true}),baseline(),names);assert.equal(r.historicalDatabaseRowsVerified,false);assert.deepEqual(r.nonEmptyAddedTables,[addedTables[0]]);});
+test('unexpected historical backfill not silently projected away',async()=>{const r=await compareHistoricalRows(tx({nonNull:true}),baseline(),names);assert.equal(r.historicalDatabaseRowsVerified,false);assert.deepEqual(r.nonNullAddedColumns,['customers']);});

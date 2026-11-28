@@ -82,7 +82,9 @@ export class MaterialPlanIssueService{
   });
  }
  private async currentIssue(auth:AuthenticatedUserContext,id:string,tx:Tx){
-  const issue=await this.issues.get(auth,id,tx);if(issue.postedAt||issue.reversedAt)conflict('MATERIAL_PLAN_ISSUE_ALREADY_POSTED');return issue;
+  const issue=await this.issues.get(auth,id,tx);if(issue.postedAt||issue.reversedAt)conflict('MATERIAL_PLAN_ISSUE_ALREADY_POSTED');
+  if(await tx.movementCorrectionRequest.findFirst({where:{companyId:auth.companyId,sourceKind:'MATERIAL_ISSUE',sourceId:id,sourcePostedAt:null,approvalInstance:{approvalState:'APPROVED'}},select:{id:true}}))conflict('SS16_SOURCE_CANCELLED');
+  return issue;
  }
  private async evaluate(auth:AuthenticatedUserContext,issue:Issue,pins:Pins,tx:Tx,locking:boolean){
   if(pins.length!==issue.items.length)invalid('MATERIAL_PLAN_COMPLETE_BINDINGS_REQUIRED');

@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createSuccessorSiteTransport as create} from './m6-successor-site-transport.mjs';
+const paths=Object.fromEntries(['report','plan','request','quantity','cost','client','foreign','document'].map(k=>[k,'/'+k]));
+const sessions=new Map(['BEN','STORE_SITE','FOREMAN','PORN'].map((k,i)=>[k,{cookie:'erp_session='+String(i).repeat(32)}]));
+const base={paths,sessions,verifyRuntime:async()=>{}};
+test('GET is pinned to successor and exact authorized route',async()=>{let called=0;const t=create({...base,fetchImpl:async(url,opt)=>{called++;assert.equal(url,'http://127.0.0.1:33072/api/v1/cost');assert.equal(opt.method,'GET');assert.equal(opt.headers.Origin,'http://127.0.0.1:44172');return Response.json({data:{id:1}});}});assert.deepEqual(await t.get('BEN',paths.cost),{status:200,data:{id:1}});await assert.rejects(t.get('BEN','/arbitrary'),/PATH/);await assert.rejects(t.get('FOREMAN',paths.client),/PATH/);assert.equal(called,1);});
+test('unexpected client or document success for a denial is never decoded',async()=>{const t=create({...base,fetchImpl:async()=>new Response('secret not JSON')});assert.deepEqual(await t.get('PORN',paths.client),{status:200});assert.deepEqual(await t.download('FOREMAN',paths.document),{status:200});assert.deepEqual(await t.get('STORE_SITE',paths.foreign),{status:200});});
+test('quantity-only alternate cost success remains available for projection assertion',async()=>{const t=create({...base,fetchImpl:async()=>Response.json({data:{quantity:'3'}})});assert.deepEqual(await t.get('STORE_SITE',paths.cost),{status:200,data:{quantity:'3'}});});
+test('allowed document byte read is bounded; errors do not expose response content',async()=>{const t=create({...base,fetchImpl:async()=>new Response('sample')});assert.equal(Buffer.from((await t.download('STORE_SITE',paths.document)).bytes).toString(),'sample');const x=create({...base,fetchImpl:async()=>new Response('private',{status:403})});assert.deepEqual(await x.get('BEN',paths.cost),{status:403});});
+test('retained origin and absolute path refused',()=>{assert.throws(()=>create({...base,origin:'http://127.0.0.1:33071'}),/CONTEXT/);assert.throws(()=>create({...base,paths:{...paths,cost:'https://example.com'}}),/PATHS/);});

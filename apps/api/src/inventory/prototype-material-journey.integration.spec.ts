@@ -31,7 +31,12 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
     try {
       await app.listen(0, '127.0.0.1');
       const f = await materialPlanIssueFixture(db);
+      await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
+      await db.role.update({where:{id:f.manager.role.id},data:{roleCode:'PROJECT_MANAGER'}});
       await f.grant(f.store, ['inventory.stock.view', 'inventory.report.view']);
+      await f.grant(f.manager,['inventory.issue.reverse']);
+      await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic SS16 review',
+        steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:f.manager.role.id}]}}]}}});
       type Actor = typeof f.store;
       const base = await app.getUrl() + '/api/v1';
       const call = async (actor: Actor | undefined, route: string, expected = 200, body?: unknown, csrf = true) => {
@@ -194,8 +199,22 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       // Verify the actual guarded HTTP reversal boundary and its stock/readback effects.
       await call(f.foreman, '/inventory/material-issues/' + issue.id + '/reverse', 403,
         { reversalKey: randomUUID(), reason: 'Foreman cannot reverse a material issue' });
-      await call(f.store, '/inventory/material-issues/' + issue.id + '/reverse', 201,
-        { reversalKey: randomUUID(), reason: 'Synthetic physical issue reversal' });
+      const reversal = { requestKey: randomUUID(), reason: 'Synthetic physical issue reversal' };
+      const reversePath = '/inventory/material-issues/' + issue.id + '/reverse';
+      await call(f.store,reversePath,409,{reversalKey:reversal.requestKey,reason:reversal.reason});
+      const root='/inventory/movement-corrections';
+      const requestPath=root+'/sources/MATERIAL_ISSUE/'+issue.id+'/requests';
+      await call(f.foreman,requestPath,403,reversal);
+      const correction=(await call(f.store,requestPath,201,reversal)).data;
+      assert.equal((await balance()).toFixed(4),'17.0000');
+      await call(f.store,root+'/'+correction.id+'/approve',403,{comment:'Self decision denied'});
+      await call(f.manager,root+'/'+correction.id+'/approve',201,{comment:'Independent physical correction'});
+      const afterReversalStock = await db.stockTransaction.count({ where: { materialIssueId: issue.id } });
+      assert.equal((await call(f.store,requestPath,201,reversal)).data.id,correction.id);
+      await call(f.store,requestPath,409,{...reversal,reason:'Changed reversal reason'});
+      await call(f.manager,root+'/'+correction.id+'/approve',409,{comment:'Decision replay denied'});
+      assert.equal(await db.stockTransaction.count({ where: { materialIssueId: issue.id } }), afterReversalStock);
+      assert.equal((await db.materialIssue.findUniqueOrThrow({ where: { id: issue.id } })).reversalReason, reversal.reason);
       const reversed = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(reversed.lines[0].issuedQuantity, '0.0000');
       assert.equal(reversed.lines[0].acknowledgedQuantity, '0.0000');

@@ -1,0 +1,14 @@
+// Compare the isolated runtime file census to exact newly admitted Document rows.
+// Original custody and recovery always remain byte-for-byte unchanged.
+const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_FILES_'+c),{safeCode:'M6_RESIDUAL_FILES_'+c});};
+const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[0-9a-f]{12}$/.test(x);
+const hex=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),kinds=['documents','hrkeys','uploads'];
+function index(rows){need(Array.isArray(rows)&&rows.length>0&&rows.length<=10000&&rows.every(r=>Array.isArray(r)&&typeof r[0]==='string'&&!r[0].startsWith('/')&&!r[0].split('/').some(x=>x==='.'||x==='..')&&(r.length===2&&r[1]==='directory'||r.length===3&&Number.isSafeInteger(r[1])&&r[1]>=0&&hex(r[2])))&&same(rows[0],['','directory'])&&new Set(rows.map(r=>r[0])).size===rows.length,'CENSUS');return new Map(rows.map(r=>[r[0],r]));}
+export function verifyResidualDocumentDelta({before,after,recovery,expected,documents,companyId}){
+ need(uuid(companyId)&&[before,after,recovery].every(x=>x&&same(Object.keys(x).sort(),kinds)),'ROOTS');
+ need(Array.isArray(expected)&&Array.isArray(documents)&&expected.length<=8&&expected.length===documents.length&&expected.every(e=>uuid(e.id)&&hex(e.sha256)&&uuid(e.actorUserId)&&uuid(e.projectId)&&uuid(e.entityId)&&['MATERIAL_REQUEST','PURCHASE_ORDER','RECEIVING_DELIVERY'].includes(e.entityType)&&Number.isSafeInteger(e.size)&&e.size>0&&e.size<=1048576)&&new Set(expected.map(e=>e.id)).size===expected.length&&new Set(documents.map(d=>d.id)).size===documents.length&&new Set(documents.map(d=>d.storageKey)).size===documents.length,'EXPECTED');
+ const extra=new Map();for(const e of expected){const d=documents.find(x=>x.id===e.id);need(d?.companyId===companyId&&d.isActive===true&&d.storageProvider==='LOCAL'&&uuid(d.storageKey)&&d.checksum===e.sha256&&d.fileSizeBytes===e.size&&d.uploadedByUserId===e.actorUserId&&Array.isArray(d.links)&&d.links.length===2&&d.links.some(l=>l.entityType==='PROJECT'&&l.entityId===e.projectId)&&d.links.some(l=>l.entityType===e.entityType&&l.entityId===e.entityId),'DOCUMENT');extra.set(d.storageKey,[d.storageKey,e.size,e.sha256]);}
+ for(const kind of kinds){const b=index(before[kind]),a=index(after[kind]),r=index(recovery[kind]);need(b.size===r.size&&[...b].every(([key,value])=>same(value,r.get(key))),'RECOVERY');need([...b].every(([key,value])=>same(value,a.get(key))),'HISTORY');const additions=kind==='documents'?extra:new Map();need(a.size===b.size+additions.size&&[...additions].every(([key,value])=>!b.has(key)&&same(value,a.get(key))),'EXACT_ADDITIONS');}
+ return {documentFilesAdded:extra.size,historicalFilesPreserved:true,recoveryFilesPreserved:true,uploadTempUnchanged:true,hrKeysUnchanged:true};
+}

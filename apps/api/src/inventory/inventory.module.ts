@@ -1,3 +1,5 @@
+import { MovementCorrectionController } from './movement-correction.controller';
+import { MovementCorrectionService } from './movement-correction.service';
 import { TransferCustodyService } from './transfer-custody.service';
 import { TransferCustodyController } from './transfer-custody.controller';
 import {MaterialPlanController} from './material-plan.controller';
@@ -58,6 +60,7 @@ import { MaterialCodeRequestService } from './material-code-request.service';
     AdministrationModule,
   ],
   controllers: [
+    MovementCorrectionController,
     UrgentMaterialIssueDocumentsController,
     StockCountScheduleController,
     StockMinimumController,
@@ -77,6 +80,7 @@ import { MaterialCodeRequestService } from './material-code-request.service';
     StockCountController,
   ],
   providers: [
+    MovementCorrectionService,
     UrgentMaterialIssueDocumentsService,
     StockCountScheduleService,
     StockMinimumService,

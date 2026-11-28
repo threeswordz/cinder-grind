@@ -1,3 +1,4 @@
+import { reversalReplayState } from './movement-reversal-replay';
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
@@ -521,8 +522,9 @@ export class MaterialReturnService {
     id: string,
     reversalKey: string,
     reason: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
       const sourceItems=await tx.materialReturnItem.findMany({where:{materialReturnId:id},select:{materialIssueItem:{select:{materialIssueId:true}}}});
       await lockMaterialPlanLineages(tx,sourceItems.map(i=>i.materialIssueItem.materialIssueId));
       await tx.$executeRawUnsafe(
@@ -530,7 +532,9 @@ export class MaterialReturnService {
         'material-return-reverse:' + id,
       );
       const row = await this.get(context.auth, id, tx);
-      if (row.reversedAt && row.reversalKey === reversalKey) return row;
+      const replay = reversalReplayState(row, reversalKey, reason);
+      if (replay === 'CONFLICT') throw new ConflictException({ code: 'MATERIAL_RETURN_REVERSAL_REPLAY_CONFLICT' });
+      if (replay === 'MATCH') return row;
       if (!row.postedAt || row.reversedAt) {
         throw new ConflictException({ code: 'MATERIAL_RETURN_NOT_REVERSIBLE' });
       }
@@ -618,7 +622,9 @@ export class MaterialReturnService {
         newValues: { reversalKey, reason, reversedAt: at },
       }, tx);
       return this.get(context.auth, id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private async assertCurrentReturnAuthority(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,permission:string){

@@ -390,8 +390,8 @@ export class GoodsReceiptService {
     return this.get(context.auth, id);
   }
 
-  async reverse(context: AuditContext, id: string, reversalKey: string, reason: string) {
-    return this.prisma.$transaction(async (tx) => {
+  async reverse(context: AuditContext, id: string, reversalKey: string, reason: string, existingTx?: Prisma.TransactionClient) {
+    const reverseIn = async (tx: Prisma.TransactionClient) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'receipt-reverse:' + id}))`;
       const receipt = await this.get(context.auth, id, tx);
       if (receipt.reversedAt && receipt.reversalKey === reversalKey) {
@@ -489,7 +489,9 @@ export class GoodsReceiptService {
         action: 'REVERSE', newValues: { reversalKey, reason, reversedAt: at },
       }, tx);
       return this.get(context.auth, id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    };
+    if (existingTx) return reverseIn(existingTx);
+    return this.prisma.$transaction(reverseIn, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
 
   private async currentOrder(

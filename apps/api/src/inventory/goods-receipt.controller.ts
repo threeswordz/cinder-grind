@@ -1,6 +1,6 @@
 import {uomDate} from '../master-data/material-uom-contract';
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards,
+  ConflictException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -198,15 +198,10 @@ export class GoodsReceiptController {
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('inventory.receipt.reverse')
   async reverse(
-    @Req() request: AuthenticatedRequest,
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() body: unknown,
+    @Req() _request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) _id: string,
+    @Body() _body: unknown,
   ) {
-    const input = inventoryObject(body);
-    return { data: await this.receipts.reverse(
-      auditContext(request), id,
-      requiredInventoryString(input, 'reversalKey', 120),
-      requiredInventoryString(input, 'reason', 1000),
-    ) };
+    throw new ConflictException({ code: 'SS16_CORRECTION_APPROVAL_REQUIRED' });
   }
 }

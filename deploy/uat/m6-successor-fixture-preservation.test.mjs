@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {verifySuccessorFixtureDelta as verify} from './m6-successor-fixture-preservation.mjs';
+const h=n=>n.toString(16).padStart(64,'0');
+const auth={database:'m6_successor_rehearsal',ownerAuthorizedFixture:true,retainedMutationAuthorized:false,productionAuthorized:false,planSha256:h(5)};
+const before=()=>Object.fromEntries([...Array.from({length:169},(_,i)=>['table_'+i,[h(1)]]),['roles',[h(1)]],['hr_company_access',[h(2)]],['_prisma_migrations',[h(3)]],['user_sessions',[h(4)]],['movement_correction_requests',[]]]);
+const fixture=()=>{const b=before(),a=structuredClone(b);a.roles.push(h(9));return [b,a,{roles:[h(9)]}];};
+test('only exact prebound additive delta passes',()=>assert.equal(verify(...fixture(),auth).exactAuthorizedAdditions,1));
+test('removed historical row or replacement denied',()=>{const [b,a,d]=fixture();a.roles=[h(9)];assert.throws(()=>verify(b,a,d,auth),/ROW_DRIFT/);});
+test('unplanned extra row and duplicate multiplicity denied',()=>{const [b,a,d]=fixture();a.roles.push(h(9));assert.throws(()=>verify(b,a,d,auth),/ROW_DRIFT/);});
+test('HR, migration and session additions forbidden even if supplied',()=>{for(const t of ['hr_company_access','_prisma_migrations','user_sessions']){const [b,a,d]=fixture();a[t].push(h(9));d[t]=[h(9)];assert.throws(()=>verify(b,a,d,auth),/ADD_TABLE/);}});
+test('unplanned business row edit denied',()=>{const [b,a,d]=fixture();a.table_0=[h(8)];assert.throws(()=>verify(b,a,d,auth),/ROW_DRIFT/);});
+test('retained target, missing owner authority and incomplete census denied',()=>{for(const x of [{database:'proto_a_01'},{ownerAuthorizedFixture:false}])assert.throws(()=>verify(...fixture(),{...auth,...x}),/AUTHORIZATION/);const [b,a,d]=fixture();delete a.table_1;assert.throws(()=>verify(b,a,d,auth),/TABLES/);});

@@ -123,6 +123,7 @@ export class TransferCustodyService {
       const hash = digest(['DISPATCH', id, input]), prior = await this.prior(tx, auth, input.requestKey, 'DISPATCH', hash);
       if (prior) return prior.outcome;
       if (custody.version !== input.expectedVersion) conflict('TRANSFER_VERSION_CONFLICT');
+      if (await tx.transferCustodyEvent.findFirst({where:{transferId:id,action:'CANCEL'},select:{id:true}})) conflict('SS16_TRANSFER_CANCELLED');
       if (custody.dispatch || row.postedAt || row.reversedAt || row.approvalInstance?.approvalState !== 'APPROVED') conflict('TRANSFER_DISPATCH_NOT_READY');
       for (const warehouseId of [row.sourceWarehouseId, row.destinationWarehouseId].sort()) {
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'inventory-warehouse:' + warehouseId);
@@ -214,9 +215,10 @@ export class TransferCustodyService {
       const auth = await transferActor(context.auth, tx, [TRANSFER + 'view', TRANSFER + 'assign_receiver']);
       await this.key(tx, auth, input.requestKey);
       const custody = await this.lock(tx, auth, id);
-      await this.source(auth, id, tx); await this.destination(auth, id, projectId, tx);
+      const source = await this.source(auth, id, tx); await this.destination(auth, id, projectId, tx);
       const hash = digest(['ASSIGN', id, projectId, input]), prior = await this.prior(tx, auth, input.requestKey, 'ASSIGN', hash);
       if (prior) return prior.outcome;
+      if (source.approvalInstance?.approvalState === 'CANCELLED' || await tx.transferCustodyEvent.findFirst({where:{transferId:id,action:'CANCEL'},select:{id:true}})) conflict('SS16_TRANSFER_CANCELLED');
       if (custody.version !== input.expectedVersion) conflict('TRANSFER_VERSION_CONFLICT');
       const employee = await tx.employee.findFirst({ where: { id: input.employeeId, companyId: auth.companyId, isActive: true, projectMembers: { some: { projectId, isActive: true } } }, select: { id: true } });
       const user = employee && await tx.user.findFirst({

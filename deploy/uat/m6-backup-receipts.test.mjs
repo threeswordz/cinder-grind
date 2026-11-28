@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {verifyBackupReceipts,normalizeInventory,verifyProtectedInventories} from './m6-backup-receipts.mjs';
+const source='5535dd890fd84489d76b611929e70e3422c746e8',target='9417f07c609dbc091b5bbe2e09071c5e2c316459',tree='bfcab1977ef80b8d7becf00d0056e892250052aa';
+const backup={status:'M4_BACKUP_CAPTURE_AND_INTEGRITY_PASS',source,target,databaseTables:168,historicalMigrations:166,sourceUnchanged:true,protectedFilesVerified:true,isolatedRestoreVerified:false,productionAuthorized:false,databaseArchiveSha256:'a'.repeat(64)};
+const rehearsal={status:'M4_ISOLATED_RESTORE_AND_MIGRATION_PASS',source,target,tree,originalTables:168,oldMigrations:166,newMigrations:11,totalMigrations:177,isolatedRestoreVerified:true,historicalRowsPreserved:true,sourceUnchanged:true,protectedFilesVerified:true,productionAuthorized:false,cutoverPerformed:false};
+test('requires separate capture and restore proof',()=>assert.equal(verifyBackupReceipts(backup,rehearsal),true));
+for(const [b,r] of [[{...backup,isolatedRestoreVerified:true},rehearsal],[backup,{...rehearsal,isolatedRestoreVerified:false}],[backup,{...rehearsal,tree:'0'.repeat(40)}],[backup,null],[{...backup,sourceUnchanged:false},rehearsal],[backup,{...rehearsal,historicalRowsPreserved:false}]])test('reject missing or inconsistent proof',()=>assert.throws(()=>verifyBackupReceipts(b,r)));
+const h='a'.repeat(64),history=[['','directory'],['dir','directory'],['dir/a','file',4,h]],current=[['','directory'],['dir','directory'],['dir/a',4,h]];
+test('normalize historical file encoding and compare both independent copies',()=>assert.equal(verifyProtectedInventories(history,current,current),true));
+test('allow implicit historical root and empty inventory',()=>assert.equal(verifyProtectedInventories([], [['','directory']], [['','directory']]),true));
+test('reject same modified retained and current bytes',()=>{const changed=[...current.slice(0,2),['dir/a',4,'b'.repeat(64)]];assert.throws(()=>verifyProtectedInventories(history,changed,changed),{safeCode:'M6_HISTORICAL_PROTECTED_COPY_DRIFT'});});
+for(const rows of [[['../a','file',4,h]],[['a','file',4,h],['a','file',4,h]],[['dir/a','file',4,h]],[['a','file',-1,h]],[['a','file',4,'bad']]])test('reject malformed inventory',()=>assert.throws(()=>normalizeInventory(rows,true),{safeCode:'M6_HISTORICAL_INVENTORY_INVALID'}));

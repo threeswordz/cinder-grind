@@ -1,3 +1,4 @@
+import {projectPreSs16TestSchema} from './historical-schema-test-projection.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -18,7 +19,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { hrDocumentTables, stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
-const current = stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text;
+const current = stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(projectPreSs16TestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8'))).text).text).text).text).text).text).text).text;
 const predecessor = stripHrDocumentSchema(current).text;
 
 test('only the exact Company/Employee/Document bounded HR custody model introduces the new schema mode', () => {

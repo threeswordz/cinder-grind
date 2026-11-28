@@ -1,3 +1,4 @@
+import {prepareConvertedCorrectionFixture,proveConvertedCorrection} from './m6-parallel-03-ss16-native-proof';
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -27,6 +28,11 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
   app.setGlobalPrefix('api/v1'); app.use(securityHeadersMiddleware(false)); app.useGlobalFilters(new ProblemDetailsFilter()); await app.listen(0, '127.0.0.1');
   try {
     const f = await transferCustodyFixture(db, app), base = await app.getUrl() + '/api/v1';
+    await db.role.update({where:{id:f.store.role.id},data:{roleCode:'STOREKEEPER'}});
+    await db.role.update({where:{id:f.pm.role.id},data:{roleCode:'PROJECT_MANAGER'}});
+    await f.grant(f.pm,['inventory.transfer.reverse']);
+    await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'SS16_MOVEMENT_CORRECTION',entityType:'MOVEMENT_CORRECTION',workflowName:'Synthetic SS16 review',
+      steps:{create:[{stepNo:1,stepName:'Independent PM',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
     type Actor = typeof f.store;
     async function call(actor: Actor, path: string, expected = 200, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<any> {
       const response = await fetch(base + path, { method, headers: { Cookie: 'erp_session=' + actor.session.sessionToken, 'x-csrf-token': actor.session.csrfToken, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -34,13 +40,20 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
     }
     const quantity = async (warehouseId: string) => (await db.stockTransaction.aggregate({ where: { companyId: f.company.id, warehouseId, materialId: f.material.id }, _sum: { quantity: true } }))._sum.quantity?.toFixed(4) ?? '0.0000';
     const ordinary = '/inventory/stock-transfers', root = '/inventory/transfer-custody';
+    const correctionRoot='/inventory/movement-corrections';
+    const correctionPath=(sourceId:string)=>correctionRoot+'/sources/STOCK_TRANSFER/'+sourceId+'/requests';
+    const decisionPath=(requestId:string)=>correctionRoot+'/'+requestId+'/approve';
     let legacy: any;
     await t.test('legacy approval retains exact paired posting and reversal', async () => {
       legacy = await call(f.store, ordinary, 201, { ...f.transferInput, lines: [{ ...f.transferInput.lines[0], quantity: '2.0000' }] });
       await call(f.store, ordinary + '/' + legacy.id + '/submit', 201, { workflowCode: f.workflow.workflowCode });
       await call(f.pm, ordinary + '/' + legacy.id + '/approve', 201, { postKey: randomUUID() });
       assert.equal(await quantity(f.warehouse.id), '8.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '2.0000');
-      await call(f.store, ordinary + '/' + legacy.id + '/reverse', 201, { reversalKey: randomUUID(), reason: 'Legacy exact reversal' });
+      const body={requestKey:randomUUID(),reason:'Legacy exact reversal'};
+      await call(f.store,ordinary+'/'+legacy.id+'/reverse',409,{reversalKey:body.requestKey,reason:body.reason});
+      const request=await call(f.store,correctionPath(legacy.id),201,body);
+      assert.equal(await quantity(f.destinationWarehouse.id),'2.0000');
+      await call(f.pm,decisionPath(request.id),201,{comment:'Independent exact reversal'});
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
     });
     const originalLegacy = await db.stockTransfer.findUniqueOrThrow({ where: { id: legacy.id }, include: { stockTransactions: { orderBy: { id: 'asc' } } } });
@@ -183,8 +196,20 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.deepEqual(await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 201, receivedBody), first);
       await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 409, { ...receivedBody, lines: [{ ...receivedBody.lines[0], quantity: '5.0000' }] });
       assert.equal(await quantity(f.destinationWarehouse.id), '4.0000'); assert.equal((await detail()).lines[0].outstanding, '1.0000');
-      await f.grant(f.pm, ['inventory.transfer.reverse']);
       await call(f.pm, ordinary + '/' + id + '/reverse', 409, { reversalKey: randomUUID(), reason: 'Must not return unreceived stock' });
+      const partial={requestKey:randomUUID(),reason:'Must not reverse unreceived stock'};
+      await call(f.store,correctionPath(id),403,partial);
+      await db.projectMember.create({data:{projectId:f.unassigned.id,employeeId:f.store.employee.id,projectRole:'Temporary synthetic correction scope'}});
+      try {
+        const request=await call(f.store,correctionPath(id),201,partial);
+        await call(f.pm,decisionPath(request.id),409,{comment:'Partial custody must not reverse'});
+        const correction=await db.movementCorrectionRequest.findUniqueOrThrow({where:{id:request.id},include:{approvalInstance:true}});
+        assert.equal(correction.approvalInstance.approvalState,'SUBMITTED');
+        assert.equal(await quantity(f.destinationWarehouse.id),'4.0000');
+        await call(f.pm,correctionRoot+'/'+request.id+'/reject',201,{comment:'Outstanding physical custody'});
+      } finally {
+        await db.projectMember.deleteMany({where:{projectId:f.unassigned.id,employeeId:f.store.employee.id}});
+      }
       await assert.rejects(db.transferReceiptLine.updateMany({ where: { receiptId }, data: { quantity: '5' } }), /TRANSFER_HISTORY_IMMUTABLE/);
       await assert.rejects(db.transferReceiptLine.create({ data: { receiptId, transferItemId: transfer.items[0].id, quantity: '0.5', note: 'Must not extend a committed physical acknowledgment' } }), /TRANSFER_OVERRECEIPT_OR_DIMENSION_INVALID/);
     });
@@ -204,7 +229,18 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       const results = await Promise.all([call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder), call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder)]);
       assert.deepEqual(results[0], results[1]); assert.equal((await detail()).lines[0].outstanding, '0.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '5.0000');
       await db.projectMember.create({ data: { projectId: f.unassigned.id, employeeId: f.store.employee.id, projectRole: 'Explicit synthetic reversal scope' } });
-      await call(f.store, ordinary + '/' + id + '/reverse', 201, { reversalKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' });
+      const reversePath = ordinary + '/' + id + '/reverse';
+      const reversal = { requestKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' };
+      await call(f.store,reversePath,409,{reversalKey:reversal.requestKey,reason:reversal.reason});
+      const request=await call(f.store,correctionPath(id),201,reversal);
+      await call(f.store,decisionPath(request.id),403,{comment:'Self decision denied'});
+      await call(f.pm,decisionPath(request.id),201,{comment:'Independent complete custody reversal'});
+      const transferStockAfter = await db.stockTransaction.count({ where: { stockTransferId: id } });
+      assert.equal((await call(f.store,correctionPath(id),201,reversal)).id,request.id);
+      await call(f.store,correctionPath(id),409,{...reversal,reason:'Changed transfer correction reason'});
+      await call(f.pm,decisionPath(request.id),409,{comment:'Decision replay denied'});
+      assert.equal(await db.stockTransaction.count({ where: { stockTransferId: id } }), transferStockAfter);
+      assert.equal((await db.stockTransfer.findUniqueOrThrow({ where: { id } })).reversalReason, reversal.reason);
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
       await f.sessions.revoke(f.viewer.auth.sessionId);
       await call(f.viewer, destination, 401);
@@ -250,7 +286,7 @@ test('DEC-050 B actual controlled conversion dispatch, partial receipt and origi
   const dispatch={requestKey:randomUUID(),expectedVersion:await version(),reason:'Synthetic dispatch'};
   await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);
   assert.equal(await qty(f.warehouse.id),'160');assert.equal(await legacyBalance(f.warehouse.id),'7');assert.equal(await qty(f.destinationWarehouse.id),'0');
-  const origin=await db.stockTransaction.findFirstOrThrow({where:{stockTransferId:transfer.id,movementType:'STOCK_TRANSFER_OUT'}});
+  const origin=await db.stockTransaction.findFirstOrThrow({where:{stockTransferId:transfer.id,materialId:f.material.id,movementType:'STOCK_TRANSFER_OUT'}});
   assert.equal(origin.quantity.toString(),'-40');
   const base=await app.getUrl()+'/api/v1',destination='/inventory/transfer-custody/projects/'+f.unassigned.id+'/transfers/'+transfer.id;
   async function call(p:string,body:unknown){
@@ -269,12 +305,13 @@ test('DEC-050 B actual controlled conversion dispatch, partial receipt and origi
   await receive('0.5');assert.equal(await qty(f.destinationWarehouse.id),'10');
   await assert.rejects(db.materialUomTransferSourcePin.update({where:{transferItemId:pin.transferItemId},data:{numerator:'24'}}),/MATERIAL_UOM_TRANSFER_SOURCE_IMMUTABLE/);
   assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,false);
-  await assert.rejects(svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Still in transit'));
+  await prepareConvertedCorrectionFixture(db,f,['STOCK_TRANSFER']);
+  await proveConvertedCorrection(db,f,base,'STOCK_TRANSFER',transfer.id,'Still in transit','TRANSFER_OUTSTANDING_CUSTODY_NOT_REVERSIBLE');
   await receive('1.5');assert.equal(await qty(f.destinationWarehouse.id),'40');
   assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,true);
   const effects=await db.stockTransaction.findMany({where:{stockTransferId:transfer.id},include:{materialUomEffectPin:true}});
   assert.equal(effects.length,5);assert.ok(effects.filter(e=>e.materialId===f.material.id).every(e=>e.materialUomEffectPin?.revisionId===pin.revisionId&&e.uomId===f.canonicalUomId));assert.ok(effects.filter(e=>e.materialId===f.secondaryMaterial!.id).every(e=>e.materialUomEffectPin===null&&e.uomId===f.uom.id));assert.equal(await legacyBalance(f.destinationWarehouse.id),'3');
-  await svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Exact original custody reversal');
+  await proveConvertedCorrection(db,f,base,'STOCK_TRANSFER',transfer.id,'Exact original custody reversal');
   assert.equal(await qty(f.warehouse.id),'200');assert.equal(await qty(f.destinationWarehouse.id),'0');assert.equal(await legacyBalance(f.warehouse.id),'10');assert.equal(await legacyBalance(f.destinationWarehouse.id),'0');
  }finally{await app.close();await db.$disconnect();if(oldStorage===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=oldStorage;await rm(storage,{recursive:true,force:true});}
 });
