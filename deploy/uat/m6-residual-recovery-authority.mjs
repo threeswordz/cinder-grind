@@ -20,3 +20,9 @@ export function hasEvent294Authority(a){
 export function matchesSupplierApplication(a){
  return a?.applicationSha===recoveryAnchor.previousApplicationSha||hasEvent294Authority(a);
 }
+const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(x);
+export function validateRecoveredDispatch(plan,authority,recovered){
+ const spec=plan?.uploads?.find(x=>x.key==='dispatch');
+ if(!hasEvent294Authority(authority)||!recovered||!spec||plan.existingDispatchId!==null||plan.existingAckId!==null||plan.expectedNewDispatchEvents!==2||plan.uploads.length!==5||!uuid(recovered.id)||!uuid(recovered.storageKey)||recovered.id===plan.conditionDocumentId||recovered.entityId!==plan.orderId||spec.entityId!==plan.orderId||spec.entityType!=='PURCHASE_ORDER'||spec.actor!=='JAI'||!uuid(spec.actorUserId)||recovered.sha256!==spec.sha256||recovered.size!==spec.size||!(/^[a-f0-9]{64}$/.test(recovered.sha256))||!Number.isSafeInteger(recovered.size)||recovered.size<=0||recovered.size>1048576)throw Object.assign(Error('M6_RECOVERY_DISPATCH_BINDING'),{safeCode:'M6_RECOVERY_DISPATCH_BINDING'});
+ return structuredClone(recovered);
+}

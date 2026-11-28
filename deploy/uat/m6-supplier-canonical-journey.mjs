@@ -1,6 +1,7 @@
 // PUR08/PUR14 synthetic reported-evidence return journey. Caller owns sessions,
 // source fixture admission, durable attempt seal and exact audit-only DB proof.
 import {verifySupplierDenialTarget,supplierScopeProof} from './m6-residual-denial-target.mjs';
+import {matchesSupplierApplication} from './m6-residual-recovery-authority.mjs';
 import {createHash} from 'node:crypto';
 const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_SUPPLIER_JOURNEY_'+c),{safeCode:'M6_SUPPLIER_JOURNEY_'+c});};
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(x);
@@ -13,7 +14,7 @@ export function createSupplierCanonicalJourney({binding,authorization:a,operator
  need(b.denialOrderId===b.supplierDenialTarget?.id&&verifySupplierDenialTarget(b.supplierDenialTarget,b.orderId),'DENIAL_BINDING');
  need(typeof b.revisedDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(b.revisedDate)&&Number.isFinite(Date.parse(b.revisedDate))&&new Date(b.revisedDate).toISOString().slice(0,10)===b.revisedDate,'DATE');
  need(units(b.returnQuantity)>0n&&units(b.returnQuantity)===units(b.observedQuantity)-units(b.goodQuantity),'HELD_QUANTITY');
- need(a?.applicationSha==='70013b5139292ef33563447f8937c8f132feabd2'&&a.database==='m6_successor_rehearsal'&&/^[a-f0-9]{40}$/.test(operatorSha??'')&&a.operatorSha===operatorSha&&a.bindingSha256===supplierBindingDigest(b)&&a.ownerAuthorizedSupplierJourney===true&&a.retainedMutationAuthorized===false&&a.productionAuthorized===false,'AUTHORITY');
+ need(matchesSupplierApplication(a)&&a.database==='m6_successor_rehearsal'&&/^[a-f0-9]{40}$/.test(operatorSha??'')&&a.operatorSha===operatorSha&&a.bindingSha256===supplierBindingDigest(b)&&a.ownerAuthorizedSupplierJourney===true&&a.retainedMutationAuthorized===false&&a.productionAuthorized===false,'AUTHORITY');
  need([request,verifyRuntime,verifySources,verifyDelta].every(f=>typeof f==='function'),'ADAPTER');
  const path='/procurement/purchase-orders/'+b.orderId+'/supplier-case';let attempted=false,previous=null,version=0;const events=[];
  async function call(actor,method,p,body,status){await verifyRuntime();const r=await request({actor,method,path:p,body});need(r?.status===status,'HTTP_'+status);return r.data;}
