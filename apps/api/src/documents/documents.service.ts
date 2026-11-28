@@ -295,7 +295,7 @@ export class DocumentsService {
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
-        if (link.entityType === 'PURCHASE_ORDER') return accessiblePurchaseOrders.has(link.entityId);
+        if (link.entityType === 'PURCHASE_ORDER') return projectIds.has(projectId) && accessiblePurchaseOrders.has(link.entityId);
         if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
         if (link.entityType === 'TRANSFER_RECEIPT') return accessibleReceipts.has(link.entityId);
         if (link.entityType === 'RECEIVING_DELIVERY') return accessibleDeliveries.has(link.entityId);
