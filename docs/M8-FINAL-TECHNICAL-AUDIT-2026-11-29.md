@@ -25,3 +25,27 @@ M8-01 review/security evidence and M8-02 governed integration/final-main gates c
 ## Owner decision — APPROVED (29 November 2026 SGT)
 
 Owner explicitly authorized M8 runtime content-equivalence provenance for exact final main d517b88c9eff001fd829599eb638214896164f0f and actual verified M6/M7 application 3e35105edac7151aeca800c1175af736a99f6009. Original receipts and remaining evidence requirements must be preserved; no M6/M7 replay, check weakening or unnecessary CI. The 807-file path/mode/blob equality, unchanged 184 migrations, unchanged pinned operator paths, reviewed PR and actual final-main full validation constitute the approved release-to-runtime source lineage. This approval supersedes the proposal above, not its remaining private evidence requirements. Runtime SHA stays 3e35105e and final release SHA stays d517b88c. Existing literal structural checker is unchanged and not claimed passed. The next action is a read-only private receipt/custody readback of existing sealed artifacts, not a new journey, build, migration, or restore. Connector has no direct access to the Mac; sanitized readback must be provided by the operator. M8 remains open at 7/8 pending actual evidence; proposed M8 4h/ERP1260h unchanged until closure evidence, no actual labor measured. Human UAT deferred, Production unauthorized.
+
+## Final bounded technical freeze — 29 November 2026 SGT
+
+Owner returned the following sanitized read-only execution result after explicit authorization of exact runtime content-equivalence provenance:
+
+```json
+{
+  "status": "M8_PRIVATE_EVIDENCE_READBACK_PASS",
+  "mainSha": "d517b88c9eff001fd829599eb638214896164f0f",
+  "applicationSha": "3e35105edac7151aeca800c1175af736a99f6009",
+  "m6ReceiptVerified": true,
+  "m7ReceiptVerified": true,
+  "compiledApiBuildVerified": true,
+  "recoveryReplayed": false,
+  "humanUatCompleted": false,
+  "productionAuthorized": false
+}
+```
+
+The supplied command verifies the pinned clean app and operator, exact main tree, private M6 receipt using its existing anchor/plan/proof reader, private M7 terminal proof digest and M6 linkage, and exact API build inventory digest. It does not start the ERP, connect to the database or replay recovery. This is Owner-reported execution evidence; the connector did not directly access the Mac. Exact live main rechecked unchanged, full-main validation job remains successful. Together with the previously observed M6 deployed journeys, M7 populated recovery, all 112 preserved dispositions, exact approved source equivalence, clean independent integrated review, full PR and final full main, this completes the approved bounded M8 technical freeze. The older exact-commit private packet checker is not executed or represented as PASS; the Owner-approved distinct release/runtime provenance is recorded instead. No check implementation was altered, no fabricated private packet, no reclassification of receipt SHA, no claim of separate security review or current live ERP process.
+
+**Frozen release identity:** main d517b88c9eff001fd829599eb638214896164f0f, tree a5677d8357d7363adc9cce89cdb3d93d9e4d0627; actual verified application 3e35105edac7151aeca800c1175af736a99f6009, API build 2f8cd6af4141d1fcb366884f460a17ecfae30248c59fbe16898f5512f764349d; retained original M6/M7 terminal receipts and operator SHAs. Freeze means preserve this validated non-Production release candidate for consolidated human UAT, not a running service or Production deployment. Any future change requires applicable change control and affected validation. M8 technical packages 3/3, prototype technical milestones 8/8. GL3/10, formal business acceptance remains unchanged, 70 deferred UAT and 42 future requirement dispositions retained; no real role/configuration, payroll/Accounting/#245, hosted recovery or Production acceptance inferred.
+
+Forecast: previous provisional ERP 1260h / M8 4h; newly identified mandatory scope +0h; verified remaining estimate retired 4h; revised provisional ERP 1256h / M8 0h / technical prototype 0h. Canonical issue overlay ERP1560h −65h =1495h, M8 65→0, prototype0h. Actual engineering labor unknown. Canonical machine ledger Event278 remains historical until technical-only closure representation reconciled; do not falsify formal acceptance or overwrite event history. No new CI/Codex/Mac execution triggered by publication. Subsequent full ERP work remains separately governed.
