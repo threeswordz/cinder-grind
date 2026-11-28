@@ -23,7 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_CANDIDATE: 36f4cdd9eb42f0380320381ae915fef89c93cb83
+      EXACT_CANDIDATE: 69e4fd5303c87b115e924d5466a8748f3ac87340
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       NODE_ENV: test
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Verify candidate and unchanged historical migrations
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "fd2a07296d7646d737006244bc592fce74d248cd"
+          test "$(git rev-parse HEAD^{tree})" = "2ae6fae6bb32920240b984d88a68eec911e93c1e"
           test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
           test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
       - name: Set up pnpm
@@ -64,21 +64,63 @@ jobs:
           cp apps/api/src/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-contract.spec.cjs
           cp apps/api/src/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs
           node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
-      - name: Verify independent HR03 and ACC01 exact domain contracts
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse a4b5ae3655ae99ada2bec4f27525a70550eddcfc^{tree})" = "9d77dde0ab36791dd027d6f40f06021c04aeb8c3"
-          test "$(git rev-parse 420d090e08aa0e77bc11e8021e748ea08eb6bf4d^{tree})" = "95f720031e7664e7bf5dde5e8eac5eb210b15878"
-          T=$(mktemp -d)
-          mkdir "$T/hr03" "$T/acc01"
-          git show a4b5ae3655ae99ada2bec4f27525a70550eddcfc:apps/api/src/hr/requests/request-contract.ts > "$T/hr03/request-contract.ts"
-          git show a4b5ae3655ae99ada2bec4f27525a70550eddcfc:apps/api/src/hr/requests/request-contract.spec.cjs > "$T/hr03/request-contract.spec.cjs"
-          git show 420d090e08aa0e77bc11e8021e748ea08eb6bf4d:apps/api/src/accounting/ledger-contract.ts > "$T/acc01/ledger-contract.ts"
-          git show 420d090e08aa0e77bc11e8021e748ea08eb6bf4d:apps/api/src/accounting/ledger-contract.spec.cjs > "$T/acc01/ledger-contract.spec.cjs"
-          pnpm --filter @construction-erp/api exec tsc --strict --skipLibCheck --target es2022 --module commonjs "$T/hr03/request-contract.ts" "$T/acc01/ledger-contract.ts"
-          node --test "$T/hr03/request-contract.spec.cjs" "$T/acc01/ledger-contract.spec.cjs"
-          printf '%s\n' 'HR03_ACC01_EXACT_DOMAIN_CONTRACTS_PASS'
+      - name: Compile attendance web UI
+        run: pnpm --filter @construction-erp/web typecheck
       - name: Record exact focused result
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
           printf '%s\n' "HR02_FOCUSED_NATIVE_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false"
+
+  independent-domain:
+    name: ${{ matrix.lane }} focused domain
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: HR03
+            sha: a4b5ae3655ae99ada2bec4f27525a70550eddcfc
+            tree: 9d77dde0ab36791dd027d6f40f06021c04aeb8c3
+            source: apps/api/src/hr/requests/request-contract
+          - lane: ACC01
+            sha: 420d090e08aa0e77bc11e8021e748ea08eb6bf4d
+            tree: 95f720031e7664e7bf5dde5e8eac5eb210b15878
+            source: apps/api/src/accounting/ledger-contract
+    steps:
+      - name: Checkout exact independent candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify identity
+        env:
+          EXPECTED_SHA: ${{ matrix.sha }}
+          EXPECTED_TREE: ${{ matrix.tree }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Compile and test exact independent domain
+        env:
+          SOURCE: ${{ matrix.source }}
+          LANE: ${{ matrix.lane }}
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          T=$(mktemp -d)
+          cp "$SOURCE.ts" "$SOURCE.spec.cjs" "$T/"
+          NAME=$(basename "$SOURCE")
+          pnpm --filter @construction-erp/api exec tsc --strict --skipLibCheck --target es2022 --module commonjs "$T/$NAME.ts"
+          node --test "$T/$NAME.spec.cjs"
+          printf '%s\n' "$LANE EXACT_DOMAIN_CONTRACT_PASS fullSuiteExecuted=false"
