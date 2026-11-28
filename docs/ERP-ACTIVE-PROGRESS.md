@@ -1,6 +1,25 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
+
+**Provisional rebaselined ERP: 1,325.25h → 0h · prototype 69.25h → 0h** (M6 5.25h / M7 26h / M8 38h). Canonical ERP 1,615.25h; canonical prototype 120.25h.
+
+**Latest evidence (Event274):** [Restricted supplier source transport](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7233524805), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/8dec65f9eb562766efa9ac853c215a1658fa99d8). 6/6 local controlled HTTP tests; both published blobs match. Bound actor/target, multipart bytes, checksum and PUR07 chain; no actual native execution. Distinct supplier preparation 0.25h estimated retirement, no formal acceptance.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 3h |
+| M6-03 | 0.75h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **5.25h** |
+
+Next: restricted site fixture transport, exact native row/file deltas, unified entry and browser proof, one stable independent review and exact synthetic execution authorization. No repeated preflight, historical journey replay, additional CI/Codex at intermediate head or Production.
+
+Prior entries below are historical snapshots.
+
+
 **Provisional rebaselined ERP: 1,325.5h → 0h · prototype 69.5h → 0h** (M6 5.5h / M7 26h / M8 38h). Canonical ERP 1,615.5h; canonical prototype 120.5h.
 
 **Latest evidence (Events271–273):** [Tested residual source preparation and observer](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7227484098), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/0cbc3f8174986dd84a9fdc94b380b309f94256d8), [DEC-054 clarification](https://github.com/threeswordz/cinder-grind/commit/803e7ccf59417bacb69730a52d309023e8978383). 38/38 actual local controlled-response tests, six exact GitHub blobs. Site fixture uses canonical Ben Cost BOQ self-approval, Store Site/Khaimook material-plan maker/checker, WBS/activity fixtures. Supplier source preparation reuses existing PUR07 chain or adds only missing synthetic reported events, exact document evidence. Native read-only source adapter implemented, live source/capability census and consolidated execution pending. No actual mutations or formal acceptance.
