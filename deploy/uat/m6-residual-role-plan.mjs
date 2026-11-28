@@ -6,9 +6,11 @@ const sort=x=>[...x].sort(),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const app='70013b5139292ef33563447f8937c8f132feabd2';
 const discovery='840477f8c18665953ed3285635adc81f5091fadb';
-const specs=[['BEN','MANAGEMENT',['schedule.programme.view','schedule.work_plan.confirm']],['JAI','PROCUREMENT_OFFICER',['procurement.po.view']],['KHAIMOOK',null,['schedule.programme.view','schedule.work_plan.prepare']],['FOREMAN',null,['schedule.programme.view','schedule.progress.record']]];
+const baseSpecs=[['BEN','MANAGEMENT',['schedule.programme.view','schedule.work_plan.confirm']],['JAI','PROCUREMENT_OFFICER',['procurement.po.view']],['KHAIMOOK',null,['schedule.programme.view','schedule.work_plan.prepare']],['FOREMAN',null,['schedule.programme.view','schedule.progress.record']]];
+export const event284Specs=needsPoEdit=>{need(typeof needsPoEdit==='boolean','PUR07_SCOPE');return baseSpecs.map(([actor,role,permissions])=>[actor,role,[...permissions,...(actor==='KHAIMOOK'?['wbs.wbs.create','schedule.activity.create','schedule.calendar.manage','admin.activity_types.manage']:actor==='JAI'?['documents.document.upload','documents.document.link',...(needsPoEdit?['procurement.po.edit']:[])]:[])]]);};
 const grants=u=>sort(new Set(u.userRoles.flatMap(e=>e.role.rolePermissions.map(p=>p.permission.permissionCode))));
-export function planResidualRoles({fixture,original,roster,users,roles,permissions,project}){
+export function planResidualRoles({fixture,original,roster,users,roles,permissions,project,needsPoEdit}){
+ const specs=event284Specs(needsPoEdit);
  const companyId=fixture?.companyId,projectId=fixture?.projectId;
  need([companyId,projectId,fixture?.adminUserId].every(uuid)&&project?.id===projectId&&project.companyId===companyId&&project.projectCode==='SITE_A'&&project.isActive===true,'PROJECT');
  need(Array.isArray(users)&&users.length===12&&new Set(users.map(u=>u.id)).size===12&&Array.isArray(roles)&&Array.isArray(permissions)&&roles.every(r=>r.companyId===companyId),'CENSUS');
@@ -24,18 +26,19 @@ export function planResidualRoles({fixture,original,roster,users,roles,permissio
   const base=u.userRoles.find(e=>e.roleId===a.roleId&&e.role.roleCode==='PROTO_'+actor);
   need(base&&users.filter(x=>x.userRoles?.some(e=>e.roleId===a.roleId)).length===1&&roles.some(r=>r.id===a.roleId&&r.roleCode==='PROTO_'+actor&&r.isActive===true),'EXCLUSIVE_ROLE');
   const before=grants(u);
-  need(actor==='JAI'?required.every(p=>before.includes(p)):required.every(p=>!before.includes(p)),'PERMISSION_DRIFT');
+  need(required.every(p=>actor==='JAI'&&p==='procurement.po.view'?before.includes(p):!before.includes(p)),'PERMISSION_DRIFT');
   changes.push({actor,userId:a.userId,existingRoleId:createRole?null:a.roleId,createRole,permissions:required.map(code=>({code,id:catalog.find(p=>p.permissionCode===code).id})),beforeRoles:sort(b.roleCodes),beforePermissions:before});
  }
- return {applicationSha:app,discoverySha:discovery,database:'m6_successor_rehearsal',companyId,projectId,adminUserId:fixture.adminUserId,changes,expected:{roles:2,user_roles:2,role_permissions:7,audit_logs:1}};
+ return {applicationSha:app,discoverySha:discovery,database:'m6_successor_rehearsal',companyId,projectId,adminUserId:fixture.adminUserId,needsPoEdit,changes,expected:{roles:2,user_roles:2,role_permissions:needsPoEdit?14:13,audit_logs:1}};
 }
 export const residualRolePlanDigest=digest;
 export function verifyResidualRoleAuthority(plan,authorization,baseline,operatorSha){
- need(/^[a-f0-9]{40}$/.test(operatorSha??'')&&plan?.applicationSha===app&&plan.discoverySha===discovery&&plan.database==='m6_successor_rehearsal'&&authorization?.operatorSha===operatorSha&&authorization.applicationSha===app&&authorization.database===plan.database&&authorization.planSha256===digest(plan)&&authorization.baselineSha256===digest(baseline)&&authorization.ownerAuthorizedSyntheticRoleDelta===true&&authorization.retainedMutationAuthorized===false&&authorization.productionAuthorized===false,'AUTHORITY');
+ need(/^[a-f0-9]{40}$/.test(operatorSha??'')&&plan?.applicationSha===app&&plan.discoverySha===discovery&&plan.database==='m6_successor_rehearsal'&&authorization?.operatorSha===operatorSha&&authorization.applicationSha===app&&authorization.database===plan.database&&authorization.planSha256===digest(plan)&&authorization.baselineSha256===digest(baseline)&&authorization.ownerAuthorizedSyntheticRoleDelta===true&&authorization.ownerAuthorizedEvent284===true&&typeof plan.needsPoEdit==='boolean'&&plan.expected?.role_permissions===(plan.needsPoEdit?14:13)&&authorization.retainedMutationAuthorized===false&&authorization.productionAuthorized===false,'AUTHORITY');
  return true;
 }
-export function verifyResidualRoleDelta(before,after,added){
- const keys=sort(Object.keys(before??{})),expected={roles:2,user_roles:2,role_permissions:7,audit_logs:1};
+export function verifyResidualRoleDelta(before,after,added,permissionEdges){
+ need([13,14].includes(permissionEdges),'EDGE_COUNT');
+ const keys=sort(Object.keys(before??{})),expected={roles:2,user_roles:2,role_permissions:permissionEdges,audit_logs:1};
  need(keys.length===174&&same(keys,sort(Object.keys(after??{})))&&same(sort(Object.keys(added??{})),sort(Object.keys(expected)))&&Object.entries(expected).every(([t,n])=>keys.includes(t)&&Array.isArray(added[t])&&added[t].length===n),'DELTA_SHAPE');
  for(const t of keys){const b=before[t],a=after[t],extra=added[t]??[];need(Array.isArray(b)&&Array.isArray(a)&&[...b,...a,...extra].every(x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x))&&new Set([...b,...extra]).size===b.length+extra.length&&same(sort([...b,...extra]),sort(a)),'UNEXPECTED_DELTA');}
  return true;
