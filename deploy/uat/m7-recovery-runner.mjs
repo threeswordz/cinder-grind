@@ -36,6 +36,10 @@ export async function createM7RecoveryRunner({source,binding,manifestArgs,claimO
      const fixture={...structuredClone(fixtures.fixture),preservation:ev.preservation};const expectedAudits=spec.mode==='correct'?fixtures.expectedAudits:[];
      const probe=d.createM7AuthenticatedEvidenceProbe({sourceSnapshot:evidence.sourceSnapshot,expectedAudits,actors:fixtures.actors,readSnapshot:ev.readSnapshot,verifyHttp:d.verifyM7Restored});
      const result=await probe({target,fixture,actors:fixtures.actors,inspectTarget,readPreservation:ev.readPreservation,mode:spec.mode});
+     if(result.status==='M7_AUTHENTICATED_EVIDENCE_BLOCKED'){
+       const detail=[result.httpCode,result.code].find(x=>typeof x==='string'&&/^M7_(?:VERIFY|AUTH_PROBE|PERSISTED|SNAPSHOT|NATIVE_EVIDENCE)_[A-Z0-9_]+$/.test(x));
+       if(detail)throw Error(detail);
+     }
      need(result.status==='M7_AUTHENTICATED_EVIDENCE_PASS'&&result.sessionProof?.newRevokedSessions===4&&result.sessionProof.activeSessions===0&&result.sessionProof.newAudits===expectedAudits.length,'AUTHENTICATED');await inspectTarget();
      need(await api.stopOwnedApi(p,handle)===true,'API_CLEANUP');stopped=true;const post=await ev.readSnapshot();need(post.sessions.length===148&&post.sessions.every(s=>s.revokedAt!==null||Date.parse(s.expiresAt)<=Date.parse(post.clock)),'SESSION_CLEANUP');const postSha=stateDigest(post);await ev.readPreservation();
      const verifyPreserved=async()=>{await executionClaim.verifyPaths();await observe();need(await d.m7ApiPortFree(p.port)===true&&stateDigest(await ev.readSnapshot())===postSha,'TARGET_PRESERVATION');await ev.readPreservation();return true;};

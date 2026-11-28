@@ -43,7 +43,12 @@ export function createM7PostgresRestore({plan,sourceDatabase,targetCluster,admin
   const absent=async()=>{const c=await query(adminDatabase,adminRole,catalog(pin));need(c&&Object.hasOwn(c,'databaseOid')&&Object.hasOwn(c,'roleOid')&&[c.databaseOid,c.roleOid].every(v=>v===null||validOid(v)),'CATALOG');return {databaseAbsent:c.databaseOid===null,roleAbsent:c.roleOid===null};};
   const inspect=async p=>{
     check(p);await guard();const d=await query(adminDatabase,adminRole,dbSql(pin,source));
-    need(validOid(d?.oid)&&validOid(d.roleOid)&&d.database===pin.database&&d.role===pin.role&&d.owner===pin.role&&d.allowConnect===true&&d.privileged===false&&d.sourceNameAbsent===true,'DATABASE_CUSTODY');
+    need(validOid(d?.oid)&&validOid(d.roleOid),'DATABASE_CUSTODY_OID');
+    need(d.database===pin.database&&d.role===pin.role,'DATABASE_CUSTODY_NAME');
+    need(d.owner===pin.role,'DATABASE_CUSTODY_OWNER');
+    need(d.allowConnect===true,'DATABASE_CUSTODY_CONNECTION');
+    need(d.privileged===false,'DATABASE_CUSTODY_PRIVILEGE');
+    need(d.sourceNameAbsent===true,'DATABASE_CUSTODY_SOURCE_ALIAS');
     if(owned)need(owned.oid===d.oid&&owned.roleOid===d.roleOid,'TARGET_DRIFT');
     const identity=await query(pin.database,pin.role,"SELECT json_build_object('database',current_database(),'role',current_user)::text");
     need(identity?.database===pin.database&&identity.role===pin.role,'ROLE_CONNECTION');

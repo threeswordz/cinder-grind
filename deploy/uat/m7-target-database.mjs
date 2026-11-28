@@ -74,7 +74,8 @@ export async function createM7TargetDatabase({claim,binding,source,captureRoot,e
      const client=makeClient(dbUrl());let census;try{census=await d.readCensus(client,target);}finally{await client.$disconnect();}
      const schemaSha=schemaDefinitionDigest(await d.schemaDump({executable,cwd:application,containerId:cluster.containerId,plan}),plan.role);
      const inventories=Object.fromEntries(await Promise.all(kinds.map(async k=>[k+'Sha',hash(normalizeInventory(await inventory(plan.storage[k]),false))])));
-     const result={schemaSha,rowsSha:census.rowsSha,...inventories};need(census.tables===174&&census.sessions===144&&census.activeSessions===0&&['schemaSha','rowsSha','documentsSha','uploadsSha','hrkeysSha'].every(k=>result[k]===capture[k]),'CONTENT_DRIFT');
+     const result={schemaSha,rowsSha:census.rowsSha,...inventories};need(census.tables===174&&census.sessions===144&&census.activeSessions===0,'CONTENT_DRIFT_CENSUS');
+     for(const [field,code] of [['schemaSha','SCHEMA'],['rowsSha','ROWS'],['documentsSha','DOCUMENTS'],['uploadsSha','UPLOADS'],['hrkeysSha','HRKEYS']])need(result[field]===capture[field],'CONTENT_DRIFT_'+code);
      const after=await pg.inspectDatabase(plan);need(same(dbTuple(target),dbTuple(after))&&after.otherSessions===0,'DATABASE_DRIFT');await verifySource();await claim.verifyPaths();contentVerified=true;return result;
    },
    // URL remains private; only the exact restored app or private snapshot reader
