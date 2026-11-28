@@ -8,7 +8,7 @@ const capture = { sha: plan.sha, tree: plan.tree, dumpSha: 'c'.repeat(64), schem
 function fixture(patch = {}) {
   const calls = []; const record = (k, result) => async () => { calls.push(k); return result; };
   const proc = { pid: 222, born: 'start', uid: process.getuid(), entry: '/pinned/main.js' };
-  const db = { cluster: '123', oid: 2, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true };
+  const db = { cluster: '456', oid: 2, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true };
   const adapter = { inspectCaptureAndSource: record('source', capture), inspectTargetAbsence: record('absence', { databaseAbsent: true, roleAbsent: true, portFree: true, storageEmpty: true }), provisionFreshTarget: record('provision'), inspectDatabase: record('db', db), restoreDatabase: record('restore'), restoreStorageNoOverwrite: record('storage'), inspectRestoredContent: record('content', capture), isPortFree: record('port', true), launchPinnedApi: record('launch', proc), inspectApi: record('api', { ...proc, sha: plan.sha, tree: plan.tree, database: plan.database, role: plan.role, storage: plan.storage, listenerPids: [222], listenAddresses: ['127.0.0.1:33073'], health: 'ok' }), ...patch };
   return { calls, run: createRestoreSequence({ plan, verifyPaths: record('paths') }, capture, adapter), db };
 }
@@ -32,3 +32,4 @@ test('port race prevents launch; failed restore cannot be retried or continue to
   const f = fixture({ restoreDatabase: async () => { throw Error('restore failed'); } }); await assert.rejects(f.run(), /restore failed/); assert.ok(!f.calls.includes('storage')); await assert.rejects(f.run(), /ALREADY_ATTEMPTED/);
 });
 test('retained process custody drift blocks provisioning',async()=>{const f=fixture({inspectCaptureAndSource:async()=>({...capture,sourceProcess:{...capture.sourceProcess,retainedWeb:{...capture.sourceProcess.retainedWeb,pid:113}}})});await assert.rejects(f.run(),/SOURCE_DRIFT/);assert.ok(!f.calls.includes('provision'));});
+test('same-cluster target blocked before archive replay',async()=>{const {db}=fixture(),f=fixture({inspectDatabase:async()=>({...db,cluster:sourceDatabase.cluster})});await assert.rejects(f.run(),/M7_RESTORE_DB_ALIAS/);assert.ok(!f.calls.includes('restore'));});

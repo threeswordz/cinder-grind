@@ -17,7 +17,7 @@ export function createM7KeyVariantSequence({correct,variants,protectedRoots,veri
   const c=structuredClone(correct),plans=structuredClone(variants),roots=[...protectedRoots];
   const all=[c,...plans];
   need(plans.every(p=>fields.every(k=>p[k]===c[k])&&p.keyInventorySha!==c.keyInventorySha&&roots.every(r=>disjoint(r,p.root)))&&new Set(all.map(p=>p.keyInventorySha)).size===3,'CAPTURE_BINDING');
-  need(all.every((p,i)=>all.every((q,j)=>i===j||(p.port!==q.port&&p.database!==q.database&&p.role!==q.role&&(p.cluster!==q.cluster||p.oid!==q.oid)&&disjoint(p.root,q.root)))),'TARGET_ALIAS');
+  need(all.every((p,i)=>all.every((q,j)=>i===j||(p.port!==q.port&&p.database!==q.database&&p.role!==q.role&&p.cluster!==q.cluster&&disjoint(p.root,q.root)))),'TARGET_ALIAS');
   let attempted=false;
   return async function runOnce(){
     need(!attempted,'ALREADY_ATTEMPTED');attempted=true;const results=[];

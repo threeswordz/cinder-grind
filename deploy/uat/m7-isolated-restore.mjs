@@ -17,9 +17,8 @@ async function directory(path, privateOnly = false) {
 }
 const sameDir = (a, b) => a.dev === b.dev && a.ino === b.ino;
 const dbIdentity = d => typeof d?.cluster === 'string' && /^\d+$/.test(d.cluster) && Number.isSafeInteger(d.oid) && d.oid > 0 && typeof d.database === 'string' && typeof d.role === 'string';
-const sameDb = (a, b) => a.cluster === b.cluster && a.oid === b.oid;
 export function verifyRestoreDatabase(source, target, plan, empty = false) {
-  need(dbIdentity(source) && dbIdentity(target) && !sameDb(source, target), 'DB_ALIAS');
+  need(dbIdentity(source) && dbIdentity(target) && source.cluster !== target.cluster, 'DB_ALIAS');
   need(target.database === plan.database && target.role === plan.role && target.owner === plan.role && target.database !== source.database && target.role !== source.role, 'DB_OWNER');
   need(target.roleIsolated === true && target.canConnectSource === false && target.privileged === false && target.otherSessions === 0, 'DB_ROLE_OR_SESSION');
   if (empty) need(target.emptyAtDatabaseScope === true, 'DB_NOT_EMPTY');

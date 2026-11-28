@@ -14,7 +14,7 @@ async function fixture(t) {
   return { parent, protectedRoots, runId: 'abcdef012345', candidate: { sha: 'a'.repeat(40), tree: 'b'.repeat(40), clean: true }, sourcePort: 33071, port: 33073 };
 }
 const source = { cluster: '12345', oid: 42, database: 'proto_a_01', role: 'proto_runtime' };
-const target = plan => ({ cluster: '12345', oid: 43, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true });
+const target = plan => ({ cluster: '67890', oid: 43, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true });
 test('fresh claim creates private distinct roots and rejects repeat without overwriting bytes', async t => {
   const f = await fixture(t), c = await claimRestoreTarget(f);
   await c.verifyPaths(); const file = join(c.plan.storage.documents, 'record'); await writeFile(file, 'original');
@@ -39,8 +39,8 @@ test('wrong application pin, invalid run ID and source port fail', async t => {
   const f = await fixture(t); for (const patch of [{ candidate: { ...f.candidate, clean: false } }, { runId: '../bad' }, { port: f.sourcePort }]) await assert.rejects(claimRestoreTarget({ ...f, ...patch }), /M7_RESTORE_/);
 });
 test('database identity, distinct role, emptiness and session checks fail closed', async t => {
-  const { plan } = await claimRestoreTarget(await fixture(t)), d = target(plan); assert.equal(verifyRestoreDatabase(source, d, plan, true), true);
-  for (const patch of [{ oid: source.oid }, { role: source.role }, { owner: source.role }, { database: source.database }, { privileged: true }, { roleIsolated: false }, { canConnectSource: true }, { otherSessions: 1 }, { emptyAtDatabaseScope: false }, { cluster: undefined }]) assert.throws(() => verifyRestoreDatabase(source, { ...d, ...patch }, plan, true), /M7_RESTORE_/);
+  const { plan } = await claimRestoreTarget(await fixture(t)), d = target(plan); assert.equal(verifyRestoreDatabase(source, d, plan, true), true); assert.equal(verifyRestoreDatabase(source, { ...d, oid: source.oid }, plan, true), true);
+  for (const patch of [{ cluster: source.cluster }, { role: source.role }, { owner: source.role }, { database: source.database }, { privileged: true }, { roleIsolated: false }, { canConnectSource: true }, { otherSessions: 1 }, { emptyAtDatabaseScope: false }, { cluster: undefined }]) assert.throws(() => verifyRestoreDatabase(source, { ...d, ...patch }, plan, true), /M7_RESTORE_/);
 });
 test('restore flags use fixed target only, no clean/create/migrate', async t => {
   const { plan } = await claimRestoreTarget(await fixture(t)); assert.deepEqual(restoreArguments(plan), ['pg_restore', '--exit-on-error', '--single-transaction', '--no-owner', '--no-privileges', '-U', plan.role, '-d', plan.database]); assert.throws(() => restoreArguments({ ...plan, database: source.database }), /DB_PLAN/);
