@@ -24,10 +24,33 @@ CREATE TABLE hr_attendance_revisions (
 );
 CREATE UNIQUE INDEX hr_attendance_revisions_batch_id_version_key ON hr_attendance_revisions(batch_id,version);
 CREATE UNIQUE INDEX hr_attendance_revisions_company_id_id_key ON hr_attendance_revisions(company_id,id);
+-- Narrow, date-bounded assignment evidence. No assignment data or live grants inserted.
+CREATE TABLE hr_attendance_allocations (
+ id uuid PRIMARY KEY, source_company_id uuid NOT NULL, source_project_id uuid NOT NULL,
+ target_company_id uuid NOT NULL, target_project_id uuid NOT NULL,
+ valid_from date NOT NULL, valid_through date NOT NULL,
+ authorization_reference varchar(200) NOT NULL, revoked_at timestamptz(6),
+ created_at timestamptz(6) NOT NULL DEFAULT now(),
+ CONSTRAINT hr_attendance_allocations_source_fkey FOREIGN KEY(source_company_id,source_project_id) REFERENCES projects(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+ CONSTRAINT hr_attendance_allocations_target_fkey FOREIGN KEY(target_company_id,target_project_id) REFERENCES projects(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+ CONSTRAINT hr_attendance_allocations_values CHECK(source_project_id<>target_project_id AND valid_from<=valid_through AND length(btrim(authorization_reference))>0)
+);
+CREATE INDEX hr_attendance_allocations_source_dates_idx ON hr_attendance_allocations(source_company_id,source_project_id,valid_from,valid_through);
+CREATE FUNCTION hr_attendance_allocation_guard() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+ IF TG_OP='DELETE' THEN RAISE EXCEPTION 'HR_HISTORY_IMMUTABLE' USING ERRCODE='23514'; END IF;
+ IF OLD.revoked_at IS NOT NULL OR NEW.revoked_at IS NULL
+ OR (to_jsonb(NEW)-'revoked_at') IS DISTINCT FROM (to_jsonb(OLD)-'revoked_at')
+ THEN RAISE EXCEPTION 'HR_ATTENDANCE_ALLOCATION_IMMUTABLE' USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END $;
+CREATE TRIGGER hr_attendance_allocation_guard BEFORE UPDATE OR DELETE ON hr_attendance_allocations FOR EACH ROW EXECUTE FUNCTION hr_attendance_allocation_guard();
+
 CREATE TABLE hr_attendance_lines (
  id uuid PRIMARY KEY, company_id uuid NOT NULL, revision_id uuid NOT NULL, employee_id uuid NOT NULL,
  employment_revision_id uuid NOT NULL, work_date date NOT NULL, start_minute integer NOT NULL, end_minute integer NOT NULL,
- work_type varchar(100) NOT NULL,
+ work_type varchar(100) NOT NULL, allocation_id uuid,
+ CONSTRAINT hr_attendance_lines_allocation_id_fkey FOREIGN KEY(allocation_id) REFERENCES hr_attendance_allocations(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_lines_revision_fkey FOREIGN KEY(company_id,revision_id) REFERENCES hr_attendance_revisions(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_lines_employee_fkey FOREIGN KEY(company_id,employee_id) REFERENCES employees(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_lines_employment_fkey FOREIGN KEY(employment_revision_id) REFERENCES hr_employment_revisions(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -64,9 +87,9 @@ CREATE TRIGGER hr_attendance_revision_immutable BEFORE UPDATE OR DELETE ON hr_at
 CREATE TRIGGER hr_attendance_line_immutable BEFORE UPDATE OR DELETE ON hr_attendance_lines FOR EACH ROW EXECUTE FUNCTION hr_history_immutable();
 
 CREATE FUNCTION hr_attendance_line_guard() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE v integer; rv integer; first_day date; last_day date; scope text;
+DECLARE v integer; rv integer; first_day date; last_day date; scope text; act text;
 BEGIN
- SELECT b.current_version,r.version,b.period_start,b.scope_key INTO v,rv,first_day,scope
+ SELECT b.current_version,r.version,b.period_start,b.scope_key,r.action INTO v,rv,first_day,scope,act
  FROM hr_attendance_revisions r JOIN hr_attendance_batches b ON b.id=r.batch_id
  WHERE r.id=NEW.revision_id AND r.company_id=NEW.company_id FOR UPDATE OF b;
  IF NOT FOUND OR rv<>v+1 THEN RAISE EXCEPTION 'HR_ATTENDANCE_SNAPSHOT_SEALED' USING ERRCODE='23514'; END IF;
@@ -77,6 +100,14 @@ BEGIN
  AND er.site_kind=CASE WHEN scope='OFFICE' THEN 'OFFICE' ELSE 'SITE' END
  AND NEW.work_date>=er.start_date AND (er.end_date IS NULL OR NEW.work_date<=er.end_date)
  ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_EMPLOYMENT_PERIOD' USING ERRCODE='23514'; END IF;
+ IF NEW.allocation_id IS NOT NULL AND NOT EXISTS (
+ SELECT 1 FROM hr_attendance_allocations a
+ JOIN projects p ON p.id=a.target_project_id AND p.company_id=a.target_company_id
+ JOIN companies c ON c.id=a.target_company_id
+ WHERE a.id=NEW.allocation_id AND a.source_company_id=NEW.company_id
+ AND a.source_project_id::text=scope AND NEW.work_date BETWEEN a.valid_from AND a.valid_through
+ AND (act='RETURN' OR (a.revoked_at IS NULL AND p.is_active AND c.is_active))
+ ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_ALLOCATION_SCOPE' USING ERRCODE='23514'; END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_attendance_line_guard BEFORE INSERT ON hr_attendance_lines FOR EACH ROW EXECUTE FUNCTION hr_attendance_line_guard();
@@ -106,11 +137,11 @@ BEGIN
  IF act IN ('SUBMIT','RETURN','RESUBMIT') THEN
   SELECT id INTO prev_id FROM hr_attendance_revisions WHERE batch_id=bid AND version=NEW.version-1;
   IF EXISTS (
-   (SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=rid
-    EXCEPT ALL SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=prev_id)
+   (SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type,allocation_id FROM hr_attendance_lines WHERE revision_id=rid
+    EXCEPT ALL SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type,allocation_id FROM hr_attendance_lines WHERE revision_id=prev_id)
    UNION ALL
-   (SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=prev_id
-    EXCEPT ALL SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=rid)
+   (SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type,allocation_id FROM hr_attendance_lines WHERE revision_id=prev_id
+    EXCEPT ALL SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type,allocation_id FROM hr_attendance_lines WHERE revision_id=rid)
   ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_TRANSITION_CHANGED_LINES' USING ERRCODE='23514'; END IF;
  END IF;
  RETURN NULL;

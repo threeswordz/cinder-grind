@@ -685,6 +685,8 @@ model SystemSetting {
 
 
 model Project {
+  attendanceSendingAssignments HrAttendanceAllocation[] @relation("AttendanceSendingProject")
+  attendanceReceivingAssignments HrAttendanceAllocation[] @relation("AttendanceReceivingProject")
   hrAttendanceBatches HrAttendanceBatch[]
   poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
@@ -4541,10 +4543,30 @@ model HrAttendanceLine {
   startMinute Int @map("start_minute")
   endMinute Int @map("end_minute")
   workType String @map("work_type") @db.VarChar(100)
+  allocationId String? @map("allocation_id") @db.Uuid
+  allocation HrAttendanceAllocation? @relation(fields: [allocationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   revision HrAttendanceRevision @relation(fields: [companyId, revisionId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_revision_fkey")
   employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_employee_fkey")
   employmentRevision HrEmploymentRevision @relation(fields: [employmentRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_employment_fkey")
   @@unique([revisionId, employeeId, workDate, startMinute, endMinute], map: "hr_attendance_lines_interval_key")
   @@index([companyId, employeeId, workDate])
   @@map("hr_attendance_lines")
+}
+
+model HrAttendanceAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  sourceCompanyId String @map("source_company_id") @db.Uuid
+  sourceProjectId String @map("source_project_id") @db.Uuid
+  targetCompanyId String @map("target_company_id") @db.Uuid
+  targetProjectId String @map("target_project_id") @db.Uuid
+  validFrom DateTime @map("valid_from") @db.Date
+  validThrough DateTime @map("valid_through") @db.Date
+  authorizationReference String @map("authorization_reference") @db.VarChar(200)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  sourceProject Project @relation("AttendanceSendingProject", fields: [sourceCompanyId, sourceProjectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_allocations_source_fkey")
+  targetProject Project @relation("AttendanceReceivingProject", fields: [targetCompanyId, targetProjectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_allocations_target_fkey")
+  lines HrAttendanceLine[]
+  @@index([sourceCompanyId, sourceProjectId, validFrom, validThrough], map: "hr_attendance_allocations_source_dates_idx")
+  @@map("hr_attendance_allocations")
 }

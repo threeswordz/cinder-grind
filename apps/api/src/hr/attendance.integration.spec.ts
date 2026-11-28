@@ -69,7 +69,7 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.store,root,409,{...create,lines:[{...row,endMinute:721}]});
       const view=(await call(a.store,root,200)).data;
       assert.equal(view.version,1); assert.equal(view.state,'DRAFT');
-      assert.deepEqual(Object.keys(view.lines[0]).sort(),['employee','employeeId','endMinute','startMinute','workDate','workType']);
+      assert.deepEqual(Object.keys(view.lines[0]).sort(),['allocation','allocationId','employee','employeeId','endMinute','startMinute','workDate','workType']);
       assert.deepEqual(Object.keys(view.lines[0].employee).sort(),['employeeCode','employeeName']);
       assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),1);
     });
@@ -165,11 +165,53 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.hr,route(f.foreignProject.id),404);
       assert.equal(await db.hrAttendanceBatch.count({where:{companyId:f.hidden.id}}),0);
     });
+    await t.test('sending site records temporary small-job actual time in another Project or Company without target access',async()=>{
+      const makeAllocation=(targetCompanyId:string,targetProjectId:string,validFrom='2026-11-20',validThrough='2026-11-20')=>
+        db.hrAttendanceAllocation.create({data:{sourceCompanyId:f.company.id,sourceProjectId:f.project.id,targetCompanyId,targetProjectId,
+          validFrom:new Date(validFrom),validThrough:new Date(validThrough),authorizationReference:'SYNTHETIC_APPROVED_ASSIGNMENT_ONLY'}});
+      const same=await makeAllocation(f.company.id,f.unassigned.id);
+      const foreign=await makeAllocation(f.other.id,f.foreignProject.id);
+      const expired=await makeAllocation(f.other.id,f.foreignProject.id,'2026-11-18','2026-11-19');
+      const opts=(await call(a.store,root+'/allocations',200)).data;
+      assert.ok(opts.some((x:any)=>x.id===same.id));
+      assert.ok(opts.some((x:any)=>x.id===foreign.id));
+      assert.ok(opts.every((x:any)=>!('authorizationReference' in x)));
+      await call(a.store,route(f.foreignProject.id),404);
+      await call(a.store,route(f.foreignProject.id)+'/allocations',404);
+      const original=[{...row,endMinute:600},{...row,startMinute:780,endMinute:1020}];
+      // Add nonoverlapping raw intervals to sending-site snapshot. The foreign
+      // Project receives no employee master, pay or role membership.
+      const sameRow={...row,startMinute:750,endMinute:780,allocationId:same.id};
+      const foreignRow={...row,startMinute:1020,endMinute:1080,allocationId:foreign.id};
+      await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic invalid allocation',lines:[...original,{...foreignRow,allocationId:randomUUID()}]}));
+      await call(a.hr,root,404,command('HR_CORRECT',7,{reason:'Synthetic expired allocation',lines:[...original,{...foreignRow,allocationId:expired.id}]}));
+      // Store performs the approved sending-site capture after HR returns.
+      await call(a.hr,root,201,command('RETURN',7,{reason:'Synthetic additional source record'}));
+      await call(a.store,root,201,command('EDIT',8,{reason:'Synthetic sending-site record',lines:[...original,sameRow,foreignRow]}));
+      await call(a.store,root,201,command('RESUBMIT',9));
+      const view=(await call(a.store,root,200)).data;
+      assert.equal(view.version,10);
+      const allocated=view.lines.filter((l:any)=>l.allocationId!==null);
+      assert.equal(allocated.length,2);
+      assert.deepEqual(allocated.map((l:any)=>l.allocation.targetCompanyId).sort(),[f.company.id,f.other.id].sort());
+      assert.equal(await db.employee.count({where:{id:f.legacy.id,companyId:f.other.id}}),0);
+      await assert.rejects(db.hrAttendanceAllocation.update({where:{id:foreign.id},data:{targetProjectId:f.unassigned.id}}));
+      await db.hrAttendanceAllocation.update({where:{id:foreign.id},data:{revokedAt:new Date()}});
+      assert.equal((await call(a.store,root,200)).data.lines.find((l:any)=>l.allocationId===foreign.id).allocation.targetProjectId,f.foreignProject.id);
+      assert.ok(!(await call(a.store,root+'/allocations',200)).data.some((x:any)=>x.id===foreign.id));
+      await call(a.hr,root,201,command('RETURN',10,{reason:'Synthetic scope correction'}));
+      await call(a.store,root,404,command('RESUBMIT',11));
+      await call(a.store,root,201,command('EDIT',11,{reason:'Synthetic remove revoked allocation',lines:[...original,sameRow]}));
+      await call(a.store,root,201,command('RESUBMIT',12));
+      assert.equal((await call(a.store,root,200)).data.version,13);
+      const sealed=await db.hrAttendanceRevision.findUniqueOrThrow({where:{batchId_version:{batchId,version:10}},include:{lines:true}});
+      assert.ok(sealed.lines.some(l=>l.allocationId===foreign.id));
+    });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
       await db.rolePermission.deleteMany({where:{roleId:a.store.role.id,permissionId:permission.id}});
       await call(a.store,root,404,resubmit);
-      assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),7);
+      assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),13);
       assert.deepEqual(await financialCounts(),before);
     });
   } finally {

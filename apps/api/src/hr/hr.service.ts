@@ -558,14 +558,16 @@ export class HrService {
   private parseAttendanceLines(raw: unknown, projectId: string | null, periodStart: Date) {
     if (!Array.isArray(raw) || raw.length > 1000) input.invalid();
     const lines = raw.map(item => {
-      const fields = input.object(item, ['employeeId','workDate','startMinute','endMinute','workType']);
+      const fields = input.object(item, ['employeeId','workDate','startMinute','endMinute','workType','allocationId']);
       const employeeId = input.uuid(fields.employeeId), workDate = input.day(fields.workDate);
       const startMinute = input.integer(fields.startMinute), endMinute = input.integer(fields.endMinute);
       const day = workDate.toISOString().slice(0,10);
       try { validateInterval({ employeeId, projectId: projectId ?? 'OFFICE', workDate: day, startMinute, endMinute }); }
       catch { input.invalid(); }
       if (attendancePeriod(day).start !== periodStart.toISOString().slice(0,10)) input.invalid();
-      return { employeeId, workDate, startMinute, endMinute, workType: input.text(fields.workType, 100) };
+      const allocationId=fields.allocationId==null?null:input.uuid(fields.allocationId);
+      if(projectId===null&&allocationId!==null) input.invalid();
+      return { employeeId, workDate, startMinute, endMinute, workType: input.text(fields.workType, 100), allocationId };
     });
     // Stable ordering makes replay fingerprints and duplicate checks deterministic.
     lines.sort((a,b) => a.employeeId.localeCompare(b.employeeId) || a.workDate.getTime()-b.workDate.getTime() || a.startMinute-b.startMinute || a.endMinute-b.endMinute);
@@ -582,7 +584,17 @@ export class HrService {
         select: { id: true, version: true, siteKind: true, startDate: true, endDate: true } } } },
     } });
     const byId = new Map(employees.map(e => [e.id,e]));
+    const allocationIds=[...new Set(lines.flatMap(l=>l.allocationId===null?[]:[l.allocationId]))];
+    const allocations=projectId===null||!allocationIds.length?[]:await tx.hrAttendanceAllocation.findMany({where:{
+      id:{in:allocationIds},sourceCompanyId:companyId,sourceProjectId:projectId,revokedAt:null,
+      targetProject:{isActive:true,company:{isActive:true}},
+    },select:{id:true,validFrom:true,validThrough:true}});
+    const byAllocation=new Map(allocations.map(a=>[a.id,a]));
     return lines.map(line => {
+      if(line.allocationId!==null) {
+        const allocation=byAllocation.get(line.allocationId);
+        if(!allocation||line.workDate<allocation.validFrom||line.workDate>allocation.validThrough) throw notFound();
+      }
       const employee = byId.get(line.employeeId), employment = employee?.hrEmployment, revision = employment?.revisions[0];
       if (!employee || !employment || !revision || revision.version !== employment.currentVersion || revision.siteKind !== (projectId===null?'OFFICE':'SITE') ||
         (projectId!==null && !employee.projectMembers.some(m => (!m.startDate || m.startDate <= line.workDate) && (!m.endDate || m.endDate >= line.workDate)))) throw notFound();
@@ -623,6 +635,22 @@ export class HrService {
     }
   }
 
+  /** Explicitly configured source/target attendance assignments only; this
+   * does not give the sender ordinary access to the receiving Project. */
+  attendanceAllocationOptions(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown) {
+    input.uuid(projectId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    const periodEnd=input.day(attendancePeriod(periodStart.toISOString().slice(0,10)).end);
+    return this.read(supplied,[],async(tx,auth)=>{
+      await this.attendanceScope(tx,auth,projectId,'view');
+      return tx.hrAttendanceAllocation.findMany({where:{sourceCompanyId:auth.companyId,sourceProjectId:projectId,
+        revokedAt:null,validFrom:{lte:periodEnd},validThrough:{gte:periodStart},targetProject:{isActive:true,company:{isActive:true}}},
+        orderBy:[{validFrom:'asc'},{id:'asc'}],take:100,
+        select:{id:true,targetCompanyId:true,targetProjectId:true,validFrom:true,validThrough:true,
+          targetProject:{select:{projectCode:true,projectName:true}}}});
+    });
+  }
+
   attendanceRead(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown) {
     input.uuid(projectId);
     const periodStart = this.attendancePeriodStart(periodRaw);
@@ -638,7 +666,7 @@ export class HrService {
       const revision = await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:batch.currentVersion}},select:{
         version:true,state:true,action:true,reason:true,createdAt:true,
         lines:{orderBy:[{employeeId:'asc'},{workDate:'asc'},{startMinute:'asc'},{endMinute:'asc'}],
-          select:{employeeId:true,workDate:true,startMinute:true,endMinute:true,workType:true,employee:{select:{employeeCode:true,employeeName:true}}}},
+          select:{employeeId:true,workDate:true,startMinute:true,endMinute:true,workType:true,allocationId:true,allocation:{select:{targetCompanyId:true,targetProjectId:true}},employee:{select:{employeeCode:true,employeeName:true}}}},
       }});
       if(!revision) throw conflict();
       return {id:batch.id,projectId:batch.projectId,periodStart:batch.periodStart,...revision};
@@ -675,7 +703,7 @@ export class HrService {
           if(action==='RETURN'&&prior.actorUserId===auth.userId) throw conflict();
         }
         const snapshot=lines!==null?await this.bindAttendanceLines(tx,companyId,projectId,lines):
-          prior!.lines.map(l=>({employeeId:l.employeeId,employmentRevisionId:l.employmentRevisionId,workDate:l.workDate,startMinute:l.startMinute,endMinute:l.endMinute,workType:l.workType}));
+          prior!.lines.map(l=>({employeeId:l.employeeId,employmentRevisionId:l.employmentRevisionId,workDate:l.workDate,startMinute:l.startMinute,endMinute:l.endMinute,workType:l.workType,allocationId:l.allocationId}));
         if(action==='SUBMIT'||action==='RESUBMIT'||action==='HR_CORRECT') await this.assertAttendanceSubmission(tx,companyId,batch.id,projectId,snapshot);
         const version=expectedVersion+1;
         const revision=await tx.hrAttendanceRevision.create({data:{companyId,batchId:batch.id,version,state,action,actorUserId:auth.userId,reason}});
