@@ -1,5 +1,21 @@
 # Construction ERP — live countdown to 0 hours
 
+<!-- current-work-m8-frozen -->
+
+**Technical prototype 8/8 — FROZEN · prototype 0h.** Provisional full ERP **1,256h → 0h**; canonical issue-level forecast **1,495h → 0h**. GL **3/10**. Human UAT/business acceptance and Production remain separate.
+
+**29 Nov 2026 SGT:** Owner-reported private readback verified sealed M6/M7 receipts and compiled API inventory; no replay. Exact reviewed main `d517b88c`, full main 41/41, approved runtime content-equivalence. [Final freeze record](https://github.com/threeswordz/cinder-grind/blob/ad0b1f36956c254438a85c6af709f11732abcb54/docs/M8-FINAL-TECHNICAL-AUDIT-2026-11-29.md); [#414 reconciliation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7245063576). [Machine-readable technical closure overlay](./ERP-TECHNICAL-FREEZE-FORECAST-OVERLAY.json) preserves the historical central JSON and its formal-acceptance semantics.
+
+| Forecast | Previous | New scope | Verified remaining estimate retired | Revised |
+|---|---:|---:|---:|---:|
+| Provisional ERP | 1,260h | 0h | 4h | **1,256h** |
+| Canonical issue overlay ERP | 1,560h | 0h | 65h | **1,495h** |
+| Technical M8 | 4h | 0h | 4h | **0h** |
+
+Actual engineering labor unmeasured. Preserve frozen candidate; no further CI, Codex, Mac or recovery replay for unchanged source. Prepare consolidated human UAT and separately governed full ERP work. Older snapshots below are historical.
+
+---
+
 <!-- current-work-m7 -->
 
 **Provisional rebaselined ERP: 1,320h → 0h · prototype 64h → 0h** (M6 0h / M7 26h / M8 38h). Canonical ERP **1,610h**; canonical prototype **115h** (M7 50h / M8 65h). Prototype technical milestones **6/8**; GL **3/10**.
