@@ -6,6 +6,7 @@ import {join,resolve,extname,relative,isAbsolute,dirname} from 'node:path';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {verifyResidualDocumentDelta} from './m6-residual-document-delta.mjs';
+import {admitRecoveryRuntimeFiles} from './m6-residual-recovery-files.mjs';
 const run=promisify(execFile);
 const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RUNTIME_'+c),{safeCode:'M6_RUNTIME_'+c});};
 const API='http://127.0.0.1:33072',WEB='http://127.0.0.1:44172',DB='m6_successor_rehearsal';
@@ -38,20 +39,25 @@ async function stopChild(child){if(!child||child.exitCode!==null||child.signalCo
 // Caller supplies independent retained/recovery and committed-database checks.
 // No service starts until both checks succeed. Runtime is never detached; cleanup
 // always closes just the owned web server and spawned API child.
-export async function withSuccessorRuntime({application,stage,recovery,reuseWebRoot,password,readKeyring,inventory,verifyCustody,verifyBeforeSessions,callback,residualDocuments}){
+export async function withSuccessorRuntime({application,stage,recovery,reuseWebRoot,password,readKeyring,inventory,verifyCustody,verifyBeforeSessions,callback,residualDocuments,recoveryContinuation}){
  need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_|^NODE_TLS_REJECT_UNAUTHORIZED$/.test(k)),'MAC');
  need([application,stage,recovery].every(p=>typeof p==='string'&&resolve(p)===p)&&!within(recovery,stage)&&!within(application,stage)&&!within(stage,recovery)&&!within(stage,application)&&[readKeyring,inventory,verifyCustody,verifyBeforeSessions,callback].every(f=>typeof f==='function'),'CONTEXT');
  // Default remains immutable files; only the residual runtime may use exact
  // source-bound append-only document verification after initial admission.
- if(residualDocuments!==undefined)need(stage===join(dirname(stage),'event266-residual-runtime')&&typeof residualDocuments.readDelta==='function'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(residualDocuments.companyId??''),'DOCUMENT_DELTA_CONTEXT');
- await verifyCustody();await verifyBeforeSessions();await freePort(33072);await freePort(44172);await privateDir(recovery);await mkdir(stage,{mode:0o700});await privateDir(stage);
- const expected={};for(const k of kinds){expected[k]=await inventory(join(recovery,k));await cp(join(recovery,k),join(stage,k),{recursive:true,force:false,errorOnExist:true});need(same(expected[k],await inventory(join(stage,k))),'COPY');}
+ const recovering=recoveryContinuation!==undefined;
+ if(recovering)need(residualDocuments!==undefined,'RECOVERY_CONTEXT');
+ if(residualDocuments!==undefined&&!recovering)need(stage===join(dirname(stage),'event266-residual-runtime')&&typeof residualDocuments.readDelta==='function'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(residualDocuments.companyId??''),'DOCUMENT_DELTA_CONTEXT');
+ await verifyCustody();await verifyBeforeSessions();await freePort(33072);await freePort(44172);await privateDir(recovery);
+ const adopted=recovering?await admitRecoveryRuntimeFiles({stage,recovery,priorRuntime:recoveryContinuation.priorRuntime,authorization:recoveryContinuation.authorization,inventory,residualDocuments}):null;
+ await mkdir(stage,{mode:0o700});await privateDir(stage);
+ const expected={};if(adopted)await adopted.copy();else for(const k of kinds){expected[k]=await inventory(join(recovery,k));await cp(join(recovery,k),join(stage,k),{recursive:true,force:false,errorOnExist:true});need(same(expected[k],await inventory(join(stage,k))),'COPY');}
  let mutationWindow=false;
- const files=async()=>{const result={},recoveryNow={};for(const k of kinds){result[k]=await inventory(join(stage,k));recoveryNow[k]=await inventory(join(recovery,k));need(same(expected[k],recoveryNow[k]),'RECOVERY_FILE_DRIFT');}
+ const files=async()=>{if(adopted)return adopted.verify();const result={},recoveryNow={};for(const k of kinds){result[k]=await inventory(join(stage,k));recoveryNow[k]=await inventory(join(recovery,k));need(same(expected[k],recoveryNow[k]),'RECOVERY_FILE_DRIFT');}
    if(mutationWindow&&residualDocuments){const delta=await residualDocuments.readDelta();verifyResidualDocumentDelta({before:expected,after:result,recovery:recoveryNow,expected:delta.expected,documents:delta.documents,companyId:residualDocuments.companyId});}
    else for(const k of kinds)need(same(expected[k],result[k]),'FILE_DRIFT');
    return result;};
- const webRoot=join(stage,'web');let child,web,primary,result,cleanupFailed=false;
+ const webRoot=join(stage,'web');let child,web,primary,result,cleanupFailed=false;const cleanupCodes=[];
+ const cleanup=async(code,fn)=>{try{await fn();}catch{cleanupFailed=true;cleanupCodes.push(code);}};
  try{
   let priorWebInventory;
   if(reuseWebRoot)priorWebInventory=await reuseSuccessorWebBuild({stage,prior:reuseWebRoot,inventory});
@@ -67,6 +73,7 @@ export async function withSuccessorRuntime({application,stage,recovery,reuseWebR
   const check=async()=>{await verifyCustody();need(child.exitCode===null&&child.signalCode===null&&web.listening&&web.address()?.address==='127.0.0.1'&&web.address()?.port===44172,'PROCESS');const cmd=async(exe,args)=>(await run(exe,args,{env:env(),timeout:10000,maxBuffer:1048576})).stdout.trim();need(await cmd('/bin/ps',['-ww','-p',String(child.pid),'-o','command='])===process.execPath+' '+entry&&await cmd('/bin/ps',['-p',String(child.pid),'-o','uid='])===String(process.getuid())&&await cmd('/bin/ps',['-p',String(child.pid),'-o','lstart='])===born,'PROCESS_IDENTITY');const listeners=await cmd('/usr/sbin/lsof',['-nP','-iTCP:33072','-sTCP:LISTEN','-Fpfn']);need(same(listeners.split('\n').filter(x=>x.startsWith('p')),['p'+child.pid])&&same(listeners.split('\n').filter(x=>x.startsWith('n')),['n127.0.0.1:33072']),'API_LISTENER');const health=await fetch(API+'/api/v1/health/ready',{redirect:'error',signal:AbortSignal.timeout(4000)});need(health.ok,'HEALTH');const h=await health.json();need(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok','HEALTH');};
   let healthy=false;for(let i=0;i<60;i++){if(child.exitCode!==null||child.signalCode!==null)break;try{const r=await fetch(API+'/api/v1/health/ready',{redirect:'error',signal:AbortSignal.timeout(1000)});if(r.ok){const h=await r.json();if(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok'){healthy=true;break;}}}catch{}await wait(500);}need(healthy,'STARTUP');
   await check();await verifyBeforeSessions();await files();mutationWindow=true;result=await callback({origin:API,webOrigin:WEB,verifyRuntime:check,readFiles:files});await check();await files();need(same(webInventory,await inventory(webRoot,{privateRoot:false}))&&same(apiInventory,await inventory(join(application,'apps/api/dist'),{privateRoot:false}))&&(!reuseWebRoot||same(priorWebInventory,await inventory(reuseWebRoot,{privateRoot:false}))),'ARTIFACT_DRIFT');
- }catch(e){primary=e;}finally{try{if(web)await new Promise((ok,fail)=>web.close(e=>e?fail(e):ok()));}catch{cleanupFailed=true;}try{await stopChild(child);}catch{cleanupFailed=true;}try{await freePort(33072);await freePort(44172);await verifyCustody();await files();}catch{cleanupFailed=true;}}
+ }catch(e){primary=e;}finally{await cleanup('WEB_STOP',async()=>{if(web)await new Promise((ok,fail)=>web.close(e=>e?fail(e):ok()));});await cleanup('API_STOP',()=>stopChild(child));if(recovering){await cleanup('API_PORT',()=>freePort(33072));await cleanup('WEB_PORT',()=>freePort(44172));await cleanup('CUSTODY',verifyCustody);await cleanup('FILES',files);}else await cleanup('CUSTODY_OR_FILES',async()=>{await freePort(33072);await freePort(44172);await verifyCustody();await files();});}
+ if(recovering&&cleanupFailed){const primarySafeCode=/^(M6_|BROWSER_)[A-Z0-9_]{1,100}$/.test(primary?.safeCode??'')?primary.safeCode:(primary?'M6_RUNTIME_PRIMARY_UNKNOWN':null);throw Object.assign(Error('M6_RUNTIME_RECOVERY_CLEANUP'),{safeCode:'M6_RUNTIME_RECOVERY_CLEANUP',primarySafeCode,cleanupCodes:[...cleanupCodes]});}
  need(!cleanupFailed,'CLEANUP');if(primary)throw primary;return result;
 }
