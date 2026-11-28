@@ -2,6 +2,25 @@
 
 <!-- current-work-m6 -->
 
+**Provisional rebaselined ERP: 1,324.25h → 0h · prototype 68.25h → 0h** (M6 4.25h / M7 26h / M8 38h). Canonical ERP 1,614.25h; canonical prototype 119.25h.
+
+**Latest evidence (Event278):** [Native site row capture and exact delta](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234226402), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/e8ac3c34ad4d84f9ff97425d79eca03f482d9dbb). 5/5 actual local controlled Prisma-response tests; exact blob equality, read-only 174-table census, scoped native row/hash and workflow/sequence proof. Event277 recovered without duplicate credit. No real PostgreSQL/Mac execution; optional type creation native path untested; UTC month-boundary attempts blocked. Estimated preparation retirement 0.25h.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 2h |
+| M6-03 | 0.75h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **4.25h** |
+
+Next: SS08 native terminal delta, document file and session lifecycle wiring, consolidated execution/browser and durable receipt; stable DEC-022 independent review, exact Owner authorization, one Mac execution and acceptance reconciliation. No Owner action now. No repeated preflight, historical browser replay, intermediate full CI/Codex or Production.
+
+Prior entries below are historical snapshots.
+
+
+
 **Provisional rebaselined ERP: 1,324.5h → 0h · prototype 68.5h → 0h** (M6 4.5h / M7 26h / M8 38h). Canonical ERP 1,614.5h; canonical prototype 119.5h.
 
 **Latest evidence (Event277):** [Site fixture delta contract](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234182979), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/0df5edd82843e585ca05c4461885d6fbbeaeef77). 8/8 actual local pure fixture tests, exact blob equality; full census, approved BOQ successor facts, independent material plan, exact business numbering update and all other historical rows preserved in contract. Native row capture, SS08 delta and runtime file/session evidence pending; no formal acceptance. Estimated distinct preparation retirement 0.25h only.
