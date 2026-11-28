@@ -7634,6 +7634,27 @@
       "blocker": "Site/SS08 phase-specific non-append-only delta contracts, actual runtime document bytes, session lifecycle, unified entry/browser, stable independent review and exact execution authorization. No native DB run yet.",
       "reductionHours": 0.25,
       "verifiedCompletedScopeHours": 0.25
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "0df5edd82843e585ca05c4461885d6fbbeaeef77",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234182979",
+        "https://github.com/threeswordz/cinder-grind/commit/0df5edd82843e585ca05c4461885d6fbbeaeef77"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-02-277",
+      "packageId": "M6-02",
+      "kind": "SITE_FIXTURE_DELTA_CONTRACT_TESTED",
+      "beforeHours": 2.5,
+      "afterHours": 2.25,
+      "basis": "Actual local Node22.16.0 syntax and 8/8 pure fixture tests, exact published hashes. Pinned source-backed 174-table site delta contract with one exact number sequence change and immutable historical BOQ. 0.25h distinct preparation retirement.",
+      "blocker": "Native site and SS08 row capture, exact allocation timestamp, runtime file bytes and session lifecycle, consolidated execution/browser and independent review/authorization.",
+      "reductionHours": 0.25,
+      "verifiedCompletedScopeHours": 0.25
     }
   ],
   "unestimatedWork": [
@@ -7663,8 +7684,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1614.75,
-  "currentRollingTotalSemantics": "Event276: M6-02 2.5h, M6-03 0.75h, M6 4.75h, M7 50h, M8 65h, canonical prototype119.75h, ERP1614.75h; provisional ERP1324.75h/prototype68.75h. Native append-only evidence adapter tested 7/7 controlled responses; actual DB/file/browser proof pending; measured labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1614.5,
+  "currentRollingTotalSemantics": "Event277: M6-02 2.25h, M6-03 0.75h, M6 4.5h, M7 50h, M8 65h, canonical prototype119.5h, ERP1614.5h; provisional ERP1324.5h/prototype68.5h. Site delta contract 8/8 pure fixture tests; actual DB/file/browser pending; measured labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
