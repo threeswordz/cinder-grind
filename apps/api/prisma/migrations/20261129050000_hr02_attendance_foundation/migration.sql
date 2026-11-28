@@ -36,14 +36,14 @@ CREATE TABLE hr_attendance_allocations (
  CONSTRAINT hr_attendance_allocations_values CHECK(source_project_id<>target_project_id AND valid_from<=valid_through AND length(btrim(authorization_reference))>0)
 );
 CREATE INDEX hr_attendance_allocations_source_dates_idx ON hr_attendance_allocations(source_company_id,source_project_id,valid_from,valid_through);
-CREATE FUNCTION hr_attendance_allocation_guard() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE FUNCTION hr_attendance_allocation_guard() RETURNS trigger LANGUAGE plpgsql AS $hr02_allocation$
 BEGIN
  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'HR_HISTORY_IMMUTABLE' USING ERRCODE='23514'; END IF;
  IF OLD.revoked_at IS NOT NULL OR NEW.revoked_at IS NULL
  OR (to_jsonb(NEW)-'revoked_at') IS DISTINCT FROM (to_jsonb(OLD)-'revoked_at')
  THEN RAISE EXCEPTION 'HR_ATTENDANCE_ALLOCATION_IMMUTABLE' USING ERRCODE='23514'; END IF;
  RETURN NEW;
-END $;
+END $hr02_allocation$;
 CREATE TRIGGER hr_attendance_allocation_guard BEFORE UPDATE OR DELETE ON hr_attendance_allocations FOR EACH ROW EXECUTE FUNCTION hr_attendance_allocation_guard();
 
 CREATE TABLE hr_attendance_lines (
