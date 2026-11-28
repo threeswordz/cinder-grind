@@ -1,5 +1,33 @@
 # Construction ERP — live countdown to 0 hours
 
+<!-- current-work-m7 -->
+
+**Provisional rebaselined ERP: 1,320h → 0h · prototype 64h → 0h** (M6 0h / M7 26h / M8 38h). Canonical ERP **1,610h**; canonical prototype **115h** (M7 50h / M8 65h). Prototype technical milestones **6/8**; GL **3/10**.
+
+**Latest evidence (28 Nov 2026 SGT):** [M6 technical exit and exact terminal proof](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684), [milestone board](https://github.com/threeswordz/cinder-grind/issues/305#issuecomment-7239654370), [M7 source rebind handoff](https://github.com/threeswordz/cinder-grind/issues/460#issuecomment-7239655023). Actual Mac browser-only recovery sealed, five actors verified, all prior 139 sessions preserved and five new revoked, 144 total/0 active, 7 supplier events/2 dispatch events/6 files preserved, zero new business transactions/uploads; both plan and proof hashes independently recomputed from sanitized transcript and matched. 26/26 distinct registered Node24 tests, #461/#462/#463 independent code reviews. All five M6 technical packages reconciled; operator's human/acceptance flags remain false, human UAT deferred under DEC-042. Review-only branches not merged; M8 full integration/release gates intact. No Production authorization.
+
+| M6 package | Prior estimate | Remaining |
+|---|---:|---:|
+| M6-01 runtime/custody | 0.5h | 0h |
+| M6-02 site/BOQ/material | 2h | 0h |
+| M6-03 procurement/stock | 0.75h | 0h |
+| M6-04 subcontract | 0.5h | 0h |
+| M6-05 HR protected docs | 0.5h | 0h |
+| **M6 total** | **4.25h** | **0h** |
+
+| Forecast reconciliation | Canonical ERP | Provisional ERP |
+|---|---:|---:|
+| Previous | 1,614.25h | 1,324.25h |
+| New scope | +0h | +0h |
+| Verified remaining estimate retired | −4.25h | −4.25h |
+| Revised | **1,610h** | **1,320h** |
+
+Actual labor unknown; rework absorbed, not a new scope or additional hour credit. No M7 parallel preparation credit booked in this reconciliation.
+
+Next: M7 coordinator rebind to final app 3e35105e and terminal snapshot 4c14c03b, paired populated source DB/Documents/uploads/external HR keys, separate isolated restore and authenticated functional/denial verification. Existing preparation branch 46e9c68e. Preserve M6 and all prior attempts; no replay. Applicable stable review and authorized execution before native M7; M8 audit/freeze and comprehensive human UAT afterward.
+
+Historical snapshots below.
+
 <!-- current-work-m6 -->
 
 **Provisional rebaselined ERP: 1,324.25h → 0h · prototype 68.25h → 0h** (M6 4.25h / M7 26h / M8 38h). Canonical ERP 1,614.25h; canonical prototype 119.25h.
