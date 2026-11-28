@@ -53,6 +53,14 @@ export function terminalRecoveryProof({session,files,browser,supplier,preserved,
  need(preserved?.retainedDatabaseAndFilesUnchanged===true&&preserved.recoveryCopyUnchanged===true&&preserved.failedAttemptUnchanged===true&&preserved.zeroActiveSessions===true&&preserved.listenerPortsReleased===true&&preserved.sessionRows===139&&hex(preserved.terminalSnapshotSha256)&&session.terminalSnapshotSha256===preserved.terminalSnapshotSha256&&hex(receiptBinding?.planSha256),'PRESERVATION');
  return {...receiptBinding,...session,...files,...preserved,browserVerified:true,browserActors:5,additionalLogins:0,ss08SignedReceiptRendered:true,fm02WeightedProgressRendered:true,fm02WeightedPercent:'40.00',supplierReturnCustodyRendered:true,supplierCanonicalApiVerified:true,supplierLifecycleEvents:7,supplierReplacementJourneyVerified:false,supplierDenialKind:supplier.supplierDenialKind,foreignOrderDenied:supplier.foreignOrderDenied,absentOrderDenied:supplier.absentOrderDenied,priorNativeScopeEvidenceReused:supplier.priorNativeScopeEvidenceReused,priorNativeScopeReceipt:supplier.priorNativeScopeReceipt,committedPhasesPreserved:[...committedPrefix],executionVerified:true,milestone6Accepted:false,humanUatCompleted:false,productionAuthorized:false,automaticRetryAllowed:false,secretsPrinted:false};
 }
+export function bindRecoveredReceiving({ready,source,journey},orderId){
+ need(ready?.status==='RECEIVING_POPULATED_MAC_UPGRADE_AND_BROWSER_VERIFIED'&&ready.reviewedApp==='211df5425c182cf8c79bfbd1e69556371b6b1fce'&&ready.canonicalGrApprovalVerified===true&&ready.sessionsRevoked===true&&ready.productionAuthorized===false&&journey?.status==='RECEIVING_BROWSER_JOURNEY_VERIFIED'&&uuid(journey.deliveryId)&&uuid(journey.goodsReceiptId)&&uuid(orderId)&&source?.po?.id===orderId&&Array.isArray(journey.documentIds)&&journey.documentIds.length===3&&journey.documentIds.every(uuid)&&new Set(journey.documentIds).size===3,'RECEIVING_RECEIPT');
+ return journey.deliveryId;
+}
+export async function readRecoveredReceiving(root,orderId,readJson=json){
+ const rc=join(root,'receiving-upgrade');
+ return bindRecoveredReceiving({ready:await readJson(join(rc,'ready.json')),source:await readJson(join(rc,'source-private.json')),journey:await readJson(join(rc,'journey-private.json'))},orderId);
+}
 // Source IDs come only from the exact observed post-failure census, never from a new write.
 async function observeSources(tx,{fixture:f,actors,files,artifacts,root}){
  const snapshot=await captureFixtureRows(tx);need(digest(snapshot)===a.snapshotSha256&&snapshot.user_sessions.length===134&&snapshot.po_dispatch_events.length===0,'SNAPSHOT');await requireNoLiveSessions(tx);
@@ -66,10 +74,10 @@ async function observeSources(tx,{fixture:f,actors,files,artifacts,root}){
  }
  const project=await tx.project.findUnique({where:{id:f.projectId},include:{members:true}});need(project?.companyId===f.companyId&&project.projectCode==='SITE_A'&&project.isActive===true&&names.every(key=>roster[key].permissions.includes('projects.access_all')||project.members.some(x=>x.employeeId===actors[key].employeeId&&x.isActive===true)),'PROJECT');
  const order=await tx.purchaseOrder.findUnique({where:{id:recovered.dispatch.entityId},include:{approvalInstance:true,nextRevision:true}});
- const receiving=await json(join(root,'receiving-upgrade','source-journey-private.json'));need(receiving.status==='RECEIVING_BROWSER_JOURNEY_VERIFIED'&&uuid(receiving.deliveryId),'RECEIVING_RECEIPT');
- const delivery=await tx.receivingDelivery.findUnique({where:{id:receiving.deliveryId},include:{replacement:true,lines:{include:{purchaseOrderLine:true}},evidence:{include:{replacement:true,document:{include:{links:true}}}}}});
+ const deliveryId=await readRecoveredReceiving(root,recovered.dispatch.entityId);
+ const delivery=await tx.receivingDelivery.findUnique({where:{id:deliveryId},include:{replacement:true,lines:{include:{purchaseOrderLine:true}},evidence:{include:{replacement:true,document:{include:{links:true}}}}}});
  const dispatchDoc=docs.find(x=>x.id===recovered.dispatch.id),receiptDoc=docs.find(x=>x.id===recovered.receipt.id);need(dispatchDoc.documentTypeId===receiptDoc.documentTypeId,'DOCUMENT_TYPE');
- const plan=planResidualSupplierSources({binding:{...scope,orderId:recovered.dispatch.entityId,deliveryId:receiving.deliveryId,observed:'4.0000',good:'3.0000'},order,delivery,lines:(delivery?.lines??[]).map(x=>({...x,observedQuantity:String(x.observedQuantity),goodQuantity:String(x.goodQuantity)})),evidence:delivery?.evidence??[],dispatchEvents:[],roster,documentType:dispatchDoc.documentType,artifacts});
+ const plan=planResidualSupplierSources({binding:{...scope,orderId:recovered.dispatch.entityId,deliveryId,observed:'4.0000',good:'3.0000'},order,delivery,lines:(delivery?.lines??[]).map(x=>({...x,observedQuantity:String(x.observedQuantity),goodQuantity:String(x.goodQuantity)})),evidence:delivery?.evidence??[],dispatchEvents:[],roster,documentType:dispatchDoc.documentType,artifacts});
  need(await tx.auditLog.count({where:{companyId:f.companyId,entityType:'SUPPLIER_DELIVERY_CASE',entityId:plan.orderId}})===0,'SUPPLIER_ALREADY_STARTED');
  const request=await tx.materialRequest.findUnique({where:{id:recovered.receipt.entityId}}),receipts=await tx.materialRequestReceipt.findMany({where:{requestId:recovered.receipt.entityId,documentId:recovered.receipt.id},take:2});
  need(request?.companyId===f.companyId&&request.projectId===f.projectId&&request.version===3&&receipts.length===1&&receipts[0].supersedesReceiptId===null,'SS08');
