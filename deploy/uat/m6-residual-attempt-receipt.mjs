@@ -7,7 +7,8 @@ const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_RECEIPT_'+c),{
 const APP='70013b5139292ef33563447f8937c8f132feabd2',DISCOVERY='840477f8c18665953ed3285635adc81f5091fadb';
 const hex=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
-const phases=['roles','fixtures','sessions','ss08','fm02','supplier','cleanup'];
+// Sessions are admitted before any canonical authenticated fixture API call.
+const phases=['roles','sessions','fixtures','ss08','fm02','supplier','cleanup'];
 const uid=()=>process.getuid();
 async function privateDir(path){const s=await lstat(path);need(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===uid()&&!(s.mode&0o077)&&await realpath(path)===path,'DIRECTORY');}
 async function syncDir(path){const f=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW);try{await f.sync();}finally{await f.close();}}
