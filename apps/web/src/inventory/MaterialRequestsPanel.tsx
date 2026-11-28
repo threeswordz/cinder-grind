@@ -6,6 +6,7 @@ import { documentsApi } from '../api/documents';
 import { inventoryApi } from '../api/inventory';
 import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 import { materialRequestLabels } from './material-request-labels';
+import { createMaterialRequestCommandGate, maySendMaterialRequestCommand, type MaterialRequestCommandGate, type MaterialRequestCommandScope } from './material-request-command-gate';
 type ChoiceProps = {
     projectId: string;
     kind: string;
@@ -32,7 +33,8 @@ function Choice({ projectId, kind, label, value, onChange, disabled = false }: C
   <Stack direction="row" spacing={1}><Button size="small" disabled={disabled || cursors.length === 1} onClick={() => setCursors(c => c.slice(0, -1))}>{t.previous}</Button><Button size="small" disabled={disabled || !q.data?.data.nextCursor || q.isError} onClick={() => setCursors(c => [...c, q.data!.data.nextCursor!])}>{t.next}</Button></Stack>
  </Stack>;
 }
-function useCommand(onSaved: (id: string, version: number) => void) {
+type CommandOwner = { gate: MaterialRequestCommandGate; locked: boolean; setLocked: (value: boolean) => void };
+function useCommand(owner: CommandOwner, scope: MaterialRequestCommandScope, onSaved: (id: string, version: number) => void) {
     const cache = useQueryClient(), [pending, setPending] = useState<{
         suffix: string;
         body: unknown;
@@ -40,11 +42,12 @@ function useCommand(onSaved: (id: string, version: number) => void) {
     const mutation = useMutation({ mutationFn: (intent: {
             suffix: string;
             body: unknown;
-        }) => api.command(intent.suffix, intent.body), onSuccess: async (r) => { setPending(null); onSaved(r.data.id, r.data.version); await cache.invalidateQueries({ queryKey: ['material-requests'] }); } });
-    return { busy: mutation.isPending, frozen: pending !== null, error: mutation.isError, saved: mutation.isSuccess,
-        send: (suffix: string, body: unknown) => { const intent = { suffix, body }; setPending(intent); mutation.mutate(intent); },
-        retry: () => { if (pending)
-            mutation.mutate(pending); }, clear: () => { setPending(null); mutation.reset(); } };
+        }) => api.command(intent.suffix, intent.body), onSuccess: async (r) => { owner.gate.succeed(); setPending(null); onSaved(r.data.id, r.data.version); await cache.invalidateQueries({ queryKey: ['material-requests'] }); }, onSettled: () => { owner.gate.settle(); owner.setLocked(owner.gate.hasPending()); } });
+    return { busy: mutation.isPending, frozen: owner.locked || pending !== null || !scope.authorized, error: mutation.isError, saved: mutation.isSuccess,
+        retryAuthorized: pending !== null && maySendMaterialRequestCommand(pending, scope),
+        send: (suffix: string, body: unknown) => { const intent = { suffix, body }; if (!owner.gate.begin(intent, scope)) return; owner.setLocked(true); setPending(intent); mutation.mutate(intent); },
+        retry: () => { const pending = owner.gate.retry(scope); if (pending) mutation.mutate(pending); },
+        clear: () => { if (pending !== null && !owner.gate.clear(scope)) return; setPending(null); mutation.reset(); owner.setLocked(owner.gate.hasPending()); } };
 }
 type DraftLine = {
     materialId: string;
@@ -63,43 +66,50 @@ function CommandNotice({ c }: {
     c: ReturnType<typeof useCommand>;
 }) {
     const t = materialRequestLabels[useContext(MonetaryLocaleContext)];
-    return <>{c.error ? <Alert severity="error">{t.uncertain}<Button disabled={c.busy} onClick={c.retry}>{t.retry}</Button><Button disabled={c.busy} onClick={c.clear}>{t.clear}</Button></Alert> : c.saved ? <Alert severity="success">{t.saved}</Alert> : null}</>;
+    return <>{c.error ? <Alert severity="error">{t.uncertain}<Button disabled={c.busy || !c.retryAuthorized} onClick={c.retry}>{t.retry}</Button><Button disabled={c.busy} onClick={c.clear}>{t.clear}</Button></Alert> : c.saved ? <Alert severity="success">{t.saved}</Alert> : null}</>;
 }
 export function MaterialRequestsPanel({ permissions }: {
     permissions: string[];
 }) {
     const t = materialRequestLabels[useContext(MonetaryLocaleContext)], can = (s: string) => permissions.includes('inventory.material_request.' + s);
     const [projectId, setProject] = useState(''), [selected, setSelected] = useState(''), [pages, setPages] = useState(['']);
+    const gate = useRef(createMaterialRequestCommandGate()).current;
+    const [locked, setLocked] = useState(false);
+    const owner = { gate, locked, setLocked };
     const projects = useQuery({ queryKey: ['material-requests', 'projects'], queryFn: api.projects, retry: false, gcTime: 0, refetchOnWindowFocus: true });
-    const list = useQuery({ queryKey: ['material-requests', 'list', projectId, pages.at(-1)], queryFn: () => api.list(projectId, pages.at(-1)), enabled: Boolean(projectId), retry: false, gcTime: 0, refetchOnWindowFocus: true });
+    const projectVisible = projects.isSuccess && projects.data.data.some(p => p.id === projectId);
+    const list = useQuery({ queryKey: ['material-requests', 'list', projectId, pages.at(-1)], queryFn: () => api.list(projectId, pages.at(-1)), enabled: projectVisible, retry: false, gcTime: 0, refetchOnWindowFocus: true });
+    const visible = projectVisible && list.isSuccess;
+    const authorized = visible && !projects.isFetching && !list.isFetching;
     if (!can('view'))
         return null;
     return <Stack spacing={2}>
   <Typography variant="h6">{t.title}</Typography><Alert severity="info">{t.scope}</Alert>
-  <TextField select label={t.project} value={projectId} onChange={e => { setProject(e.target.value); setSelected(''); setPages(['']); }}>
+  <TextField select label={t.project} value={projectId} disabled={locked} onChange={e => { if (gate.hasPending()) return; setProject(e.target.value); setSelected(''); setPages(['']); }}>
    <MenuItem value="">{t.select}</MenuItem>{!projects.isError ? (projects.data?.data ?? []).map(p => <MenuItem key={p.id} value={p.id}>{p.projectCode} · {p.projectName}</MenuItem>) : null}
   </TextField>
   {projects.isError || list.isError ? <Alert severity="error">{t.error}</Alert> : null}
-  {projectId && !projects.isError && !list.isError ? <>
-   {can('create') ? <CreateRequest key={projectId} projectId={projectId} onSaved={setSelected}/> : null}
-   <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={1}>
+  {projectId ? <>
+   {can('create') ? <CreateRequest key={projectId} projectId={projectId} permissions={permissions} owner={owner} visible={visible} authorized={authorized} onSaved={setSelected}/> : null}
+   {projectVisible ? <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={1}>
     <Button onClick={() => void list.refetch()}>{t.reload}</Button>
-    {(list.data?.data.items ?? []).map(r => <Button key={r.id} onClick={() => setSelected(r.id)}>{t.open}: {r.requestDate.slice(0, 10)} · {r.requester.employeeName} · {r.warehouse.warehouseName} · {r.id.slice(0, 8)}</Button>)}
-    {list.data && !list.data.data.items.length ? <Typography>{t.empty}</Typography> : null}
-    <Stack direction="row"><Button disabled={pages.length === 1} onClick={() => setPages(p => p.slice(0, -1))}>{t.previous}</Button><Button disabled={!list.data?.data.nextCursor} onClick={() => setPages(p => [...p, list.data!.data.nextCursor!])}>{t.next}</Button></Stack>
-   </Stack></Paper>
-   {selected ? <RequestDetail key={projectId + ':' + selected + ':' + [...permissions].sort().join(',')} id={selected} projectId={projectId} permissions={permissions}/> : <Typography>{t.choose}</Typography>}
+    {(visible ? list.data?.data.items ?? [] : []).map(r => <Button key={r.id} disabled={locked || !authorized} onClick={() => { if (!gate.hasPending()) setSelected(r.id); }}>{t.open}: {r.requestDate.slice(0, 10)} · {r.requester.employeeName} · {r.warehouse.warehouseName} · {r.id.slice(0, 8)}</Button>)}
+    {visible && list.data && !list.data.data.items.length ? <Typography>{t.empty}</Typography> : null}
+    <Stack direction="row"><Button disabled={locked || !authorized || pages.length === 1} onClick={() => { if (!gate.hasPending()) setPages(p => p.slice(0, -1)); }}>{t.previous}</Button><Button disabled={locked || !authorized || !list.data?.data.nextCursor} onClick={() => { if (!gate.hasPending()) setPages(p => [...p, list.data!.data.nextCursor!]); }}>{t.next}</Button></Stack>
+   </Stack></Paper> : null}
+   {selected ? <RequestDetail key={projectId + ':' + selected + ':' + [...permissions].sort().join(',')} id={selected} projectId={projectId} permissions={permissions} owner={owner} visible={visible} authorized={authorized}/> : <Typography>{t.choose}</Typography>}
   </> : null}
  </Stack>;
 }
-function CreateRequest({ projectId, onSaved }: {
-    projectId: string;
+type RequestCommandProps = { projectId: string; permissions: string[]; owner: CommandOwner; visible: boolean; authorized: boolean };
+function CreateRequest({ projectId, permissions, owner, visible, authorized, onSaved }: RequestCommandProps & {
     onSaved: (id: string) => void;
 }) {
-    const t = materialRequestLabels[useContext(MonetaryLocaleContext)], c = useCommand(id => { onSaved(id); setLines([emptyLine()]); setNote(''); });
+    const t = materialRequestLabels[useContext(MonetaryLocaleContext)], c = useCommand(owner, { projectId, requestId: null, permissions, authorized }, id => { onSaved(id); setLines([emptyLine()]); setNote(''); });
     const [warehouse, setWarehouse] = useState(''), [requester, setRequester] = useState(''), [date, setDate] = useState(() => new Date().toISOString().slice(0, 10)), [note, setNote] = useState(''), [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
     const change = (i: number, patch: Partial<DraftLine>) => setLines(ls => ls.map((l, n) => n === i ? { ...l, ...patch } : l));
     const ready = Boolean(warehouse && requester && date && lines.every(l => l.materialId && l.uomId && positive(l.requestedQuantity)));
+    if (!visible) return <CommandNotice c={c}/>;
     return <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={2}>
   <Typography>{t.create}</Typography><CommandNotice c={c}/>
   <Choice projectId={projectId} kind="warehouses" label={t.warehouse} value={warehouse} disabled={c.frozen} onChange={r => setWarehouse(r?.id ?? '')}/>
@@ -122,26 +132,23 @@ function CreateRequest({ projectId, onSaved }: {
   <Button variant="contained" disabled={!ready || c.frozen} onClick={() => c.send('', { requestKey: crypto.randomUUID(), projectId, warehouseId: warehouse, requesterEmployeeId: requester, requestDate: date, remarks: note || null, lines: lines.map(({ materialLabel: _m, uomLabel: _u, ...l }) => l) })}>{t.create}</Button>
  </Stack></Paper>;
 }
-function RequestDetail({ id, projectId, permissions }: {
-    id: string;
-    projectId: string;
-    permissions: string[];
-}) {
+function RequestDetail({ id, projectId, permissions, owner, visible, authorized }: RequestCommandProps & { id: string }) {
     const t = materialRequestLabels[useContext(MonetaryLocaleContext)], can = (s: string) => permissions.includes('inventory.material_request.' + s);
-    const q = useQuery({ queryKey: ['material-requests', 'detail', projectId, id], queryFn: () => api.get(id), retry: false, gcTime: 0, refetchOnWindowFocus: true, refetchInterval: 15000 });
+    const q = useQuery({ queryKey: ['material-requests', 'detail', projectId, id], queryFn: () => api.get(id), enabled: visible, retry: false, gcTime: 0, refetchOnWindowFocus: true, refetchInterval: 15000 });
     const [sourceIssue, setSourceIssue] = useState('');
-    const [pin, setPin] = useState<number | null>(null), [mode, setMode] = useState(''), c = useCommand((_id, version) => { setPin(version); setMode(''); });
-    useEffect(() => { if (pin === null && q.data && !q.isError)
-        setPin(q.data.data.version); }, [pin, q.data, q.isError]);
+    const readAuthorized = authorized && q.isSuccess && !q.isFetching && q.data.data.id === id && q.data.data.projectId === projectId;
+    const [pin, setPin] = useState<number | null>(null), [mode, setMode] = useState(''), c = useCommand(owner, { projectId, requestId: id, permissions, authorized: readAuthorized }, (_id, version) => { setPin(version); setMode(''); });
+    useEffect(() => { if (pin === null && readAuthorized && q.data)
+        setPin(q.data.data.version); }, [pin, q.data, readAuthorized]);
     if (q.isError)
-        return <Alert severity="error">{t.error}</Alert>;
+        return <><Alert severity="error">{t.error}</Alert><CommandNotice c={c}/></>;
     const d = q.data?.data;
-    if (!d || d.projectId !== projectId)
-        return null;
+    if (!visible || !d || d.projectId !== projectId || d.id !== id)
+        return <CommandNotice c={c}/>;
     const stale = pin !== d.version, busy = c.frozen || stale;
     return <Paper variant="outlined" sx={{ p: 2, overflowX: 'auto' }}><Stack spacing={2}>
   <Typography variant="h6">{t.requester}: {d.requester.employeeName} · {d.requestDate.slice(0, 10)} · {t.version} {d.version}</Typography>
-  <Button disabled={c.busy} onClick={() => { c.clear(); setMode(''); void q.refetch().then(result => setPin(result.isError ? null : result.data?.data.version ?? null)); }}>{t.reload}</Button><CommandNotice c={c}/>{stale ? <Alert severity="warning">{t.stale}</Alert> : null}
+  <Button disabled={c.busy || !authorized} onClick={() => { c.clear(); setMode(''); void q.refetch().then(result => setPin(result.isError ? null : result.data?.data.version ?? null)); }}>{t.reload}</Button><CommandNotice c={c}/>{stale ? <Alert severity="warning">{t.stale}</Alert> : null}
   <Table size="small"><TableHead><TableRow>{[t.material, t.requested, t.issued, t.remaining, t.acknowledged, t.state].map(x => <TableCell key={x}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{d.lines.map(l => <TableRow key={l.id}><TableCell>{l.material.materialCode} · {l.material.materialName} ({l.uom.uomCode})</TableCell><TableCell>{l.requestedQuantity}{l.requestStockBasis ? <Typography variant="caption" display="block">
  {t.stockRequested}: {l.requestStockBasis.stockQuantity} {l.requestStockBasis.stockUomCode}
  {' · '}{t.frozenRatio}: {l.requestStockBasis.numerator}/{l.requestStockBasis.denominator}

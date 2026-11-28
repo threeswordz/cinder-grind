@@ -1,3 +1,4 @@
+import {prepareConvertedCorrectionFixture,proveConvertedCorrection} from './m6-parallel-03-ss16-native-proof';
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -285,7 +286,7 @@ test('DEC-050 B actual controlled conversion dispatch, partial receipt and origi
   const dispatch={requestKey:randomUUID(),expectedVersion:await version(),reason:'Synthetic dispatch'};
   await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);
   assert.equal(await qty(f.warehouse.id),'160');assert.equal(await legacyBalance(f.warehouse.id),'7');assert.equal(await qty(f.destinationWarehouse.id),'0');
-  const origin=await db.stockTransaction.findFirstOrThrow({where:{stockTransferId:transfer.id,movementType:'STOCK_TRANSFER_OUT'}});
+  const origin=await db.stockTransaction.findFirstOrThrow({where:{stockTransferId:transfer.id,materialId:f.material.id,movementType:'STOCK_TRANSFER_OUT'}});
   assert.equal(origin.quantity.toString(),'-40');
   const base=await app.getUrl()+'/api/v1',destination='/inventory/transfer-custody/projects/'+f.unassigned.id+'/transfers/'+transfer.id;
   async function call(p:string,body:unknown){
@@ -304,12 +305,13 @@ test('DEC-050 B actual controlled conversion dispatch, partial receipt and origi
   await receive('0.5');assert.equal(await qty(f.destinationWarehouse.id),'10');
   await assert.rejects(db.materialUomTransferSourcePin.update({where:{transferItemId:pin.transferItemId},data:{numerator:'24'}}),/MATERIAL_UOM_TRANSFER_SOURCE_IMMUTABLE/);
   assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,false);
-  await assert.rejects(svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Still in transit'));
+  await prepareConvertedCorrectionFixture(db,f,['STOCK_TRANSFER']);
+  await proveConvertedCorrection(db,f,base,'STOCK_TRANSFER',transfer.id,'Still in transit','TRANSFER_OUTSTANDING_CUSTODY_NOT_REVERSIBLE');
   await receive('1.5');assert.equal(await qty(f.destinationWarehouse.id),'40');
   assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,true);
   const effects=await db.stockTransaction.findMany({where:{stockTransferId:transfer.id},include:{materialUomEffectPin:true}});
   assert.equal(effects.length,5);assert.ok(effects.filter(e=>e.materialId===f.material.id).every(e=>e.materialUomEffectPin?.revisionId===pin.revisionId&&e.uomId===f.canonicalUomId));assert.ok(effects.filter(e=>e.materialId===f.secondaryMaterial!.id).every(e=>e.materialUomEffectPin===null&&e.uomId===f.uom.id));assert.equal(await legacyBalance(f.destinationWarehouse.id),'3');
-  await svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Exact original custody reversal');
+  await proveConvertedCorrection(db,f,base,'STOCK_TRANSFER',transfer.id,'Exact original custody reversal');
   assert.equal(await qty(f.warehouse.id),'200');assert.equal(await qty(f.destinationWarehouse.id),'0');assert.equal(await legacyBalance(f.warehouse.id),'10');assert.equal(await legacyBalance(f.destinationWarehouse.id),'0');
  }finally{await app.close();await db.$disconnect();if(oldStorage===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=oldStorage;await rm(storage,{recursive:true,force:true});}
 });
