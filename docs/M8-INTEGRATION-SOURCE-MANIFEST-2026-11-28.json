@@ -1,0 +1,866 @@
+{
+  "status": "PREPARATION_ONLY_NOT_RELEASE_OR_EXECUTION_AUTHORITY",
+  "date": "2026-11-28",
+  "commonBase": "70013b5139292ef33563447f8937c8f132feabd2",
+  "observedMain": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+  "sources": [
+    {
+      "role": "finalM6Application",
+      "sha": "3e35105edac7151aeca800c1175af736a99f6009",
+      "ahead": 2,
+      "behind": 0,
+      "paths": [
+        {
+          "path": "apps/api/src/documents/document-source-access.spec.ts",
+          "status": "modified"
+        },
+        {
+          "path": "apps/api/src/documents/document-source-permissions.ts",
+          "status": "modified"
+        },
+        {
+          "path": "apps/api/src/documents/documents.service.ts",
+          "status": "modified"
+        }
+      ]
+    },
+    {
+      "role": "terminalM6Operator",
+      "sha": "501a93747cc1a268a42205233a4533c719af25aa",
+      "ahead": 179,
+      "behind": 0,
+      "paths": [
+        {
+          "path": "deploy/uat/m6-boq-quantity-correction-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-boq-quantity-correction.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-boq-quantity-correction.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-boq-readback-continuation.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-boq-readback-continuation.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-browser-only-recovery-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-browser-only-recovery-native.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-common-successor.mjs",
+          "status": "modified"
+        },
+        {
+          "path": "deploy/uat/m6-event284-calendar.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-fm02-canonical-journey.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-fm02-canonical-journey.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-fm02-terminal-readback.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-fm02-terminal-readback.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-download-browser.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-download-browser.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-download-proof.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-download-proof.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-fixture-projection.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-fixture-projection.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-protected-browser-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-hr-successor-exit.mjs",
+          "status": "modified"
+        },
+        {
+          "path": "deploy/uat/m6-hr-successor-http.mjs",
+          "status": "modified"
+        },
+        {
+          "path": "deploy/uat/m6-hr-successor-http.test.mjs",
+          "status": "modified"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-post-subcontract-baseline.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-post-subcontract-baseline.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-terminal-browser-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-terminal-browser.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-terminal-browser.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-terminal-proof.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-inventory-terminal-proof.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-operational-admission.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-operational-admission.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-operational-batch.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-operational-batch.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-post-inventory-admission.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-post-inventory-admission.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-attempt-receipt.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-attempt-receipt.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-browser.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-canonical-phases.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-denial-target.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-denial-target.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-document-delta.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-document-delta.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-executable-contract.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-executable-contract.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-execute-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-journey-transport.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-journey-transport.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-native-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-native-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-phase-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-readiness-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-readiness.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-readiness.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-authority.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-dispatch.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-execute-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-execute-native.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-files.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-files.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-observe-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-source-delta.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-recovery-source-delta.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-role-plan.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-role-plan.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-role-writer.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-role-writer.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-runtime-batch.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-session-custody.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-session-custody.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-delta.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-delta.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-fixture.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-fixture.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-native.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-transport.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-site-transport.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-source-observer.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-source-observer.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-ss08-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-ss08-native.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-supplier-source.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-supplier-source.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-supplier-transport.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-residual-supplier-transport.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-ss08-canonical-journey.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-ss08-canonical-journey.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-ss08-terminal-readback.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-ss08-terminal-readback.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-subcontract-browser-native-adapter.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-subcontract-browser-native-adapter.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-subcontract-browser-proof.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-subcontract-browser-proof.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-subcontract-terminal-browser-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-auth-preservation.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-auth-preservation.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-boq-continuation-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-browser-probe.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-browser-probe.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-coverage-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-plan.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-plan.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-preservation.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-preservation.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-writer.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-fixture-writer.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-operational-native.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-privacy-headers.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-privacy-headers.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-role-coverage.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-role-coverage.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-roster.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-roster.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-runtime.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-runtime.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-session-batch.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-session-batch.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-site-binding.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-site-binding.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-site-transport.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-successor-site-transport.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-supplier-audit-delta.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-supplier-audit-delta.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-supplier-canonical-journey.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m6-supplier-canonical-journey.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "docs/M6-2026-11-28-RESIDUAL-EXECUTION-SCOPE.md",
+          "status": "added"
+        }
+      ]
+    },
+    {
+      "role": "reviewedM7Operator",
+      "sha": "620ccd59ee9fed4b8b5fc7196caa6d1e9980b8ab",
+      "ahead": 33,
+      "behind": 0,
+      "paths": [
+        {
+          "path": "deploy/uat/m7-authenticated-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-authenticated-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-capture-contract.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-capture-contract.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-isolated-restore.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-isolated-restore.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-key-variants.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-key-variants.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-native-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-native-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-native-operator.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-native-operator.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-paired-backup.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-paired-backup.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-paired-capture.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-paired-capture.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-persisted-evidence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-persisted-evidence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-persisted-snapshot.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-persisted-snapshot.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-postgres-restore.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-postgres-restore.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-postgres-transport.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-postgres-transport.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-preparation-harness.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-preparation-harness.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-recovery-runner.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-recovery-runner.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restore-sequence.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restore-sequence.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-api.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-api.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-verification.md",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-verification.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-restored-verification.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-capture-adapter.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-capture-adapter.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-fixtures.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-fixtures.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-inspector.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-inspector.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-process.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-source-process.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-storage-restore.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-storage-restore.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-target-cluster.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-target-cluster.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-target-database.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-target-database.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-terminal-source.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-terminal-source.test.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-variant-keyring.mjs",
+          "status": "added"
+        },
+        {
+          "path": "deploy/uat/m7-variant-keyring.test.mjs",
+          "status": "added"
+        }
+      ]
+    }
+  ],
+  "uniqueDeltaPathCount": 187,
+  "overlap": [],
+  "staticM7DependencyScan": {
+    "productionModuleCount": 26,
+    "scope": "literal relative imports from production M7 .mjs and recursive literal relative imports of external helpers; not dynamic imports resolved at runtime or full dependency audit",
+    "externalHelpers": [
+      {
+        "path": "deploy/uat/m6-post-m4-inspect.mjs",
+        "blob": "4160dfc7d8275a68bde41a2f3e3d509d6b34f71d",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-runtime-evidence.mjs",
+        "blob": "d1bf9776359cab5ffc15ef1d4f3b5543341dd617",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/prototype-browser-operator.mjs",
+        "blob": "042a1f47dc3e219828e4db9600830734c2b04b63",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/prototype-actors.mjs",
+        "blob": "e1c2c9bc7298de1267b65db2f2ed00989156ab57",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-retained-site-material.mjs",
+        "blob": "2d7d91c9c55f8d88c9ed30169d6bb86a71dff41d",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-backup-receipts.mjs",
+        "blob": "e22652a34cbb1267ed16f546e9c8e8799b644798",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-mac-observation.mjs",
+        "blob": "ffdc46cc740b3998f9194e20ab91f358336f3529",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-recovery-copy.mjs",
+        "blob": "f4e0c493d26894fa6f8d7de59d9ce89367a2bab4",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/prototype-transfer-upgrade.mjs",
+        "blob": "99e88896fe92fcb98de00e9921d46738902081bf",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-post-m4-custody.mjs",
+        "blob": "0c15cfc6a7af3bc1b9b7876cb9d7c62831717b51",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/m6-read-only-sessions.mjs",
+        "blob": "014a331dcc2fe6a39b8ce5f0678c85bc16a1b24b",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/prototype-browser.mjs",
+        "blob": "d8152eb4e15daff12e11fc77f0272d2fd625a2fd",
+        "changedInAnyDelta": false
+      },
+      {
+        "path": "deploy/uat/prototype-browser-executable.mjs",
+        "blob": "d4573aef7408d54b76cce6f77d6509bdcb3d4bca",
+        "changedInAnyDelta": false
+      }
+    ]
+  },
+  "requiredBeforeIntegration": [
+    "M7 actual native recovery exit and final exact source rebind",
+    "re-read all heads and regenerate manifest on drift",
+    "candidate tree path/blob equality and forward-only migration preservation",
+    "focused affected tests, final independent review and required Owner-authorized full validation"
+  ],
+  "notExecuted": [
+    "native recovery",
+    "candidate integration",
+    "CI",
+    "runtime tests",
+    "merge"
+  ]
+}
