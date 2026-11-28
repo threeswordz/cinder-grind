@@ -35,7 +35,7 @@ CREATE TABLE hr_work_request_days (
 CREATE UNIQUE INDEX hr_work_request_days_revision_id_work_date_key ON hr_work_request_days(revision_id,work_date);
 
 CREATE FUNCTION hr_work_request_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $hr03$
-DECLARE parent hr_work_requests%ROWTYPE; prior_state text; prior_operation text; 
+DECLARE parent hr_work_requests%ROWTYPE; prior_state text; effective_operation text;
 BEGIN
  SELECT * INTO parent FROM hr_work_requests WHERE id=NEW.request_id AND company_id=NEW.company_id FOR UPDATE;
  IF NOT FOUND OR NEW.version<>parent.current_version+1 THEN RAISE EXCEPTION 'HR_REQUEST_VERSION' USING ERRCODE='23514'; END IF;
@@ -55,12 +55,17 @@ BEGIN
  IF parent.current_version=0 THEN
   IF NEW.operation<>'REQUEST' THEN RAISE EXCEPTION 'HR_REQUEST_OPERATION' USING ERRCODE='23514'; END IF;
  ELSE
-  SELECT ai.approval_state, r.operation INTO prior_state,prior_operation
+  SELECT ai.approval_state INTO prior_state
   FROM hr_work_request_revisions r JOIN approval_instances ai ON ai.id=r.approval_instance_id
   WHERE r.request_id=parent.id AND r.version=parent.current_version;
-  IF NOT FOUND OR NEW.operation='REQUEST' OR prior_state NOT IN ('APPROVED','REJECTED','CANCELLED')
-   OR (prior_state='APPROVED' AND prior_operation='CANCELLATION')
-   OR (NEW.operation='CANCELLATION' AND prior_state<>'APPROVED')
+  IF NOT FOUND THEN RAISE EXCEPTION 'HR_REQUEST_OPERATION' USING ERRCODE='23514'; END IF;
+  SELECT r.operation INTO effective_operation FROM hr_work_request_revisions r
+  JOIN approval_instances ai ON ai.id=r.approval_instance_id
+  WHERE r.request_id=parent.id AND ai.approval_state='APPROVED'
+  ORDER BY r.version DESC LIMIT 1;
+  IF NEW.operation='REQUEST' OR prior_state NOT IN ('APPROVED','REJECTED','CANCELLED')
+   OR effective_operation='CANCELLATION'
+   OR (NEW.operation='CANCELLATION' AND effective_operation IS NULL)
   THEN RAISE EXCEPTION 'HR_REQUEST_OPERATION' USING ERRCODE='23514'; END IF;
  END IF;
  RETURN NEW;
@@ -105,7 +110,8 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM hr_work_request_days WHERE revision_id=NEW.id)
  THEN RAISE EXCEPTION 'HR_REQUEST_EMPTY' USING ERRCODE='23514'; END IF;
  IF NEW.operation='CANCELLATION' THEN
-  SELECT id INTO prev_id FROM hr_work_request_revisions WHERE request_id=pid AND version=NEW.version-1;
+  SELECT r.id INTO prev_id FROM hr_work_request_revisions r JOIN approval_instances ai ON ai.id=r.approval_instance_id
+  WHERE r.request_id=pid AND r.version<NEW.version AND ai.approval_state='APPROVED' ORDER BY r.version DESC LIMIT 1;
   IF EXISTS(
     (SELECT work_date,leave_portion,requested_overtime_minutes FROM hr_work_request_days WHERE revision_id=NEW.id
      EXCEPT ALL SELECT work_date,leave_portion,requested_overtime_minutes FROM hr_work_request_days WHERE revision_id=prev_id)
