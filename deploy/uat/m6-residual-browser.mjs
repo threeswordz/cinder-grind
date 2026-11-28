@@ -3,17 +3,11 @@ import {allowedSuccessorBrowserRequest} from './m6-successor-browser-probe.mjs';
 import {discoverBrowser,prepareBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 import {join} from 'node:path';
+import {verifyResidualBrowserText} from './m6-residual-executable-contract.mjs';
 const API='http://127.0.0.1:33072',WEB='http://127.0.0.1:44172';
 const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_BROWSER_'+c),{safeCode:'M6_RESIDUAL_BROWSER_'+c});};
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(x),pause=ms=>new Promise(ok=>setTimeout(ok,ms));
 const roles=['STORE_SITE','BEN','KHAIMOOK','FOREMAN','JAI'];
-export function verifyResidualBrowserText(kind,text,ref){
- const s=String(text??'').replace(/\s+/g,' ');
- if(kind==='SS08')return /Requester:.*Version 3\b/.test(s)&&s.includes('Issued in full')&&s.includes('Synthetic signed receipt only')&&s.includes('Receipt recorded')&&s.includes('Issue linked')&&s.includes('Download evidence')&&s.includes('Open issue record');
- if(kind==='FM02')return s.includes('CALCULATED_TECHNICAL_ONLY')&&s.includes('Current weighted progress: 40.00%')&&s.includes('60.00% weight · 50.00%')&&s.includes('40.00% weight · 25.00%')&&s.includes('Version 1 · Ben-confirmed (configured role)')&&s.includes('M6-RESIDUAL-266-Q')&&s.includes('M6-RESIDUAL-266-M');
- if(kind==='SUPPLIER')return uuid(ref?.handoverDocumentId)&&/^\d+(?:\.\d{1,4})?$/.test(ref.returnQuantity??'')&&s.includes('Case stage: RETURN_DISPATCH_RECORDED · Version 7 · Latest approved source: YES')&&s.includes('Discrepancy: DAMAGED · PM decision: REQUEST_RETURN')&&s.includes('Supplier signed-handover attested by operator: '+ref.returnQuantity+' held damaged units')&&s.includes('Document '+ref.handoverDocumentId)&&s.includes('no stock deduction or AP credit');
- return false;
-}
 export async function probeResidualBrowser({protocol:p,roster,sessions,verifyRuntime,projectId,ss08Ids,fm02Ids,supplierBinding}){
  need(p?.listeners instanceof Set&&typeof p.send==='function'&&typeof verifyRuntime==='function'&&sessions instanceof Map&&sessions.size===5&&[projectId,ss08Ids?.requestId,ss08Ids?.issueId,fm02Ids?.planId,supplierBinding?.orderId,supplierBinding?.handoverDocumentId].every(uuid)&&roles.every(k=>uuid(roster[k]?.userId)&&sessions.has(roster[k].userId)),'CONTEXT');
  const results=[];for(const role of roles){await verifyRuntime();const a=roster[role],cookie=sessions.get(a.userId)?.cookie;need(/^erp_session=[A-Za-z0-9_-]{20,256}$/.test(cookie??''),'COOKIE');const {browserContextId}=await p.send('Target.createBrowserContext');let s,failed=false,closing=false;const requests=new Map(),success=new Set();
