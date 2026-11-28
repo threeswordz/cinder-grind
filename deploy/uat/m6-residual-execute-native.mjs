@@ -6,7 +6,7 @@ import {createInterface} from 'node:readline/promises';
 import {withResidualNativeAdmission} from './m6-residual-readiness-native.mjs';
 import {observeResidualSourcePlans,projectResidualRoster} from './m6-residual-source-observer.mjs';
 import {writeResidualRoles} from './m6-residual-role-writer.mjs';
-import {residualRolePlanDigest} from './m6-residual-role-plan.mjs';
+import {bindResidualExecutionPlan,syntheticResidualPdf} from './m6-residual-executable-contract.mjs';
 import {beginResidualAttempt} from './m6-residual-attempt-receipt.mjs';
 import {createResidualCanonicalPhases} from './m6-residual-canonical-phases.mjs';
 import {runResidualRuntimeBatch} from './m6-residual-runtime-batch.mjs';
@@ -15,21 +15,9 @@ const APP='70013b5139292ef33563447f8937c8f132feabd2',DISCOVERY='840477f8c1866595
 const need=(ok,c)=>{if(!ok)throw Object.assign(Error('M6_RESIDUAL_ENTRY_'+c),{safeCode:'M6_RESIDUAL_ENTRY_'+c});};
 const sha=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x),digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex'),fileHash=x=>createHash('sha256').update(x).digest('hex');
 const names=['BEN','FOREMAN','JAI','KHAIMOOK','STORE_SITE'],artifactKeys=['dispatch','ack','transit','delay','handover'];
-export function syntheticResidualPdf(label){
- need(typeof label==='string'&&/^[A-Z0-9 -]{1,100}$/.test(label),'PDF_LABEL');
- const stream='BT /F1 12 Tf 50 750 Td (SYNTHETIC TEST EVIDENCE ONLY) Tj 0 -24 Td ('+label+') Tj ET\n';
- const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+Buffer.byteLength(stream)+' >>\nstream\n'+stream+'endstream'];
- let pdf='%PDF-1.4\n',offsets=[0];for(let i=0;i<objects.length;i++){offsets.push(Buffer.byteLength(pdf));pdf+=(i+1)+' 0 obj\n'+objects[i]+'\nendobj\n';}const xref=Buffer.byteLength(pdf);pdf+='xref\n0 '+offsets.length+'\n0000000000 65535 f \n'+offsets.slice(1).map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size '+offsets.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n';return Buffer.from(pdf,'ascii');
-}
 const metadata=bytes=>({sha256:fileHash(bytes),size:bytes.length});
 function addDays(date,n){const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
 function keys(names){return Object.fromEntries(names.map(k=>[k,randomUUID()]));}
-export function bindResidualExecutionPlan({ctx,sourcePlans,receiptArtifact,journeyKeys,revisedDate}){
- const {candidate,operatorSha,rolePlan,initial}=ctx;
- need(candidate?.sha===APP&&sha(operatorSha)&&rolePlan?.applicationSha===APP&&rolePlan.discoverySha===DISCOVERY&&initial?.user_sessions?.length===129&&sourcePlans?.baselineSha256===digest(initial)&&sourcePlans.expectedActors?.length===5&&sourcePlans.productionAuthorized===false&&sourcePlans.syntheticOnly===true,'PLAN');
- const plan={applicationSha:APP,applicationTree:candidate.tree,operatorSha,discoverySha:DISCOVERY,database:'m6_successor_rehearsal',rolePlanSha256:residualRolePlanDigest(rolePlan),baselineSha256:digest(initial),sourcesSha256:digest(sourcePlans),receiptArtifact,journeyKeys,revisedDate,actorIds:sourcePlans.expectedActors,syntheticOnly:true,retainedMutationAuthorized:false,productionAuthorized:false,automaticRetryAllowed:false};
- return {plan,planSha256:digest(plan),baselineSha256:plan.baselineSha256};
-}
 async function confirmPlan(bound,sourcePlans){
  need(process.stdin.isTTY===true&&process.stdout.isTTY===true,'INTERACTIVE_OWNER_REQUIRED');
  console.log(JSON.stringify({status:'M6_RESIDUAL_EXACT_PLAN_AWAITING_OWNER',applicationSha:APP,operatorSha:bound.plan.operatorSha,planSha256:bound.planSha256,baselineSha256:bound.baselineSha256,rolesCreated:2,roleAssignments:2,permissionEdges:7,actors:5,newWbsLevels:3,newActivities:2,newActivityType:!sourcePlans.sitePlan.activityTypeId,newZeroRateBoqItems:1,newMaterialPlans:1,plannedIssueQuantity:'1.0000',expectedDocumentFiles:sourcePlans.supplierPlan.uploads.length+1,newDispatchEvents:sourcePlans.supplierPlan.expectedNewDispatchEvents,supplierLifecycleEvents:7,syntheticOnly:true,retainedMutationAuthorized:false,productionAuthorized:false,automaticRetryAllowed:false,secretsPrinted:false},null,2));
