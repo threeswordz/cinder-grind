@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      EXACT_REPAIR: 'b281cd061012fd1e6c333f41d84a3a235f726651'
+      EXACT_REPAIR: '5e62e0a9c86de9a098b90bf77acc0375772944fb'
     steps:
       - name: Checkout exact repair, not the test driver
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: 'b281cd061012fd1e6c333f41d84a3a235f726651'
+          ref: '5e62e0a9c86de9a098b90bf77acc0375772944fb'
           persist-credentials: false
       - name: Verify source pin
         run: |
