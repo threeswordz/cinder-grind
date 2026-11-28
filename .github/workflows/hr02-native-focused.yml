@@ -1,63 +1,29 @@
-name: Successor focused native persistence
+name: HR02 focused review UI typecheck
 on:
   push:
     branches: ['work-hr02-native-focused-20261129']
 permissions:
   contents: read
 jobs:
-  native-persistence:
-    name: ${{ matrix.lane }} native persistence
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - lane: HR03
-            sha: c2a0e89d79d6c62973095e63ab4187be450f2f7a
-            tree: 028120683937edfda82c9022e37ebe2390339451
-            migration: apps/api/prisma/migrations/20261129070000_hr03_request_foundation/migration.sql
-            test: apps/api/dist/hr/requests/request-persistence.integration.spec.js
-          - lane: ACC01
-            sha: 43d87d990b8c459dada354244fb0d134f24208bd
-            tree: 37c7ee79777f6e086fe2ad1f8f0de4a27ac51adf
-            migration: apps/api/prisma/migrations/20261129060000_acc01_gl_foundation/migration.sql
-            test: apps/api/dist/accounting/ledger-persistence.integration.spec.js
+  review-ui:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
-    services:
-      postgres:
-        image: postgres:17.11-alpine
-        env:
-          POSTGRES_DB: construction_erp
-          POSTGRES_USER: construction_erp
-          POSTGRES_PASSWORD: construction_erp_dev_only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 12
     env:
-      EXACT_CANDIDATE: ${{ matrix.sha }}
-      EXPECTED_TREE: ${{ matrix.tree }}
-      EXPECTED_MIGRATION: ${{ matrix.migration }}
-      FOCUSED_TEST: ${{ matrix.test }}
-      LANE: ${{ matrix.lane }}
-      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
-      NODE_ENV: test
+      EXACT_CANDIDATE: 993dff1a82b3de07e9d37a826b1a525dbc1aec45
+      PRIOR_VERIFIED: 69e4fd5303c87b115e924d5466a8748f3ac87340
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ matrix.sha }}
+          ref: 993dff1a82b3de07e9d37a826b1a525dbc1aec45
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify candidate and 184 unchanged migrations
+      - name: Verify only the review UI changed
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
-          test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\t%s' "$EXPECTED_MIGRATION")"
-          test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
+          git merge-base --is-ancestor "$PRIOR_VERIFIED" HEAD
+          test "$(git diff --name-only "$PRIOR_VERIFIED" HEAD)" = "apps/web/src/hr/HrWorkspace.tsx"
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -68,20 +34,11 @@ jobs:
         with:
           node-version: 24.21.0
           cache: pnpm
-      - name: Validate exact schema
+      - name: Typecheck changed web candidate
         run: |
           pnpm install --frozen-lockfile
-          pnpm prisma:generate
-          pnpm prisma:validate
-      - name: Apply migration to owned disposable PostgreSQL only
-        run: |
-          pnpm prisma:migrate:deploy
-          pnpm --filter @construction-erp/api exec prisma migrate status
-      - name: Compile and run changed native persistence test
-        run: |
-          pnpm --filter @construction-erp/api build
-          node --test --test-concurrency=1 "$FOCUSED_TEST"
-      - name: Record exact focused result
+          pnpm --filter ./apps/web typecheck
+      - name: Record focused result
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          printf '%s\n' "$LANE NATIVE_PERSISTENCE_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false"
+          printf '%s\n' "HR02_REVIEW_UI_TYPECHECK_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false browserExecuted=false"
