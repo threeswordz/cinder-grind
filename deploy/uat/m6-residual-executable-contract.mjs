@@ -17,9 +17,13 @@ export function bindResidualExecutionPlan({ctx,sourcePlans,receiptArtifact,journ
  const plan={applicationSha:APP,applicationTree:candidate.tree,operatorSha,discoverySha:DISCOVERY,database:'m6_successor_rehearsal',rolePlanSha256:digest(rolePlan),permissionEdges:rolePlan.expected.role_permissions,baselineSha256:digest(initial),sourcesSha256:digest(sourcePlans),receiptArtifact:structuredClone(receiptArtifact),journeyKeys:structuredClone(journeyKeys),revisedDate,actorIds:[...sourcePlans.expectedActors],syntheticOnly:true,retainedMutationAuthorized:false,productionAuthorized:false,automaticRetryAllowed:false};
  return {plan,planSha256:digest(plan),baselineSha256:plan.baselineSha256};
 }
+export function residualSs08TextChecks(text){
+ const s=String(text??'').replace(/\s+/g,' ');
+ return {VERSION:/Requester:.*Version 3\b/.test(s),FULFILLMENT:s.includes('Issued in full'),SIGNED_REASON:s.includes('Synthetic signed receipt only'),RECEIPT_HISTORY:s.includes('Receipt recorded'),LINK_HISTORY:s.includes('Issue linked'),DOWNLOAD_CONTROL:/Download evidence/i.test(s),ISSUE_CONTROL:/Open issue record/i.test(s)};
+}
 export function verifyResidualBrowserText(kind,text,ref){
  const s=String(text??'').replace(/\s+/g,' ');
- if(kind==='SS08')return /Requester:.*Version 3\b/.test(s)&&s.includes('Issued in full')&&s.includes('Synthetic signed receipt only')&&s.includes('Receipt recorded')&&s.includes('Issue linked')&&s.includes('Download evidence')&&s.includes('Open issue record');
+ if(kind==='SS08')return Object.values(residualSs08TextChecks(s)).every(Boolean);
  if(kind==='FM02')return s.includes('CALCULATED_TECHNICAL_ONLY')&&s.includes('Current weighted progress: 40.00%')&&s.includes('60.00% weight · 50.00%')&&s.includes('40.00% weight · 25.00%')&&s.includes('Version 1 · Ben-confirmed (configured role)')&&s.includes('M6-RESIDUAL-266-Q')&&s.includes('M6-RESIDUAL-266-M');
  if(kind==='SUPPLIER')return uuid(ref?.handoverDocumentId)&&/^\d+(?:\.\d{1,4})?$/.test(ref.returnQuantity??'')&&s.includes('Case stage: RETURN_DISPATCH_RECORDED · Version 7 · Latest approved source: YES')&&s.includes('Discrepancy: DAMAGED · PM decision: REQUEST_RETURN')&&s.includes('Supplier signed-handover attested by operator: '+ref.returnQuantity+' held damaged units')&&s.includes('Document '+ref.handoverDocumentId)&&s.includes('no stock deduction or AP credit');
  return false;
