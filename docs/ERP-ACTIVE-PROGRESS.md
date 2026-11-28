@@ -2,6 +2,25 @@
 
 <!-- current-work-m6 -->
 
+**Provisional rebaselined ERP: 1,325h → 0h · prototype 69h → 0h** (M6 5h / M7 26h / M8 38h). Canonical ERP 1,615h; canonical prototype 120h.
+
+**Latest evidence (Event275):** [Ordered site fixture transport and corrected supplier evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234092432), [exact source](https://github.com/threeswordz/cinder-grind/commit/ae918f7707190527b6eda65db3d383cab6d2fbe2). Site 7/7 actual local controlled HTTP tests, exact blob equality; prior supplier 6/6 now actually executed with exact published hashes, no duplicate retirement. Optional activity type creation not tested. Site preparation 0.25h estimated retirement; no actual native or acceptance proof.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 2.75h |
+| M6-03 | 0.75h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **5h** |
+
+Next: native row/file delta capture, unified operator and five-actor runtime/receipt/browser integration, one stable DEC-022 independent review, exact Owner synthetic execution authorization, one Mac execution, and acceptance reconciliation. No Owner action now. No repeated preflight or prior browser replay, intermediate full CI/Codex or Production.
+
+Prior entries below are historical snapshots.
+
+
+
 **Provisional rebaselined ERP: 1,325.25h → 0h · prototype 69.25h → 0h** (M6 5.25h / M7 26h / M8 38h). Canonical ERP 1,615.25h; canonical prototype 120.25h.
 
 **Latest evidence (Event274):** [Restricted supplier source transport](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7233524805), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/8dec65f9eb562766efa9ac853c215a1658fa99d8). 6/6 local controlled HTTP tests; both published blobs match. Bound actor/target, multipart bytes, checksum and PUR07 chain; no actual native execution. Distinct supplier preparation 0.25h estimated retirement, no formal acceptance.
