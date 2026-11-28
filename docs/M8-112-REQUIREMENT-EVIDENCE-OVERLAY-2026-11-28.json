@@ -1,0 +1,2400 @@
+{
+  "status": "PREPARATION_ONLY_NOT_FREEZE_OR_ACCEPTANCE",
+  "source": {
+    "ref": "7e282fc0d75eda4f4ac86d83c6563bd2cf5fa9e2",
+    "path": "docs/M4-2026-11-27-112-TECHNICAL-EXIT-CROSSWALK.csv",
+    "blob": "49ab819e3d58cf3f0f7a350a7c405f74b516aa40",
+    "ownerApproval": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092",
+    "approvedClosure": "https://github.com/threeswordz/cinder-grind/blob/7e282fc0d75eda4f4ac86d83c6563bd2cf5fa9e2/docs/M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md",
+    "m6Terminal": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+  },
+  "checks": {
+    "immutableIDs": 112,
+    "unique": 112,
+    "sameIDsAsEarlierTriage": true,
+    "allFormalAcceptanceNO": true,
+    "humanAcceptanceCounts": {
+      "DEFERRED_DEC_042": 70,
+      "FUTURE": 42
+    },
+    "originalDispositionCounts": {
+      "BOUNDED_TECHNICAL_EVIDENCE_MAPPED": 60,
+      "OWNER_BOUNDARY_PRESERVED": 6,
+      "FUTURE_SCOPE_PRESERVED": 42,
+      "CONFIGURATION_EXIT_PROPOSED_GL04": 2,
+      "BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL": 2
+    },
+    "explicitM6CarryoverOverlayCount": 5
+  },
+  "securityEvidence": [
+    {
+      "boundary": "Document source authorization / procurement",
+      "refs": [
+        "https://github.com/threeswordz/cinder-grind/pull/461#issuecomment-7238653911",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7236127731"
+      ],
+      "limitation": "Exact three-file app delta, focused tests and disposable PG; final integrated review/build pending."
+    },
+    {
+      "boundary": "HR protected bytes / session / audit",
+      "refs": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225435675",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+      ],
+      "limitation": "Synthetic authorized download exact bytes/private headers, one audit, revoked session; actual separate restored keys/denials M7 pending."
+    },
+    {
+      "boundary": "Finance reference / maker checker / stock",
+      "refs": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7225755346",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226508580",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+      ],
+      "limitation": "Bounded synthetic certification and correction controls, not general Finance/GL acceptance."
+    },
+    {
+      "boundary": "Recovery isolation",
+      "refs": [
+        "https://github.com/threeswordz/cinder-grind/issues/460#issuecomment-7241232553"
+      ],
+      "limitation": "M7 capture blocked M7_STORAGE_PRIVATE; no restore proof; preserve attempt, no automatic retry."
+    },
+    {
+      "boundary": "Integrated release / security / CI",
+      "refs": [
+        "https://github.com/threeswordz/cinder-grind/issues/384",
+        "https://github.com/threeswordz/cinder-grind/issues/465"
+      ],
+      "limitation": "No integrated candidate, final independent review or required actual full main yet."
+    }
+  ],
+  "requirements": [
+    {
+      "immutable_id": "BEN01",
+      "persona": "ben",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Configured Ben positive and substitute with generic approval denied; earlier focused exact source.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45617599765",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN02",
+      "persona": "ben",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Existing controlled material issue only; no new emergency approval bypass. Future: XP change control: emergency purchase/commitment cap, actor, budget category, approval policy.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN03",
+      "persona": "ben",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN04",
+      "persona": "ben",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main FM01 weekly browser; prior actual three scenarios including stale acknowledgement and independently signed warned closeout.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45626721473; https://github.com/threeswordz/cinder-grind/actions/runs/45572035443",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-01",
+      "persona": "ben",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main native independent approval/commercial immutable history and concurrency; prior real authenticated browser and stale-bid/invalid patch evidence.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45622912802; https://github.com/threeswordz/cinder-grind/actions/runs/45616676458",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-02",
+      "persona": "ben",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.5-B agreement decisions and Work Order ceiling, V0.5-E variations/reporting; generic workflow evidence, not actual named employee grant acceptance.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-03",
+      "persona": "ben",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Physical subcontract browser and restored accepted/held certification retention/bytes/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-04",
+      "persona": "ben",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main public BOQ HTTP persisted disclosure, CSRF, maker/checker, source scope, export and uploaded-byte authority; quantity-only no cost. Browser BOQ uses mocked transport; not full retained browser.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-05",
+      "persona": "ben",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.7-D Project Variation approval and terminal history; budget/BOQ existing workflow.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-06",
+      "persona": "ben",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Existing authorized quotation and operational work confirmation/readback only. Future: Accounting #288: new AR/customer billing, receipts, settlement and financial changes.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-BASE-07",
+      "persona": "ben",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.8-A source aggregates and V0.8-B scoped selector.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "BEN-HR-01",
+      "persona": "ben",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-01",
+      "persona": "nancy",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main public BOQ HTTP persisted disclosure, CSRF, maker/checker, source scope, export and uploaded-byte authority; quantity-only no cost. Browser BOQ uses mocked transport; not full retained browser.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-02",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-03",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-04",
+      "persona": "nancy",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual Nancy/Jai/Store master permissions, scoped Company, CSRF and foreign UOM denials.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45618250092",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-05",
+      "persona": "nancy",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual Nancy/Jai/Store master permissions, scoped Company, CSRF and foreign UOM denials.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45618250092",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-06",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-07",
+      "persona": "nancy",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual operational browser Nancy schedule save and PM independent linked document review; no Finance writeoff.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45665277240",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-08",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-09",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-10",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-11",
+      "persona": "nancy",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "NANCY-12",
+      "persona": "nancy",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "HR1-A employee browser and restored encrypted attachment/external key custody. Payroll excluded.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM01",
+      "persona": "khaimook",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "MATERIAL_RUN_NATIVE_PASS, UOM_CONVERTED_PLAN_ISSUE_NATIVE_PASS and restored plan approval/signed bytes/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM02",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main PM02 final approval supplier rollback; prior real mixed line browser and live revoked authority/single correction.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45623304729; https://github.com/threeswordz/cinder-grind/actions/runs/45562971888",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM03",
+      "persona": "khaimook",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM04",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main public BOQ HTTP persisted disclosure, CSRF, maker/checker, source scope, export and uploaded-byte authority; quantity-only no cost. Browser BOQ uses mocked transport; not full retained browser.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM05",
+      "persona": "khaimook",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main public BOQ HTTP persisted disclosure, CSRF, maker/checker, source scope, export and uploaded-byte authority; quantity-only no cost. Browser BOQ uses mocked transport; not full retained browser.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM06",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Receiving browser, populated predecessor and restored GR/stock/pending evidence and denial markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM07",
+      "persona": "khaimook",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Same-Company scoped transfer and existing material-plan/issue authorization; no new override. Future: XP/#245: new beyond-plan authority/thresholds, intercompany and multi-Project allocation.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM08",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Stock count browser; scoped quantity-only maker-checker native test. No writeoff.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM09",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual operational browser Nancy schedule save and PM independent linked document review; no Finance writeoff.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45665277240",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM10",
+      "persona": "khaimook",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.5-B agreement decisions and Work Order ceiling, V0.5-E variations/reporting; generic workflow evidence, not actual named employee grant acceptance.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM11",
+      "persona": "khaimook",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.5-B agreement decisions and Work Order ceiling, V0.5-E variations/reporting; generic workflow evidence, not actual named employee grant acceptance.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM12",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Physical subcontract browser and restored accepted/held certification retention/bytes/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM13",
+      "persona": "khaimook",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "CONFIGURATION_EXIT_PROPOSED_GL04",
+      "evidence_limit": "Original requirement explicitly configuration-only, desired old/new specification/quantity/price/cost, drawings/photos/schedule impact and routing Jai vs Ben vs Ben→Nancy VO. Current variation/approval controls exist, exact configured routing and full payload/operational actor witness not established. GL04 configuration disposition proposed; confirm any missing functionality before final UAT, no inferred approval.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/03-khaimook.md#pm13--materialwork-method-changes; https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-01"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM14",
+      "persona": "khaimook",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM15",
+      "persona": "khaimook",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior integrated native scoped queue/minima/delivery advisory. Daily demand and actual supplier confirmation/notification policy not proved.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45571472031",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM16",
+      "persona": "khaimook",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main FM01 weekly browser; prior actual three scenarios including stale acknowledgement and independently signed warned closeout.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45626721473; https://github.com/threeswordz/cinder-grind/actions/runs/45572035443",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM-HR-01",
+      "persona": "khaimook",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PM-CASH-01",
+      "persona": "khaimook",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR01",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main native independent approval/commercial immutable history and concurrency; prior real authenticated browser and stale-bid/invalid patch evidence.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45622912802; https://github.com/threeswordz/cinder-grind/actions/runs/45616676458",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR03",
+      "persona": "jai",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual Nancy/Jai/Store master permissions, scoped Company, CSRF and foreign UOM denials.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45618250092",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR04",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main native independent approval/commercial immutable history and concurrency; prior real authenticated browser and stale-bid/invalid patch evidence.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45622912802; https://github.com/threeswordz/cinder-grind/actions/runs/45616676458",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR05",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main native independent approval/commercial immutable history and concurrency; prior real authenticated browser and stale-bid/invalid patch evidence.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45622912802; https://github.com/threeswordz/cinder-grind/actions/runs/45616676458",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR06",
+      "persona": "jai",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR07",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual Thai PDF/manual reported send and Ben read-only; final scoped document-source correction targeted PASS. External delivery not proved.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45615060550; https://github.com/threeswordz/cinder-grind/actions/runs/45822516895",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR08",
+      "persona": "jai",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual signed damaged custody, replacement GR/reversal, latest PO lineage scope and claim-only non-damaged denial; final source auth correction targeted PASS. No posted-stock return or AP credit.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363; https://github.com/threeswordz/cinder-grind/actions/runs/45619654984; https://github.com/threeswordz/cinder-grind/actions/runs/45626946379; https://github.com/threeswordz/cinder-grind/actions/runs/45820461137",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": {
+          "package": "M6-03",
+          "evidence": "Supplier lifecycle events and Jai browser evidence within authorized advisory scope.",
+          "refs": [
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239163326",
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+          ]
+        },
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR09",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Receiving browser, populated predecessor and restored GR/stock/pending evidence and denial markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR10",
+      "persona": "jai",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual PG cancellation/revision exclusive commit and controlled conflict. No separate new cancellation scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45566487068",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR12",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual two assigned Projects and unauthorized Company/direct PO/PDF denial; distinct K/T identity.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45621618196",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-01",
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR13",
+      "persona": "jai",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual Nancy/Jai/Store master permissions, scoped Company, CSRF and foreign UOM denials.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45618250092",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR14",
+      "persona": "jai",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual signed damaged custody, replacement GR/reversal, latest PO lineage scope and claim-only non-damaged denial; final source auth correction targeted PASS. No posted-stock return or AP credit.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363; https://github.com/threeswordz/cinder-grind/actions/runs/45619654984; https://github.com/threeswordz/cinder-grind/actions/runs/45626946379; https://github.com/threeswordz/cinder-grind/actions/runs/45820461137",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": {
+          "package": "M6-03",
+          "evidence": "Supplier-specific committed evidence and native replacement regression; no unauthorized physical return/credit/Finance posting.",
+          "refs": [
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7236127731",
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239163326",
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+          ]
+        },
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PUR15",
+      "persona": "jai",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Existing authorized PO/GR/Document operational evidence handover only. Future: Accounting #288: AP invoice/payment, credit, posting and financial certification extensions.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "JAI-ASSET-01",
+      "persona": "jai",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main equipment historical upgrade/restore; prior focused asset/custody/cache isolation. Worker liability and actual acquisition business acceptance not proved.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45826890738",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "JAI-SCOPE-01",
+      "persona": "jai",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior actual two assigned Projects and unauthorized Company/direct PO/PDF denial; distinct K/T identity.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45621618196",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS01",
+      "persona": "store",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "CONFIGURATION_EXIT_PROPOSED_GL04",
+      "evidence_limit": "Original requirement explicitly configuration-only; keep one site warehouse and separately authorized central. Exact warehouse migration enforces Company/Project identity, unique Company+warehouse code, NOT one active warehouse per Project. Do not add global constraint or claim uniqueness; validate actual site assignment/cardinality in GL04, Owner decision if hard DB uniqueness required.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md#ss01--one-warehouse-per-site; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/prisma/migrations/20260927232000_v0_4_a_warehouses/migration.sql; https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-01"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS02",
+      "persona": "store",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Historical native canonical material handoff/audit, not retained React witness.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45571855671",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS03",
+      "persona": "store",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Material UOM browser, converted receiving, plan issue, reservation and restore scope markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS04",
+      "persona": "store",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Receiving browser, populated predecessor and restored GR/stock/pending evidence and denial markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS05",
+      "persona": "store",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Receiving browser, populated predecessor and restored GR/stock/pending evidence and denial markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS06",
+      "persona": "store",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Receiving browser, populated predecessor and restored GR/stock/pending evidence and denial markers.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS07",
+      "persona": "store",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Material request real browser and restored signed bytes/history/scope; Foreman/Store bounded request journey.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS08",
+      "persona": "store",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL",
+      "evidence_limit": "Exact source MaterialIssueItem/RequestLine WBS/CostCode/Activity, scoped validation and posting; plan allocation→plan line→budgetRevisionLineId; request link→receipt actual recipient/issuer. Exact main MP-AC-07–13, MR-AC-01–07 and P0 integrated request→approved plan issue→signed receipt→stock/reports PASS. Specific operational work type/building/floor/work area and direct BOQ mapping on each authorized site must be verified against representative fixtures; standalone general issue has optional dimensions, no claim every field mandatory.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md#ss08--material-issue-work-dimensions; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/prisma/schema.prisma; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/material-issue.service.ts; https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": {
+          "package": "M6-02",
+          "evidence": "Representative synthetic dimensions/BOQ mapping and signed receipt; not every site or optional dimension.",
+          "refs": [
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+          ]
+        },
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS09",
+      "persona": "store",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "V0.4-D Return ceiling and exact balance restoration.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS10",
+      "persona": "store",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Approved same-Company transfer; deduct origin dispatch, credit destination actual receipt; existing assigned destination receiver. Future: XP/#245: intercompany/multi-Project financial settlement or allocation.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS11",
+      "persona": "store",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main equipment historical upgrade/restore; prior focused asset/custody/cache isolation. Worker liability and actual acquisition business acceptance not proved.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45826890738",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS12",
+      "persona": "store",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Stock count browser; scoped quantity-only maker-checker native test. No writeoff.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS13",
+      "persona": "store",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS14",
+      "persona": "store",
+      "original_effective_gate": "FUNCTIONAL_GAP_OPEN",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Prior integrated native scoped queue/minima/delivery advisory. Daily demand and actual supplier confirmation/notification policy not proved.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45571472031",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS15",
+      "persona": "store",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS16",
+      "persona": "store",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED_WITH_RESIDUAL",
+      "evidence_limit": "Exact main canonical return/reversal preserves prior usage, V0.4-D return ceilings, DEC-050 B receipt and transfer original-rate reversal PASS. Source rejects editing submitted issue/return, creates linked reversing entries with reason/history and explicit reversal permission. Exact Khaimook correction/cancellation decision routing for received/issued/returned/transferred lifecycle including pending submitted documents still requires configuration/policy crosswalk, not demonstrated by generic reversal capability. No new bypass or overwrite authorized.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md#ss16--correct-submitted-movement-documents; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/material-issue.service.ts; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/material-return.service.ts; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/material-movement.controller.ts; https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": {
+          "package": "M6-03",
+          "evidence": "Bounded movement correction and maker/checker, converted GR and split custody; not retained role configuration.",
+          "refs": [
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7226508580",
+            "https://github.com/threeswordz/cinder-grind/pull/456#issuecomment-7220326008",
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+          ]
+        },
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS17",
+      "persona": "store",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Original requirement explicitly later HR time/OT/leave outside HR1-A. Exact stock balance query quantity-only scoped, budget disclosure restricts cost reports, exact main BOQ public HTTP quantity/action/report/export denial and salary/private-free Project operational projections PASS. Existing safe role read scope only; named warehouse/report rights GL04, time/OT/leave salary-free projection GL05. No wage disclosure or implicit mutation grant.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md#ss17--site-operational-visibility; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/inventory/stock-balance.service.ts; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/budget/budget-disclosure.ts; https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-01",
+          "ROLE-02",
+          "ROLE-03",
+          "HR-02",
+          "HR-03",
+          "HR-06"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS18",
+      "persona": "store",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Transfer browser, restored partial receipt/stock/outstanding evidence/access.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS-PLAN-01",
+      "persona": "store",
+      "original_effective_gate": "SOURCE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "MATERIAL_RUN_NATIVE_PASS, UOM_CONVERTED_PLAN_ISSUE_NATIVE_PASS and restored plan approval/signed bytes/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS-HR-01",
+      "persona": "store",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "SS-HR-02",
+      "persona": "store",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM01",
+      "persona": "foreman",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main FM01 weekly browser; prior actual three scenarios including stale acknowledgement and independently signed warned closeout.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/actions/runs/45626721473; https://github.com/threeswordz/cinder-grind/actions/runs/45572035443",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM02",
+      "persona": "foreman",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main log at 16:22:05Z: Ben live same-Company MANAGEMENT/permission and stale session denials, plan preparation scope, confirmed plan/BOQ/UOM pins, stale version denial, 60%*50%+40%*25%=40.00. Unit/service tests and migration preservation, not a newly executed retained work plan journey.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/scheduling/project-progress-plan-auth.spec.ts; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/scheduling/project-progress-plan-readback.spec.ts; https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/scheduling/project-progress-weighting.spec.ts",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": {
+          "package": "M6-02",
+          "evidence": "Actual confirmed weighted plan, Ben/Khaimook/Foreman 40.00% readback; named configuration remains.",
+          "refs": [
+            "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7239651684"
+          ]
+        },
+        "explicitRemainingOwners": [
+          "ROLE-01",
+          "ROLE-02",
+          "ROLE-03"
+        ],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM03",
+      "persona": "foreman",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "FM03 real browser, populated predecessor and restored history/escalation/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM04",
+      "persona": "foreman",
+      "original_effective_gate": "ROLE_SCOPE_EVIDENCE_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Material request real browser and restored signed bytes/history/scope; Foreman/Store bounded request journey.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM05",
+      "persona": "foreman",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Stock count browser; scoped quantity-only maker-checker native test. No writeoff.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "FM-HR-01",
+      "persona": "foreman",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC01",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC02",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC03",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC04",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC05",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC06",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC07",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC08",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC09",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC10",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC11",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC12",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC13",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC14",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC15",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC16",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "ACC17",
+      "persona": "porn",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PORN-SUB-01",
+      "persona": "porn",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Physical subcontract browser and restored accepted/held certification retention/bytes/scope.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PORN-BOQ-01",
+      "persona": "porn",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "Exact main public BOQ HTTP persisted disclosure, CSRF, maker/checker, source scope, export and uploaded-byte authority; quantity-only no cost. Browser BOQ uses mocked transport; not full retained browser.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "PORN-HR-01",
+      "persona": "porn",
+      "original_effective_gate": "APPROVED_BOUNDARY_RETAINED_UAT_PENDING",
+      "step8_disposition": "OWNER_BOUNDARY_PRESERVED",
+      "evidence_limit": "Existing HR1-A scoped bank-read/privacy only; no payroll transfer extension. Future: HR/Accounting later entry: payroll transfer preparation, approval, posting/payment.; operational readback only, no new policy.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-01",
+      "persona": "koh",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "HR1-A employee browser and restored encrypted attachment/external key custody. Payroll excluded.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-02",
+      "persona": "koh",
+      "original_effective_gate": "BOUNDED_EVIDENCE_RETAINED_UAT_PENDING",
+      "step8_disposition": "BOUNDED_TECHNICAL_EVIDENCE_MAPPED",
+      "evidence_limit": "HR1-A employee browser and restored encrypted attachment/external key custody. Payroll excluded.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/actions/runs/45857511934/job/140039725016",
+      "human_acceptance": "DEFERRED_DEC_042",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": false,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "DEFERRED_DEC_042",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-03",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-04",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-05",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-06",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-07",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    },
+    {
+      "immutable_id": "KOH-08",
+      "persona": "koh",
+      "original_effective_gate": "DEFERRED_FUTURE_RETAINED",
+      "step8_disposition": "FUTURE_SCOPE_PRESERVED",
+      "evidence_limit": "Outside bounded M4; not implemented or accepted by this decision.",
+      "evidence_ref": "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "human_acceptance": "FUTURE",
+      "formal_acceptance": "NO",
+      "integrated_source": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "m8Overlay": {
+        "priorApprovedDispositionPreserved": true,
+        "m6TechnicalCarryover": null,
+        "explicitRemainingOwners": [],
+        "futureOrBoundaryPreserved": true,
+        "finalIntegratedTreeBinding": "PENDING",
+        "humanUat": "FUTURE",
+        "formalAcceptance": false
+      }
+    }
+  ]
+}
