@@ -11,6 +11,7 @@ import { employmentCompanies, selectedHrCompany, selectedHrEmployee } from './hr
 import { HrCreateEmployee } from './HrCreateEmployee';
 import { HrPrivatePanel } from './HrPrivatePanel';
 import { HrDocumentsPanel } from './HrDocumentsPanel';
+import { HrOfficeAttendancePanel } from './HrOfficeAttendancePanel';
 
 type Language = 'en' | 'th' | 'zh-TW';
 const labels = {
@@ -142,6 +143,8 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
                 queryKey: ['hr1-a', user.id, user.companyId, companyId, 'employees'],
               });
             }} />}
+        {!companiesQuery.isError && user.permissions.includes('hr.attendance.office.manage') &&
+          <HrOfficeAttendancePanel key={user.id+':'+companyId} user={user} companyId={companyId} language={language} />}
         <Paper variant="outlined">
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
             <Button onClick={() => void employeesQuery.refetch()} disabled={employeesQuery.isFetching}>{t.reload}</Button>
