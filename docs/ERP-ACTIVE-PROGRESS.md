@@ -1,5 +1,21 @@
 # Construction ERP — live countdown to 0 hours
 
+<!-- current-post-freeze-execution -->
+
+**29 Nov 2026 SGT — Full ERP proposed 1,243h → 0h; conditional optimized target 1,192h.** Frozen prototype unchanged; GL3/10. Historical canonical issue baseline 1,495h (not reconciled as a current machine-ledger balance). Three authorized isolated lanes. [Execution forecast overlay](./ERP-POST-FREEZE-EXECUTION-FORECAST.json).
+
+| Forecast | Previous | New scope | Remaining estimate retired | Revised |
+|---|---:|---:|---:|---:|
+| Proposed full ERP | 1,251h | 0h | 8h | **1,243h** |
+| Conditional optimized target | 1,200h | 0h | 8h | **1,192h** |
+| HR-02 | 25h | 0h | 4h | **21h** |
+| HR-03 | 50h | 0h | 2h | **48h** |
+| ACC-01 | 72h | 0h | 2h | **70h** |
+
+[Three independent focused jobs](https://github.com/threeswordz/cinder-grind/actions/runs/46188661389) PASS: HR02 20/20 + web typecheck, HR03 domain 3/3, ACC01 domain 3/3. Estimate basis: HR02 allocation administration API 3h and office CSV UI integration slice 1h; HR03 and ACC01 tested domain contracts 2h each. Actual labor unmeasured; low-confidence planning reductions only, no package acceptance. HR03/ACC01 new native persistence candidates remain separately gated by [focused native run](https://github.com/threeswordz/cinder-grind/actions/runs/46189169149). No credit for those unverified changes. Remaining combined 139h; target121h, another 18h to retire. No full CI or frozen-prototype replay. New scope not identified; rework labor not measured. Real grant, statutory, operational posting, review/release and Production gates remain. Older snapshots below are historical.
+
+---
+
 <!-- current-work-m8-frozen -->
 
 **Technical prototype 8/8 — FROZEN · prototype 0h.** Provisional full ERP **1,256h → 0h**; canonical issue-level forecast **1,495h → 0h**. GL **3/10**. Human UAT/business acceptance and Production remain separate.

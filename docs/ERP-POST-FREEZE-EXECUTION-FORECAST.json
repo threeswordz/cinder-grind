@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-29",
+  "scope": "proposed remaining effort, not measured labor or formal acceptance",
+  "frozenMain": "d517b88c9eff001fd829599eb638214896164f0f",
+  "prototypeTechnical": "8/8",
+  "goLive": "3/10",
+  "canonicalIssueBaselineHours": 1495,
+  "canonicalMachineLedgerReconciliation": "historical Event278 unchanged; technical/partial forecast overlay is separate",
+  "previousProvisionalHours": 1251,
+  "previousConditionalOptimizedHours": 1200,
+  "newlyIdentifiedScopeHours": 0,
+  "reworkHours": "not measured; test fixture correction included in remaining-work estimates",
+  "estimatedRemainingWorkRetiredHours": 8,
+  "revisedProvisionalHours": 1243,
+  "revisedConditionalOptimizedHours": 1192,
+  "actualLaborHours": null,
+  "events": [
+    {
+      "package": "HR-02",
+      "before": 25,
+      "retired": 3,
+      "after": 22,
+      "basis": "governed allocation create/revoke + target Company entitlement and replay native pass",
+      "source": "69e4fd5303c87b115e924d5466a8748f3ac87340",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46188661389/job/141114204263"
+    },
+    {
+      "package": "HR-02",
+      "before": 22,
+      "retired": 1,
+      "after": 21,
+      "basis": "normalized office CSV preview/save UI implemented and exact web typecheck; browser and actual device format remain",
+      "source": "69e4fd5303c87b115e924d5466a8748f3ac87340",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46188661389/job/141114204263"
+    },
+    {
+      "package": "HR-03",
+      "before": 50,
+      "retired": 2,
+      "after": 48,
+      "basis": "initial confirmed routing, ordered distinct checkers and actual OT evidence domain tests; persistence not yet validated",
+      "source": "a4b5ae3655ae99ada2bec4f27525a70550eddcfc",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46188661389/job/141114204596"
+    },
+    {
+      "package": "ACC-01",
+      "before": 72,
+      "retired": 2,
+      "after": 70,
+      "basis": "initial exact integer THB arithmetic, balanced journal, reversal, trial balance domain tests; persistence not yet validated",
+      "source": "420d090e08aa0e77bc11e8021e748ea08eb6bf4d",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46188661389/job/141114204553"
+    }
+  ],
+  "packages": [
+    {
+      "id": "HR-02",
+      "remaining": 21,
+      "head": "69e4fd5303c87b115e924d5466a8748f3ac87340",
+      "next": "allocation administration UI1h, device file mapping/integration1h, HR review2h, trilingual UI/browser8h, upgrade/recovery6h, independent review/integration3h"
+    },
+    {
+      "id": "HR-03",
+      "remaining": 48,
+      "head": "c2a0e89d79d6c62973095e63ab4187be450f2f7a",
+      "next": "native persistence, scoped request and canonical approval service, actual time evidence, UI/browser, integration; statutory execution separately gated"
+    },
+    {
+      "id": "ACC-01",
+      "remaining": 70,
+      "head": "43d87d990b8c459dada354244fb0d134f24208bd",
+      "next": "native journal persistence, scoped synthetic posting/draft and idempotency, rule/period/account controls, trial balance/UI, integration; real posting separately gated"
+    }
+  ],
+  "pendingNativeRun": "https://github.com/threeswordz/cinder-grind/actions/runs/46189169149",
+  "confidence": "LOW_PROVISIONAL",
+  "humanUatCompleted": false,
+  "productionAuthorized": false
+}
