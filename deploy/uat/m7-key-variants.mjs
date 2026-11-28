@@ -1,3 +1,4 @@
+import {m7RestorePortAllowed} from './m7-source-process.mjs';
 // Preparation only: orchestrate two independently restored negative-key targets.
 // Never edit the source or correct-key target; no native launcher or stage admission.
 import {isAbsolute,relative,resolve} from 'node:path';
@@ -7,7 +8,7 @@ const path=v=>typeof v==='string'&&isAbsolute(v)&&resolve(v)===v&&v!=='/';
 const inside=(a,b)=>{const r=relative(a,b);return r===''||(!isAbsolute(r)&&r!=='..'&&!r.startsWith('../'));};
 const disjoint=(a,b)=>!inside(a,b)&&!inside(b,a);
 const fields=['appSha','tree','manifestSha','schemaSha','rowsSha','documentsSha','uploadsSha','ciphertextSha'];
-const valid=p=>p&&/^[a-f0-9]{40}$/.test(p.appSha)&&/^[a-f0-9]{40}$/.test(p.tree)&&fields.slice(2).every(k=>digest(p[k]))&&digest(p.keyInventorySha)&&typeof p.cluster==='string'&&/^\d+$/.test(p.cluster)&&Number.isSafeInteger(p.oid)&&p.oid>0&&typeof p.database==='string'&&typeof p.role==='string'&&path(p.root)&&path(p.keyRoot)&&inside(p.root,p.keyRoot)&&Number.isInteger(p.port)&&p.port>1023&&p.port<=65535&&p.port!==33071;
+const valid=p=>p&&/^[a-f0-9]{40}$/.test(p.appSha)&&/^[a-f0-9]{40}$/.test(p.tree)&&fields.slice(2).every(k=>digest(p[k]))&&digest(p.keyInventorySha)&&typeof p.cluster==='string'&&/^\d+$/.test(p.cluster)&&Number.isSafeInteger(p.oid)&&p.oid>0&&typeof p.database==='string'&&typeof p.role==='string'&&path(p.root)&&path(p.keyRoot)&&inside(p.root,p.keyRoot)&&m7RestorePortAllowed(p.port);
 const matches=(p,o)=>valid(o)&&[...fields,'keyInventorySha','cluster','oid','database','role','root','keyRoot','port','mode'].every(k=>p[k]===o[k])&&o.isolated===true;
 const safe=e=>/^M7_[A-Z0-9_]+$/.test(e?.message??'')?e.message:'M7_VARIANTS_UNEXPECTED';
 export function createM7KeyVariantSequence({correct,variants,protectedRoots,verifyCorrectAndSource,adapter}){

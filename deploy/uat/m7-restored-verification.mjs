@@ -1,3 +1,4 @@
+import {m7RestorePortAllowed} from './m7-source-process.mjs';
 import {createHash} from 'node:crypto';
 import {bindM7Session} from './m7-persisted-evidence.mjs';
 
@@ -29,7 +30,7 @@ export async function verifyM7Restored({target,fixture,actors,inspectTarget,read
  let failure='M7_VERIFY_UNEXPECTED',cleanup=true,passed=false;const sessions=[];
  try{
  need(['correct','missing','wrong'].includes(mode)&&typeof inspectTarget==='function'&&typeof readPreservation==='function'&&(onIssuedSession===undefined||typeof onIssuedSession==='function'),'CONTEXT');
- const u=new URL(target.api);need(u.protocol==='http:'&&u.hostname==='127.0.0.1'&&u.port&&u.port!=='33071'&&u.pathname==='/api/v1'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.href===target.api,'TARGET');
+ const u=new URL(target.api);need(u.protocol==='http:'&&u.hostname==='127.0.0.1'&&m7RestorePortAllowed(Number(u.port))&&u.pathname==='/api/v1'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.href===target.api,'TARGET');
  need(sha(target.manifestSha)&&/^[a-f0-9]{40}$/.test(target.appSha)&&target.keyMode===mode,'TARGET_BINDING');
  const bind=async()=>{const actual=await inspectTarget();need(actual?.isolated===true&&actual.api===target.api&&actual.manifestSha===target.manifestSha&&actual.appSha===target.appSha&&actual.keyMode===mode,'TARGET_IDENTITY');};
  await bind();const before=snapshot(await readPreservation());need(same(before,snapshot(fixture.preservation)),'SOURCE_RESTORE_DRIFT');
