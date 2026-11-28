@@ -1,9 +1,10 @@
 // Existing owning-target permissions, shared by source and Project document paths.
-// Project/WBS/Activity/Procurement attachment policy remains unchanged.
+// Project/WBS/Activity remain unclassified. PO evidence requires its owning record.
 export const DOCUMENT_SOURCE_VIEW_PERMISSIONS: Readonly<Record<string, string>> = {
   BOQ: 'budget.boq.view',
   BUDGET_REVISION: 'budget.revision.view',
   CUSTOMER_BOQ: 'budget.customer.view',
+  PURCHASE_ORDER: 'procurement.po.view',
   GOODS_RECEIPT: 'inventory.receipt.view',
   RECEIVING_DELIVERY: 'inventory.receiving.view',
   MATERIAL_RESERVATION: 'inventory.reservation.view',

@@ -258,6 +258,15 @@ export class DocumentsService {
       transfer.items.every((item) => projectIds.has(item.sourceProjectId) && projectIds.has(item.destinationProjectId)),
     ).map((transfer) => transfer.id));
 
+    // Bind PO evidence to the actual owning order, not a claimed source link.
+    const purchaseOrderIds = [...new Set(protectedRows.flatMap(row => row.links
+      .filter(link => link.entityType === 'PURCHASE_ORDER').map(link => link.entityId)))];
+    const purchaseOrders = purchaseOrderIds.length ? await db.purchaseOrder.findMany({
+      where: { id: { in: purchaseOrderIds }, companyId: auth.companyId, projectId },
+      select: { id: true },
+    }) : [];
+    const accessiblePurchaseOrders = new Set(purchaseOrders.map(row => row.id));
+
     const requestIds = [...new Set(protectedRows.flatMap(row => row.links
       .filter(link => link.entityType === 'MATERIAL_REQUEST').map(link => link.entityId)))];
     const requests = requestIds.length ? await db.materialRequest.findMany({
@@ -286,6 +295,7 @@ export class DocumentsService {
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
+        if (link.entityType === 'PURCHASE_ORDER') return accessiblePurchaseOrders.has(link.entityId);
         if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
         if (link.entityType === 'TRANSFER_RECEIPT') return accessibleReceipts.has(link.entityId);
         if (link.entityType === 'RECEIVING_DELIVERY') return accessibleDeliveries.has(link.entityId);
