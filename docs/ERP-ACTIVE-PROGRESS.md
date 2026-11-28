@@ -2,6 +2,25 @@
 
 <!-- current-work-m6 -->
 
+**Provisional rebaselined ERP: 1,324.5h → 0h · prototype 68.5h → 0h** (M6 4.5h / M7 26h / M8 38h). Canonical ERP 1,614.5h; canonical prototype 119.5h.
+
+**Latest evidence (Event277):** [Site fixture delta contract](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234182979), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/0df5edd82843e585ca05c4461885d6fbbeaeef77). 8/8 actual local pure fixture tests, exact blob equality; full census, approved BOQ successor facts, independent material plan, exact business numbering update and all other historical rows preserved in contract. Native row capture, SS08 delta and runtime file/session evidence pending; no formal acceptance. Estimated distinct preparation retirement 0.25h only.
+
+| Outstanding M6 package | Remaining |
+|---|---:|
+| M6-02 | 2.25h |
+| M6-03 | 0.75h |
+| M6-01 | 0.5h |
+| M6-04 | 0.5h |
+| M6-05 | 0.5h |
+| **M6 total** | **4.5h** |
+
+Next: native site row capture and SS08 delta, runtime file/session verification, consolidated execution/browser and durable receipt. Stable independent review, exact Owner authorization, one Mac run and acceptance reconciliation. No Owner action now. No repeat standalone preflight, historical browser replay, intermediate full CI/Codex or Production.
+
+Prior entries below are historical snapshots.
+
+
+
 **Provisional rebaselined ERP: 1,324.75h → 0h · prototype 68.75h → 0h** (M6 4.75h / M7 26h / M8 38h). Canonical ERP 1,614.75h; canonical prototype 119.75h.
 
 **Latest evidence (Event276):** [Native append-only evidence adapter](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7234134307), [exact tested source](https://github.com/threeswordz/cinder-grind/commit/d563217a7b51a31fcbcd4ea287bf6f801b09222b). 7/7 actual local controlled Prisma-response tests and exact blob equality; isolated read-only transaction, selected document/audit/dispatch/progress rows and full 174-table census. No real PostgreSQL execution, site/SS08 full row delta, file bytes or formal acceptance. Shared preparation 0.25h estimated retirement only.
