@@ -1,4 +1,4 @@
-// Event294 one-shot native continuation. The original failed attempt is immutable.
+// Browser-only continuation of Event294. Both historical attempts are immutable.
 import {constants} from 'node:fs';
 import {open,mkdir,lstat,realpath,readdir} from 'node:fs/promises';
 import {homedir} from 'node:os';
@@ -64,11 +64,11 @@ export function verifyCommittedSupplierProof(receipt,denial,orderId){
  need(receipt?.proofSha256===digest(proof),'PREVIOUS_SUPPLIER_PROOF');return proof;
 }
 export async function runBrowserOnlyBatch({ctx,authorization,actorIds,selection},adapters){
- need(hasBrowserOnlyAuthority(authorization),'AUTHORITY');
+ need(hasBrowserOnlyAuthority(authorization)&&ctx.browserOnlyContinuation===true&&ctx.candidate.sha===authorization.applicationSha&&ctx.candidate.tree===authorization.applicationTree&&ctx.operatorSha===authorization.operatorSha&&digest([...actorIds].sort())===authorization.actorIdsSha256&&digest({ss08:ctx.data.ss08Ids,fm02:ctx.data.fm02Ids,supplier:ctx.data.supplierBinding})===authorization.sourceIdsSha256,'AUTHORITY');
  const {createResidualSessionCustody,createSuccessorSessionBatch,withSuccessorRuntime,runResidualBrowser}=adapters,d=ctx.data;
  const custody=createResidualSessionCustody({db:ctx.db,captureFixtureRows,verifyCustody:ctx.verifyCustody,actorIds,browserAuthorization:authorization});
  let session,browser;
- await withSuccessorRuntime({application:ctx.application,stage:ctx.stage,recovery:ctx.recovery,reuseWebRoot:ctx.priorWebRoot,password:ctx.password,readKeyring:ctx.readKeyring,inventory,verifyCustody:ctx.verifyCustody,verifyBeforeSessions:ctx.verifyBeforeSessions,callback:async runtime=>{
+ await withSuccessorRuntime({application:ctx.application,stage:ctx.stage,recovery:ctx.recovery,reuseWebRoot:ctx.priorWebRoot,password:ctx.password,readKeyring:ctx.readKeyring,inventory,verifyCustody:ctx.verifyCustody,verifyBeforeSessions:ctx.verifyBeforeSessions,browserOnlyContinuation:true,callback:async runtime=>{
   await custody.captureBefore(d.snapshot);
   const batch=createSuccessorSessionBatch({candidate:ctx.candidate,authorization:{candidateSha:ctx.candidate.sha,candidateTree:ctx.candidate.tree,database:authorization.database,ownerAuthorizedSessions:true,retainedMutationAuthorized:false,productionAuthorized:false,actorIds},origin:runtime.origin,webOrigin:runtime.webOrigin,actors:names.map(k=>d.roster[k]),verifyRuntime:runtime.verifyRuntime,verifyQuiescent:ctx.quiescent});
   await batch(async live=>{const snapshot=await custody.admitLive(live);browser=await runResidualBrowser({ctx,selection,runtime,sessions:live,roster:d.roster,ss08Ids:d.ss08Ids,fm02Ids:d.fm02Ids,supplierBinding:d.supplierBinding});need(browser?.status==='M6_RESIDUAL_BROWSER_PASS'&&browser.browserVerified===true&&browser.actors===5&&browser.ss08SignedReceiptRendered===true&&browser.fm02WeightedProgressRendered===true&&browser.supplierReturnCustodyRendered===true&&browser.additionalLogins===0&&browser.businessMutationsPerformed===false&&browser.productionAuthorized===false,'BROWSER_PROOF');await runtime.readFiles();await custody.sealTerminal(snapshot);});
@@ -163,9 +163,9 @@ async function runBrowserOnly(ctx){
   need(session?.historicalSessionRowsPreserved===139&&session.newSessionsRevoked===5&&session.nonSessionRowsMatchedTerminal===true&&terminal.user_sessions.length===144&&session.terminalSnapshotSha256===digest(terminal)&&Object.keys(d.snapshot).filter(k=>!['users','user_sessions','login_rate_limit_buckets'].includes(k)).every(k=>same(d.snapshot[k],terminal[k])),'TERMINAL');
   const proof={...receiptBinding,...session,browserVerified:true,browserActors:browser.actors,additionalBrowserLogins:0,ss08SignedReceiptRendered:browser.ss08SignedReceiptRendered,fm02WeightedProgressRendered:browser.fm02WeightedProgressRendered,fm02WeightedPercent:'40.00',supplierReturnCustodyRendered:browser.supplierReturnCustodyRendered,supplierCanonicalApiEvidenceReused:true,supplierLifecycleEvents:7,dispatchEvents:2,totalResidualFiles:6,newBusinessTransactions:0,newUploads:0,businessRowsUnchanged:true,retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,priorAttemptsUnchanged:true,zeroActiveSessions:true,listenerPortsReleased:true,sessionRows:144,executionVerified:true,milestone6Accepted:false,humanUatCompleted:false,productionAuthorized:false,automaticRetryAllowed:false,secretsPrinted:false};
   const result={status:'M6_BROWSER_ONLY_RECOVERY_RECEIPT_SEALED',...proof,finalProofSha256:digest(proof)};await exclusive(ctx.attempt,'ready-private.json',result);return result;
- }catch(e){await exclusive(ctx.attempt,'blocked-private.json',{...receiptBinding,safeCode:safe(e),mayHaveMutated:true,automaticRetryAllowed:false,productionAuthorized:false});throw e;}
+ }catch(e){await exclusive(ctx.attempt,'blocked-private.json',{...receiptBinding,safeCode:safe(e),primarySafeCode:/^(M6_|BROWSER_)[A-Z0-9_]{1,100}$/.test(e.primarySafeCode??'')?e.primarySafeCode:null,cleanupCodes:Array.isArray(e.cleanupCodes)?e.cleanupCodes.filter(x=>['WEB_STOP','API_STOP','API_PORT','WEB_PORT','CUSTODY','FILES'].includes(x)):[],mayHaveMutated:true,automaticRetryAllowed:false,productionAuthorized:false});throw e;}
 }
 if(process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null)===await realpath(new URL(import.meta.url))){
  try{need(process.argv.length===6&&process.argv[2]==='--execute-reviewed-browser-only','ARGS');console.log(JSON.stringify(await nativeAdmission({operatorSha:process.argv[3],application:process.argv[4],buildSha256:process.argv[5]},runBrowserOnly),null,2));}
- catch(e){console.log(JSON.stringify({status:'M6_BROWSER_ONLY_RECOVERY_BLOCKED',safeCode:safe(e),automaticRetryAllowed:false,mutationState:'CHECK_DURABLE_ATTEMPT',milestone6Accepted:false,productionAuthorized:false,secretsPrinted:false},null,2));process.exitCode=1;}
+ catch(e){console.log(JSON.stringify({status:'M6_BROWSER_ONLY_RECOVERY_BLOCKED',safeCode:safe(e),primarySafeCode:/^(M6_|BROWSER_)[A-Z0-9_]{1,100}$/.test(e.primarySafeCode??'')?e.primarySafeCode:null,cleanupCodes:Array.isArray(e.cleanupCodes)?e.cleanupCodes.filter(x=>['WEB_STOP','API_STOP','API_PORT','WEB_PORT','CUSTODY','FILES'].includes(x)):[],automaticRetryAllowed:false,mutationState:'CHECK_DURABLE_ATTEMPT',milestone6Accepted:false,productionAuthorized:false,secretsPrinted:false},null,2));process.exitCode=1;}
 }
