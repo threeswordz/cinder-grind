@@ -43,7 +43,7 @@ export async function executeReviewedResidual({operatorSha,application,reviewedO
  return withResidualNativeAdmission({operatorSha,application},async ctx=>{
   const issueDate=new Date().toISOString().slice(0,10),validTo=addDays(issueDate,7),revisedDate=addDays(issueDate,7),siteKeys=keys(['create','submit','approve','denial']),journeyKeys=keys(['createKey','postKey','linkKey','receiptKey']);
   const receiptBytes=syntheticResidualPdf('M6 SS08 SIGNED RECEIPT REHEARSAL'),supplierArtifacts=new Map(artifactKeys.map(k=>[k,syntheticResidualPdf('M6 SUPPLIER '+k.toUpperCase()+' REHEARSAL')]));
-  const receiptArtifact=metadata(receiptBytes),artifacts=Object.fromEntries([...supplierArtifacts].map(([k,v])=>[k,metadata(v)]));let attempt,handedOff=false,phases;
+  const receiptArtifact=metadata(receiptBytes),artifacts=Object.fromEntries([...supplierArtifacts].map(([k,v])=>[k,metadata(v)]));let attempt,phases;
   try{
    const sourcePlans=await observeResidualSourcePlans(ctx,{keys:siteKeys,issueDate,validTo,artifacts});const roster=projectResidualRoster(ctx.binding.roster,ctx.rolePlan);
    need(names.every(k=>roster[k])&&JSON.stringify(names.map(k=>roster[k].userId).sort())===JSON.stringify(sourcePlans.expectedActors),'ROSTER');
@@ -57,8 +57,8 @@ export async function executeReviewedResidual({operatorSha,application,reviewedO
    attempt=await beginResidualAttempt({parent:ctx.parentStage,operatorSha,planSha256:bound.planSha256,baselineSha256:bound.baselineSha256,authorization});
    let roleSnapshot;const roleProof=await writeResidualRoles({db:ctx.db,context:ctx.roleContext,plan:ctx.rolePlan,baseline:ctx.initial,operatorSha,authorization:{...authorization,planSha256:bound.plan.rolePlanSha256},capture:ctx.captureFixtureRows,verifyCustody:ctx.verifyCustody,sealAttempt:()=>attempt.startPhase('roles'),sealCommitted:async committed=>{roleSnapshot=structuredClone(committed.after);await attempt.sealPhase('roles',{rolesCreated:2,assignmentsCreated:2,permissionEdgesCreated:7,auditRowsAdded:1,rolePlanSha256:committed.planSha256,afterSha256:digest(roleSnapshot)});}});
    need(roleProof.status==='M6_RESIDUAL_SYNTHETIC_ROLES_COMMITTED'&&roleSnapshot?.user_sessions?.length===129,'ROLE_COMMIT');
-   handedOff=true;return await runResidualRuntimeBatch({ctx,attempt,authorization,sourcePlans,receiptArtifact,roster,roleSnapshot,phases});
-  }catch(e){if(attempt&&!handedOff)await attempt.fail(e.safeCode??'M6_RESIDUAL_ENTRY_PRIVATE_FAILURE');throw e;}
+   return await runResidualRuntimeBatch({ctx,attempt,authorization,sourcePlans,receiptArtifact,roster,roleSnapshot,phases});
+  }catch(e){if(attempt)await attempt.fail(e.safeCode??'M6_RESIDUAL_ENTRY_PRIVATE_FAILURE');throw e;}
   finally{phases?.close();receiptBytes.fill(0);for(const b of supplierArtifacts.values())b.fill(0);}
  });
 }
