@@ -50,7 +50,7 @@ export function terminalRecoveryProof({session,files,browser,supplier,preserved,
  need(session?.historicalSessionRowsPreserved===134&&session.newSessionsRevoked===5&&session.nonSessionRowsMatchedTerminal===true&&files?.documentFilesAdded===4&&files.recoveredFilesAdopted===2&&files.totalResidualFiles===6,'TERMINAL_CUSTODY');
  need(browser?.status==='M6_RESIDUAL_BROWSER_PASS'&&browser.browserVerified===true&&browser.actors===5&&browser.ss08SignedReceiptRendered===true&&browser.fm02WeightedProgressRendered===true&&browser.supplierReturnCustodyRendered===true&&browser.additionalLogins===0&&browser.businessMutationsPerformed===false&&browser.productionAuthorized===false,'BROWSER_PROOF');
  need(supplier?.status==='M6_SUPPLIER_CANONICAL_RETURN_VERIFIED'&&supplier.events===7&&supplier.canonicalApiVerified===true&&supplier.stockEffect===false&&supplier.financeEffect===false&&supplier.replacementJourneyVerified===false&&verifySupplierScopeProof(supplier),'SUPPLIER_PROOF');
- need(preserved?.retainedDatabaseAndFilesUnchanged===true&&preserved.recoveryCopyUnchanged===true&&preserved.failedAttemptUnchanged===true&&preserved.zeroActiveSessions===true&&preserved.listenerPortsReleased===true&&preserved.sessionRows===139&&hex(receiptBinding?.planSha256),'PRESERVATION');
+ need(preserved?.retainedDatabaseAndFilesUnchanged===true&&preserved.recoveryCopyUnchanged===true&&preserved.failedAttemptUnchanged===true&&preserved.zeroActiveSessions===true&&preserved.listenerPortsReleased===true&&preserved.sessionRows===139&&hex(preserved.terminalSnapshotSha256)&&session.terminalSnapshotSha256===preserved.terminalSnapshotSha256&&hex(receiptBinding?.planSha256),'PRESERVATION');
  return {...receiptBinding,...session,...files,...preserved,browserVerified:true,browserActors:5,additionalLogins:0,ss08SignedReceiptRendered:true,fm02WeightedProgressRendered:true,fm02WeightedPercent:'40.00',supplierReturnCustodyRendered:true,supplierCanonicalApiVerified:true,supplierLifecycleEvents:7,supplierReplacementJourneyVerified:false,supplierDenialKind:supplier.supplierDenialKind,foreignOrderDenied:supplier.foreignOrderDenied,absentOrderDenied:supplier.absentOrderDenied,priorNativeScopeEvidenceReused:supplier.priorNativeScopeEvidenceReused,priorNativeScopeReceipt:supplier.priorNativeScopeReceipt,committedPhasesPreserved:[...committedPrefix],executionVerified:true,milestone6Accepted:false,humanUatCompleted:false,productionAuthorized:false,automaticRetryAllowed:false,secretsPrinted:false};
 }
 // Source IDs come only from the exact observed post-failure census, never from a new write.
@@ -94,9 +94,9 @@ async function nativeAdmission({application,operatorSha,buildSha256},consume){
  const sealed=await json(join(parentStage,'rehearsal-ready.json'));verifyCommonCandidate(oldCandidate,sealed);need(sealed.historicalTablesPreserved===172,'REHEARSAL');
  const historical=join(root,'m4-upgrade-9417f07c','rehearsal','application'),expected=await loadM4ProcessReceipts(root,historical),observe=createMacObservation({root,application:historical,expected,containerReceipt,validContainer});
  const files={};for(const k of kinds){const baseline=await inventory(join(recovery,k)),current=await inventory(join(priorRuntime,k));need(same(baseline,await inventory(join(root,k))),'RETAINED_FILES');files[k]={recovery:baseline,current};}
- const recoveryInventory=await inventory(recovery),priorReceiptInventory=await inventory(priorAttempt),priorWebInventory=await inventory(join(priorRuntime,'web'),{privateRoot:false});
+ const recoveryInventory=await inventory(recovery),priorReceiptInventory=await inventory(priorAttempt),priorWebInventory=await inventory(join(priorRuntime,'web'),{privateRoot:false});need(same(priorWebInventory,await inventory(join(parentStage,'operational-batch','web'),{privateRoot:false})),'WEB_HISTORY');
  const verifyCustody=async()=>{await inspectPostM4(root);verifyRuntimePair(expected,await observe(),historical,process.execPath,process.getuid());need(same(operator,await readCheckoutIdentity(source))&&same(app,await readCheckoutIdentity(application)),'CHECKOUT_DRIFT');};
- const verifyFiles=async()=>{await verifyCustody();need(same(apiInventory,await inventory(join(application,'apps/api/dist'),{privateRoot:false}))&&same(recoveryInventory,await inventory(recovery))&&same(priorReceiptInventory,await inventory(priorAttempt))&&same(receipt,await chain(priorAttempt))&&same(priorWebInventory,await inventory(join(priorRuntime,'web'),{privateRoot:false})),'CUSTODY_DRIFT');for(const k of kinds)need(same(files[k].current,await inventory(join(priorRuntime,k)))&&same(files[k].recovery,await inventory(join(root,k))),'FILES_DRIFT');const bytes=await read(join(priorRuntime,'api.log'),16777216);try{need(hash(bytes)===logSha,'LOG_DRIFT');}finally{bytes.fill(0);}};
+ const verifyFiles=async()=>{await verifyCustody();need(same(apiInventory,await inventory(join(application,'apps/api/dist'),{privateRoot:false}))&&same(recoveryInventory,await inventory(recovery))&&same(priorReceiptInventory,await inventory(priorAttempt))&&same(receipt,await chain(priorAttempt))&&same(priorWebInventory,await inventory(join(priorRuntime,'web'),{privateRoot:false}))&&same(priorWebInventory,await inventory(join(parentStage,'operational-batch','web'),{privateRoot:false})),'CUSTODY_DRIFT');for(const k of kinds)need(same(files[k].current,await inventory(join(priorRuntime,k)))&&same(files[k].recovery,await inventory(join(root,k))),'FILES_DRIFT');const bytes=await read(join(priorRuntime,'api.log'),16777216);try{need(hash(bytes)===logSha,'LOG_DRIFT');}finally{bytes.fill(0);}};
  const {PrismaClient,Prisma}=createRequire(join(application,'apps/api/package.json'))('@prisma/client');need(Prisma.prismaVersion.client==='6.19.3','PRISMA');const client=database=>new PrismaClient({datasources:{db:{url:'postgresql://proto_runtime:'+cfg.databasePassword+'@127.0.0.1:55471/'+database+'?schema=public'}},log:[]});const db=client('m6_successor_rehearsal'),retained=client('proto_a_01');
  try{await verifyFiles();await observeSuccessorMigrations({db,expectedDatabase:'m6_successor_rehearsal',expectedRole:'proto_runtime',predecessor:await migrationSources(historical),sources:await readSuccessorSources(application)});
   const fixtureReceipt=await json(join(parentStage,'event237-fixture','committed-private.json'),33554432);need(fixtureReceipt.planSha256==='29dc83568b79bdb7d0b08fbd37bf8b5c8d7b1a4a8cc55549edf3ec2c67a02322','FIXTURE_RECEIPT');
@@ -109,24 +109,10 @@ async function nativeAdmission({application,operatorSha,buildSha256},consume){
   return await consume({candidate:{sha:app.sha,tree:app.tree,syntheticOnly:true,rehearsalOnly:true,productionAuthorized:false},operatorSha,application,parentStage,recovery,priorRuntime,attempt,stage,fixture,db,inventory,captureFixtureRows,verifyCustody,verifyBeforeSessions,verifyRetained,quiescent,password:cfg.databasePassword,readKeyring:json,priorWebRoot:join(parentStage,'operational-batch','web'),recoveryContinuation:true,data,buildSha256});
  }finally{await db.$disconnect();await retained.$disconnect();}
 }
-export async function runRecovery(ctx){
- const {data:d,operatorSha,fixture:f,candidate}=ctx,actorIds=names.map(k=>d.roster[k].userId).sort(),selection=await discoverResidualBrowser();
- const revised=new Date();revised.setUTCDate(revised.getUTCDate()+7);const revisedDate=revised.toISOString().slice(0,10);
- const binding={applicationSha:candidate.sha,applicationTree:candidate.tree,operatorSha,buildSha256:ctx.buildSha256,database:'m6_successor_rehearsal',recoveryAttemptSha256:a.attemptSha256,recoveryBlockedSha256:a.blockedSha256,recoverySnapshotSha256:a.snapshotSha256,sourcePlanSha256:supplierSourceDigest(d.plan),recoveredArtifactsSha256:digest(d.recovered),sourceIdsSha256:digest({ss08:d.ss08Ids,fm02:d.fm02Ids,denial:d.denial}),actorIdsSha256:digest(actorIds),revisedDate,retainedMutationAuthorized:false,productionAuthorized:false,automaticRetryAllowed:false};
- const planSha256=digest(binding),receiptBinding={...binding,planSha256};
- need(process.stdin.isTTY===true&&process.stdout.isTTY===true,'OWNER_INTERACTIVE');
- console.log(JSON.stringify({status:'M6_RECOVERY_EXACT_PLAN_AWAITING_OWNER',...receiptBinding,previousPhases:committedPrefix,priorSessions:134,newSessions:5,newUploads:4,adoptedFiles:2,newDispatchEvents:2,supplierLifecycleEvents:7,retainedMutationAuthorized:false,productionAuthorized:false,secretsPrinted:false},null,2));
- const rl=createInterface({input:process.stdin,output:process.stdout});try{need(await rl.question('Authorize this exact isolated recovery only: EXECUTE '+planSha256+' : ')==='EXECUTE '+planSha256,'OWNER_DECLINED');}finally{rl.close();}
- const authorization={...receiptBinding,ownerAuthorizedEvent294Continuation:true,ownerAuthorizedSupplierSources:true,ownerAuthorizedSupplierJourney:true};
- need(hasEvent294Authority(authorization)&&new Set(actorIds).size===5,'AUTHORITY');validateRecoveredDispatch(d.plan,authorization,d.recovered.dispatch);
- await ctx.verifyBeforeSessions();await ctx.verifyRetained();await absent(ctx.attempt);await absent(ctx.stage);
- await mkdir(ctx.attempt,{mode:0o700});await syncDir(ctx.parentStage);await exclusive(ctx.attempt,'attempt-private.json',receiptBinding);
- let phase='admission',sessionProof,fileProof,browserProof,supplierProof,terminalSnapshot;
- const mark=async(name)=>{phase=name;await exclusive(ctx.attempt,name+'-started-private.json',{...receiptBinding,phase:name});};
- const seal=async(name,proof)=>exclusive(ctx.attempt,name+'-committed-private.json',{...receiptBinding,phase:name,proofSha256:digest(proof)});
- const artifacts=new Map(keys.map(k=>[k,syntheticResidualPdf('M6 SUPPLIER '+(k==='delay'?'DELAY AND CLAIM CORRESPONDENCE':k.toUpperCase())+' REHEARSAL')]));
- const receiptBytes=syntheticResidualPdf('M6 SS08 SIGNED RECEIPT REHEARSAL');
- try{
+export async function runRecoveryBatch({ctx,authorization,actorIds,binding,selection,artifacts,receiptBytes,revisedDate,mark,seal},adapters){
+ const {data:d,operatorSha,fixture:f,candidate}=ctx;
+ const {createRecoveryFileRegistry,createResidualSessionCustody,withSuccessorRuntime,createSuccessorSessionBatch,createResidualPhaseEvidence,createResidualSupplierTransport,createResidualSupplierSourceJourney,supplierSourceDigest,createResidualJourneyTransport,createSupplierCanonicalJourney,supplierBindingDigest,runResidualBrowser}=adapters;
+ let sessionProof,fileProof,browserProof,supplierProof,terminalSnapshot;
   const files=createRecoveryFileRegistry({ctx,plan:d.plan,roster:d.roster,authorization,recoveredDispatch:d.recovered.dispatch,recoveredReceipt:d.recovered.receipt});
   const session=createResidualSessionCustody({db:ctx.db,captureFixtureRows,verifyCustody:ctx.verifyCustody,actorIds,recoveryAuthorization:authorization});
   await withSuccessorRuntime({application:ctx.application,stage:ctx.stage,recovery:ctx.recovery,reuseWebRoot:ctx.priorWebRoot,password:ctx.password,readKeyring:ctx.readKeyring,inventory,verifyCustody:ctx.verifyCustody,verifyBeforeSessions:ctx.verifyBeforeSessions,residualDocuments:files,recoveryContinuation:{priorRuntime:ctx.priorRuntime,authorization},callback:async runtime=>{
@@ -148,9 +134,30 @@ export async function runRecovery(ctx){
    });
    sessionProof=await session.verifyCleanup();await runtime.readFiles();
   }});
+ return {sessionProof,fileProof,browserProof,supplierProof,terminalSnapshot};
+}
+async function runRecovery(ctx){
+ const {data:d,operatorSha,fixture:f,candidate}=ctx,actorIds=names.map(k=>d.roster[k].userId).sort(),selection=await discoverResidualBrowser();
+ const revised=new Date();revised.setUTCDate(revised.getUTCDate()+7);const revisedDate=revised.toISOString().slice(0,10);
+ const binding={applicationSha:candidate.sha,applicationTree:candidate.tree,operatorSha,buildSha256:ctx.buildSha256,database:'m6_successor_rehearsal',recoveryAttemptSha256:a.attemptSha256,recoveryBlockedSha256:a.blockedSha256,recoverySnapshotSha256:a.snapshotSha256,sourcePlanSha256:supplierSourceDigest(d.plan),recoveredArtifactsSha256:digest(d.recovered),sourceIdsSha256:digest({ss08:d.ss08Ids,fm02:d.fm02Ids,denial:d.denial}),actorIdsSha256:digest(actorIds),revisedDate,retainedMutationAuthorized:false,productionAuthorized:false,automaticRetryAllowed:false};
+ const planSha256=digest(binding),receiptBinding={...binding,planSha256};
+ need(process.stdin.isTTY===true&&process.stdout.isTTY===true,'OWNER_INTERACTIVE');
+ console.log(JSON.stringify({status:'M6_RECOVERY_EXACT_PLAN_AWAITING_OWNER',...receiptBinding,previousPhases:committedPrefix,priorSessions:134,newSessions:5,newUploads:4,adoptedFiles:2,newDispatchEvents:2,supplierLifecycleEvents:7,retainedMutationAuthorized:false,productionAuthorized:false,secretsPrinted:false},null,2));
+ const rl=createInterface({input:process.stdin,output:process.stdout});try{need(await rl.question('Authorize this exact isolated recovery only: EXECUTE '+planSha256+' : ')==='EXECUTE '+planSha256,'OWNER_DECLINED');}finally{rl.close();}
+ const authorization={...receiptBinding,ownerAuthorizedEvent294Continuation:true,ownerAuthorizedSupplierSources:true,ownerAuthorizedSupplierJourney:true};
+ need(hasEvent294Authority(authorization)&&new Set(actorIds).size===5,'AUTHORITY');validateRecoveredDispatch(d.plan,authorization,d.recovered.dispatch);
+ await ctx.verifyBeforeSessions();await ctx.verifyRetained();await absent(ctx.attempt);await absent(ctx.stage);
+ await mkdir(ctx.attempt,{mode:0o700});await syncDir(ctx.parentStage);await exclusive(ctx.attempt,'attempt-private.json',receiptBinding);
+ let phase='admission',sessionProof,fileProof,browserProof,supplierProof,terminalSnapshot;
+ const mark=async(name)=>{phase=name;await exclusive(ctx.attempt,name+'-started-private.json',{...receiptBinding,phase:name});};
+ const seal=async(name,proof)=>exclusive(ctx.attempt,name+'-committed-private.json',{...receiptBinding,phase:name,proofSha256:digest(proof)});
+ const artifacts=new Map(keys.map(k=>[k,syntheticResidualPdf('M6 SUPPLIER '+(k==='delay'?'DELAY AND CLAIM CORRESPONDENCE':k.toUpperCase())+' REHEARSAL')]));
+ const receiptBytes=syntheticResidualPdf('M6 SS08 SIGNED RECEIPT REHEARSAL');
+ try{
+  ({sessionProof,fileProof,browserProof,supplierProof,terminalSnapshot}=await runRecoveryBatch({ctx,authorization,actorIds,binding,selection,artifacts,receiptBytes,revisedDate,mark,seal},{createRecoveryFileRegistry,createResidualSessionCustody,withSuccessorRuntime,createSuccessorSessionBatch,createResidualPhaseEvidence,createResidualSupplierTransport,createResidualSupplierSourceJourney,supplierSourceDigest,createResidualJourneyTransport,createSupplierCanonicalJourney,supplierBindingDigest,runResidualBrowser}));
   await ctx.verifyRetained();await ctx.quiescent();need(noListener(33072)&&noListener(44172),'PORT_CLEANUP');
   const terminal=await ro(ctx.db,'m6_successor_rehearsal',async tx=>{await requireNoLiveSessions(tx);return captureFixtureRows(tx);});
-  need(terminalSnapshot&&Object.keys(terminal).every(t=>t==='user_sessions'||same(terminal[t],terminalSnapshot[t])),'TERMINAL_DRIFT');
+  need(terminalSnapshot&&Object.keys(terminal).every(t=>t==='user_sessions'||same(terminal[t],terminalSnapshot[t]))&&sessionProof.terminalSnapshotSha256===digest(terminal),'TERMINAL_DRIFT');
   const proof=terminalRecoveryProof({session:sessionProof,files:fileProof,browser:browserProof,supplier:supplierProof,preserved:{retainedDatabaseAndFilesUnchanged:true,recoveryCopyUnchanged:true,failedAttemptUnchanged:true,zeroActiveSessions:true,listenerPortsReleased:true,sessionRows:terminal.user_sessions.length,terminalSnapshotSha256:digest(terminal)},receiptBinding});
   await seal('cleanup',proof);const result={status:'M6_EVENT294_RECOVERY_RECEIPT_SEALED',...proof,finalProofSha256:digest(proof)};await exclusive(ctx.attempt,'ready-private.json',result);return result;
  }catch(e){const blocked={...receiptBinding,phase,safeCode:safe(e),primarySafeCode:/^(M6_|BROWSER_)[A-Z0-9_]{1,100}$/.test(e.primarySafeCode??'')?e.primarySafeCode:null,cleanupCodes:Array.isArray(e.cleanupCodes)?e.cleanupCodes.filter(x=>['WEB_STOP','API_STOP','API_PORT','WEB_PORT','CUSTODY','FILES'].includes(x)):[],mayHaveMutated:true,automaticRetryAllowed:false,productionAuthorized:false};await exclusive(ctx.attempt,'blocked-private.json',blocked);throw Object.assign(Error(blocked.safeCode),blocked);}
