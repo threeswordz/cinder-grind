@@ -8,7 +8,8 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
-import {blockedCapturePin,createM7PriorAttemptGuard,blockedRecoveryPin,createM7SealedRecoveryGuard} from './m7-blocked-capture-continuation.mjs';
+import {verifyM7NativeOidWire} from './m7-postgres-restore.mjs';
+import {blockedCapturePin,createM7PriorAttemptGuard,blockedRecoveryPin,createM7SealedRecoveryGuard,blockedCustodyPin,createM7CustodyRecoveryGuard} from './m7-blocked-capture-continuation.mjs';
 const need=(ok,c)=>{if(!ok)throw Error('M7_OPERATOR_'+c);};
 const hex=(x,n=64)=>typeof x==='string'&&x.length===n&&/^[a-f0-9]+$/.test(x);
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
@@ -32,23 +33,24 @@ export function makeM7Plan({operatorSha,operatorTree,anchor,priorBlockedProofSha
 export function m7Confirmation(plan){return (plan.reusedCaptureManifestSha256?'RESUME M7 FROM SEALED CAPTURE ':plan.priorBlockedProofSha256?'CONTINUE M7 AFTER BLOCKED CAPTURE ':'EXECUTE M7 ISOLATED RECOVERY ')+plan.planSha256;}
 export async function runM7Once({plan,confirmation,root,application,operator,executable,source,verifyCheckout,makeClient,inventory,checkout,prior},d,authority){
  need(path(root)&&path(application)&&path(operator)&&path(executable)&&[application,operator,source.root].every(p=>disjoint(root,p))&&typeof verifyCheckout==='function'&&typeof source?.close==='function','CONTEXT');
- const expected=makeM7Plan({operatorSha:plan.operatorSha,operatorTree:plan.operatorTree,anchor:source.anchor,priorBlockedProofSha256:prior?.proofSha256,reuseCapture:prior?.capturePin});need((!prior||path(prior.root)&&disjoint(root,prior.root)&&typeof prior.verify==='function'&&(!prior.capturePin||path(prior.firstRoot)&&disjoint(root,prior.firstRoot)&&typeof prior.capture==='function'))&&same(plan,expected)&&confirmation===m7Confirmation(expected),'AUTHORIZATION');
- let claimed=false,rootId,phase='PREFLIGHT',capture,observed,result,primary=null,cleanup=null,receipt;
+ const expected=makeM7Plan({operatorSha:plan.operatorSha,operatorTree:plan.operatorTree,anchor:source.anchor,priorBlockedProofSha256:prior?.proofSha256,reuseCapture:prior?.capturePin});need((!prior||path(prior.root)&&disjoint(root,prior.root)&&typeof prior.verify==='function'&&(!prior.capturePin||path(prior.firstRoot)&&disjoint(root,prior.firstRoot)&&(!prior.secondRoot||path(prior.secondRoot)&&disjoint(root,prior.secondRoot))&&typeof prior.capture==='function'))&&same(plan,expected)&&confirmation===m7Confirmation(expected),'AUTHORIZATION');
+ let claimed=false,rootId,phase='PREFLIGHT',capture,observed,result,primary=null,cleanup=null,receipt,binding,observe,fixtures,evidence;
  const verifyPrior=async()=>{if(prior)need(await prior.verify()===true,'PRIOR_DRIFT');};
  const verifyRoot=async()=>{need(same(rootId,await privateDir(root)),'ATTEMPT_DRIFT');await verifyPrior();};
+ const bindSource=async()=>{need(capture.status==='M7_PAIRED_CAPTURE_SET_SEALED'&&hex(capture.witnessSha256)&&(!prior?.capturePin||capture.manifestArgs.manifestSha256===plan.reusedCaptureManifestSha256&&capture.witnessSha256===plan.reusedCaptureWitnessSha256),'CAPTURE');binding=await d.bindM7Capture({...capture,verifyManifest:d.verifyM7PairedManifest});observe=d.createM7CaptureObserver({source,binding});observed=await observe();};
+ const prepareEvidence=async()=>{fixtures=await d.readM7NativeSourceFixtures({source,binding});evidence=await d.createM7NativeEvidence({source,binding,observe});};
  try{
    await verifyCheckout();await source.observe();await d.preflightPorts(plan.targets);await verifyPrior();
+   if(prior?.capturePin){phase='REUSE_PREFLIGHT';capture=prior.capture();await bindSource();if(authority===nativeAuthority)need(await verifyM7NativeOidWire(source.db,binding.capture().sourceDatabase)===true,'OID_WIRE');await d.preflightRecovery?.({source,binding,plan});await prepareEvidence();await verifyPrior();await d.preflightPorts(plan.targets);await verifyCheckout();}
    // Constant source-specific attempt path: a failed or successful attempt cannot
    // be replayed with another operator SHA or by changing a random run ID.
    await mkdir(root,{mode:0o700});claimed=true;rootId=await privateDir(root);
    await seal(join(root,'attempt-private.json'),{status:'M7_NATIVE_ATTEMPT_CLAIMED',plan});
    const captureParent=join(root,'capture'),restoreParent=join(root,'restore');if(!prior?.capturePin)await mkdir(captureParent,{mode:0o700});await mkdir(restoreParent,{mode:0o700});await verifyRoot();
-   phase=prior?.capturePin?'REUSE_CAPTURE':'CAPTURE';capture=prior?.capturePin?prior.capture():await d.createM7PairedCapture({parent:captureParent,runId:plan.captureRunId,sourceRoot:source.paths.stage,protectedRoots:[source.root,application,operator,...(prior?[prior.root]:[])],anchor:source.anchor,observe:source.observe,dump:source.dump})();
-   need(capture.status==='M7_PAIRED_CAPTURE_SET_SEALED'&&hex(capture.witnessSha256)&&(!prior?.capturePin||capture.manifestArgs.manifestSha256===plan.reusedCaptureManifestSha256&&capture.witnessSha256===plan.reusedCaptureWitnessSha256),'CAPTURE');await verifyRoot();
-   const binding=await d.bindM7Capture({...capture,verifyManifest:d.verifyM7PairedManifest});
-   const observe=d.createM7CaptureObserver({source,binding});observed=await observe();
+   phase=prior?.capturePin?'REUSE_CAPTURE':'CAPTURE';if(!prior?.capturePin){capture=await d.createM7PairedCapture({parent:captureParent,runId:plan.captureRunId,sourceRoot:source.paths.stage,protectedRoots:[source.root,application,operator,...(prior?[prior.root]:[])],anchor:source.anchor,observe:source.observe,dump:source.dump})();
+   await bindSource();}await verifyRoot();
    await seal(join(root,'capture-private.json'),{manifestArgs:capture.manifestArgs,witness:capture.witness,witnessSha256:capture.witnessSha256});
-   phase='SOURCE_EVIDENCE';const fixtures=await d.readM7NativeSourceFixtures({source,binding});const evidence=await d.createM7NativeEvidence({source,binding,observe});
+   phase='SOURCE_EVIDENCE';if(!prior?.capturePin)await prepareEvidence();
    const claimOptions={parent:restoreParent,protectedRoots:{application,database:join(source.root,'db'),documents:source.paths.documents,uploads:source.paths.uploads,hrkeys:source.paths.hrkeys,capture:capture.manifestArgs.root},candidate:{sha:plan.applicationSha,tree:plan.applicationTree,clean:true},sourcePort:33072};
    phase='RECOVERY';await verifyCheckout();await verifyRoot();result=await (await d.createM7RecoveryRunner({source,binding,manifestArgs:capture.manifestArgs,claimOptions,targets:plan.targets,application,buildSha256:plan.buildSha256,executable,makeClient,inventory,checkout,fixtures,evidence}))();
    need(result.status==='M7_RECOVERY_COMPOSITION_PASS'&&result.primary===null&&result.cleanup===null&&same(result.completedModes,modes)&&result.revokedNewSessions===12&&result.newHrDownloadAudits===1,'RECOVERY');
@@ -68,7 +70,7 @@ export async function runM7Once({plan,confirmation,root,application,operator,exe
 }
 async function native(args){
  need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0'&&process.stdin.isTTY&&process.stdout.isTTY&&!Object.keys(process.env).some(k=>/^NODE_OPTIONS$|^NODE_PATH$|^PRISMA_|^NODE_TLS_REJECT_UNAUTHORIZED$|^GIT_|^CONTAINER_HOST$|^CONTAINER_CONNECTION$|^DOCKER_HOST$/.test(k)),'MAC');
- need(args.length===4&&['--execute-reviewed-m7','--continue-reviewed-m7-capture','--resume-reviewed-m7-recovery'].includes(args[0])&&hex(args[1],40),'USAGE');
+ need(args.length===4&&['--execute-reviewed-m7','--continue-reviewed-m7-capture','--resume-reviewed-m7-recovery','--resume-reviewed-m7-custody'].includes(args[0])&&hex(args[1],40),'USAGE');
  const [action,operatorSha,application,executable]=args,operator=dirname(dirname(dirname(fileURLToPath(import.meta.url))));
  need([application,operator,executable].every(path)&&await realpath(application)===application&&await realpath(operator)===operator&&await realpath(executable)===executable,'PATH');
  const resolved=execFileSync('/usr/bin/which',['podman'],{encoding:'utf8',timeout:10000}).trim();need(await realpath(resolved)===executable,'PODMAN');
@@ -77,7 +79,7 @@ async function native(args){
  const initialRoot=join(await realpath(homedir()),'Construction-ERP-M7-Recovery-'+terminalAnchor.finalProofSha256.slice(0,12));
  const first=action!=='--execute-reviewed-m7'?await createM7PriorAttemptGuard({root:initialRoot,pin:blockedCapturePin,anchor:terminalAnchor}):undefined;
  let prior=first;
- if(action==='--resume-reviewed-m7-recovery'){
+ if(['--resume-reviewed-m7-recovery','--resume-reviewed-m7-custody'].includes(action)){
    const [{readM7PrivateTerminalReceipt},{verifyM7TargetContainer}]=await Promise.all([import('./m7-terminal-source.mjs'),import('./m7-target-cluster.mjs')]);
    const sourceReceipt=await readM7PrivateTerminalReceipt(join(await realpath(homedir()),'Construction-ERP-Prototype-Runtime','container-owned.json'));
    const inspectStopped=async({target,runId})=>{
@@ -87,6 +89,7 @@ async function native(args){
      return digest([c.Id,c.Image,c.Name,c.Created,c.State,c.Config,c.HostConfig,c.NetworkSettings,c.Mounts]);
    };
    prior=await createM7SealedRecoveryGuard({root:initialRoot+'-continuation-'+first.proofSha256.slice(0,12),pin:blockedRecoveryPin,anchor:terminalAnchor,first,inspectStopped,bindCapture:c=>bindM7Capture({...c,verifyManifest:verifyM7PairedManifest})});
+   if(action==='--resume-reviewed-m7-custody')prior=await createM7CustodyRecoveryGuard({root:initialRoot+'-recovery-'+prior.proofSha256.slice(0,12),pin:blockedCustodyPin,anchor:terminalAnchor,second:prior,inspectStopped,inventory});
  }
  const plan=makeM7Plan({operatorSha,operatorTree:op.tree,anchor:terminalAnchor,priorBlockedProofSha256:prior?.proofSha256,reuseCapture:prior?.capturePin});
  const verifyCheckout=async()=>{const [o,a]=await Promise.all([readCheckoutIdentity(operator),readCheckoutIdentity(application)]);need(o.sha===plan.operatorSha&&o.tree===plan.operatorTree&&o.clean===true&&a.sha===plan.applicationSha&&a.tree===plan.applicationTree&&a.clean===true&&digest(await inventory(join(application,'apps/api/dist'),{privateRoot:false}))===plan.buildSha256,'CHECKOUT');};
