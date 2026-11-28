@@ -12,6 +12,7 @@ import { sealHrPrivateAttachment, openHrPrivateAttachment,
   HR_PRIVATE_ATTACHMENT_MAX_BYTES, type HrAttachmentFile } from './hr-private-attachment-codec';
 import { HrPrivateCrypto, HrPrivateBinding } from './hr-private-crypto';
 import * as input from './hr-input';
+import { parseOfficeAttendanceCsv } from './attendance-import';
 import { attendancePeriod, attendanceTransition, assertEmploymentDay, validateInterval, type AttendanceAction, type AttendanceState } from './attendance-contract';
 
 type Tx = Prisma.TransactionClient;
@@ -769,6 +770,31 @@ export class HrService {
     return this.read(supplied,[],async(tx,auth)=>{
       await this.officeAttendanceScope(tx,auth,companyId);
       return this.attendanceSnapshot(tx,companyId,null,periodStart);
+    });
+  }
+
+  /** Read-only preview: resolve exact Company employee codes and the same
+   * canonical validation used by office save. Explicit save remains separate. */
+  officeAttendancePreview(supplied: AuthenticatedUserContext, companyId: string, periodRaw: unknown, raw: unknown) {
+    input.uuid(companyId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    const value=input.object(raw,['csv','expectedVersion']);
+    const expectedVersion=input.integer(value.expectedVersion);
+    return this.read(supplied,[],async(tx,auth)=>{
+      await this.officeAttendanceScope(tx,auth,companyId);
+      let imported:ReturnType<typeof parseOfficeAttendanceCsv>;
+      try{imported=parseOfficeAttendanceCsv(value.csv);}catch{input.invalid();}
+      const batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:'OFFICE',periodStart}}});
+      if((batch?.currentVersion??0)!==expectedVersion)throw conflict();
+      const employees=await tx.employee.findMany({where:{companyId,employeeCode:{in:[...new Set(imported.map(l=>l.employeeCode))]}},select:{id:true,employeeCode:true}});
+      const byCode=new Map(employees.map(e=>[e.employeeCode,e.id]));
+      const lines=this.parseAttendanceLines(imported.map(({employeeCode,...line})=>{
+        const employeeId=byCode.get(employeeCode);if(!employeeId)throw notFound();
+        return {...line,employeeId};
+      }),null,periodStart);
+      const snapshot=await this.bindAttendanceLines(tx,companyId,null,lines);
+      await this.assertAttendanceSubmission(tx,companyId,batch?.id??randomUUID(),null,snapshot);
+      return {expectedVersion,lines:lines.map(({allocationId,...line})=>({...line,workDate:line.workDate.toISOString().slice(0,10)}))};
     });
   }
 

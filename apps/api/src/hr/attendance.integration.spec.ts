@@ -154,6 +154,20 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       assert.equal((await call(a.hr,office,200)).data.lines[0].endMinute,721);
       const officeBatch=await db.hrAttendanceBatch.findUniqueOrThrow({where:{id:saved.data.id}});
       assert.equal(officeBatch.scopeKey,'OFFICE'); assert.equal(officeBatch.projectId,null);
+      const csv='employeeCode,workDate,startTime,endTime,workType\n'+officeEmployee.employeeCode+',2026-11-20,08:00,12:30,Office import\n';
+      const preview={csv,expectedVersion:2};
+      const priorCount=await db.hrAttendanceRevision.count({where:{batchId:saved.data.id}});
+      await call(a.store,office+'/preview',404,preview);
+      await call(a.hr,office+'/preview',403,preview,false);
+      await call(a.hr,office+'/preview',409,{...preview,expectedVersion:1});
+      await call(a.hr,office+'/preview',404,{...preview,csv:csv.replace(officeEmployee.employeeCode,'UNKNOWN')});
+      await call(a.hr,office+'/preview',422,{...preview,csv:csv.replace('12:30','25:30')});
+      const imported=(await call(a.hr,office+'/preview',201,preview)).data;
+      assert.equal(imported.lines[0].employeeId,officeEmployee.id);
+      assert.equal(imported.lines[0].endMinute,750);
+      assert.equal(await db.hrAttendanceRevision.count({where:{batchId:saved.data.id}}),priorCount);
+      await call(a.hr,office,201,{requestId:randomUUID(),expectedVersion:imported.expectedVersion,lines:imported.lines,reason:'Synthetic confirmed file snapshot'});
+      assert.equal((await call(a.hr,office,200)).data.lines[0].endMinute,750);
       await call(a.store,root,409,command('EDIT',7,{reason:'Synthetic submitted lock',lines:[officeRow]}));
       // The same HR identity may record office input in an explicitly granted
       // other Company, without changing its session or granting site access.

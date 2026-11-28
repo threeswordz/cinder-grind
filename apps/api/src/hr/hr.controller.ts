@@ -208,6 +208,12 @@ export class HrController {
     return { data: await this.hr.officeAttendanceRead(auth(request), companyId, periodStart) };
   }
 
+  @Post('companies/:companyId/office-attendance/:periodStart/preview')
+  @UseGuards(CsrfGuard)
+  async officeAttendancePreview(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('periodStart') periodStart: string, @Body() body: unknown) {
+    return {data:await this.hr.officeAttendancePreview(auth(request),companyId,periodStart,body)};
+  }
+
   @Post('companies/:companyId/office-attendance/:periodStart')
   @UseGuards(CsrfGuard)
   async officeAttendanceWrite(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('periodStart') periodStart: string, @Body() body: unknown) {
