@@ -58,6 +58,17 @@ function fixture() {
     stockTransfer: { findMany: async () => [{ id: 'transfer-source', items: [
       { sourceProjectId: projectId, destinationProjectId: 'other-project' },
     ] }] },
+    purchaseOrder: {
+      findMany: async ({ where }: { where: { id: { in: string[] }; companyId: string; projectId: string } }) =>
+        [{id:'po-home',companyId,projectId},{id:'po-other-project',companyId,projectId:'other-project'},
+         {id:'po-foreign',companyId:'foreign-company',projectId}]
+          .filter(p=>where.id.in.includes(p.id)&&p.companyId===where.companyId&&p.projectId===where.projectId)
+          .map(p=>({id:p.id})),
+      findFirst: async ({ where }: { where: { id: string; companyId: string; projectId: string } }) =>
+        where.id==='po-home'&&where.companyId===companyId&&where.projectId===projectId ? {id:'po-home'} : null,
+    },
+    documentLink: { findFirst: async ({ where }: { where: { documentId: string; entityType: string; entityId: string; document: {companyId:string} } }) =>
+      rows.some(r=>r.id===where.documentId&&r.companyId===where.document.companyId&&r.links.some(l=>l.entityType===where.entityType&&l.entityId===where.entityId)) ? {id:'link'} : null },
     wbsElement: { findFirst: async () => ({ id: 'wbs' }) },
     dailySiteReport: { findFirst: async () => ({ id: 'site', projectId, status: 'DRAFT' }) },
     $transaction: async (fn: (tx: unknown) => unknown) => fn(db),
@@ -272,4 +283,32 @@ test('HR-private mixed aliases deny generic document list, direct download, meta
   assert.equal(effects.reads.some(x=>hidden.includes(x)),false);
   assert.equal(effects.writes,0);
   assert.equal(effects.audits,0);
+});
+
+test('DEC-054 quantity-only purchasing actor reads own PO evidence without gaining Cost or unclassified document access',async()=>{
+  const {service,targets,rows,effects}=fixture();
+  rows.push(row('po-document',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-home'}]),
+    row('po-other-project',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-other-project'}]),
+    row('po-foreign',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-foreign'}]),
+    row('po-absent',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-absent'}]),
+    row('po-mixed-cost',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-home'},{entityType:'BOQ',entityId:'boq'}]),
+    row('po-mixed-hr',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-home'},{entityType:'HR_PRIVATE_EMPLOYEE',entityId:'hr'}]),
+    row('po-mixed-other-project',[projectLink,{entityType:'PURCHASE_ORDER',entityId:'po-home'},{entityType:'PROJECT',entityId:'other-project'}]));
+  const jai=actor(['budget.quantity.view','procurement.po.view','documents.document.upload','documents.document.link']);
+  assert.deepEqual((await service.listProjectDocuments(jai,projectId)).map(r=>r.id),['po-document']);
+  assert.equal((await targets.download(jai,projectId,'PURCHASE_ORDER','po-home','po-document')).bytes.toString(),'safe');
+  assert.equal((await service.downloadProjectDocument(jai,projectId,'po-document')).bytes.toString(),'safe');
+  for(const id of ['ordinary','po-other-project','po-foreign','po-absent','po-mixed-cost','po-mixed-hr','po-mixed-other-project']){
+    await assert.rejects(()=>service.downloadProjectDocument(jai,projectId,id),notFound);
+    await assert.rejects(()=>service.setProjectDocumentActive({auth:jai},projectId,id,false),notFound);
+  }
+  for(const permissions of [[],['budget.quantity.view'],['budget.project_summary.view'],['budget.cost.full_view']]){
+    const noPo=actor(permissions);
+    await assert.rejects(()=>service.downloadProjectDocument(noPo,projectId,'po-document'),notFound);
+  }
+  const broad=actor(['budget.quantity.view','procurement.po.view','projects.access_all']);
+  for(const id of ['po-other-project','po-foreign','po-absent'])
+    await assert.rejects(()=>service.downloadProjectDocument(broad,projectId,id),notFound);
+  assert.deepEqual(effects.reads,['po-document','po-document']);
+  assert.equal(effects.writes,0);assert.equal(effects.audits,0);
 });
