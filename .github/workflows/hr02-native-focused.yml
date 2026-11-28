@@ -23,7 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_CANDIDATE: cff09479f3bde6abab9a914d144a27d4621f8543
+      EXACT_CANDIDATE: 3ca1b42a4a4f5d102777c0c971d72cd1637124b5
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       NODE_ENV: test
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Verify candidate and unchanged historical migrations
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "1f825c4300f8235fd7e4958188782f12fa43a5a3"
+          test "$(git rev-parse HEAD^{tree})" = "312bbb9fda07ef48610d4b85432eca1fa5594135"
           test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
           test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
       - name: Set up pnpm
@@ -62,7 +62,8 @@ jobs:
         run: |
           pnpm --filter @construction-erp/api build
           cp apps/api/src/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-contract.spec.cjs
-          node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
+          cp apps/api/src/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs
+          node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
       - name: Record exact focused result
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
