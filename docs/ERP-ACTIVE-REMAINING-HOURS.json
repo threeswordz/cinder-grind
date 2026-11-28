@@ -7571,6 +7571,27 @@
       "blocker": "Final unified entry, actual source prerequisites, live DB/file deltas and browser execution; independent review and explicit synthetic-only authority pending.",
       "reductionHours": 0.25,
       "verifiedCompletedScopeHours": 0.25
+    },
+    {
+      "date": "2026-11-28",
+      "sourceSha": "8dec65f9eb562766efa9ac853c215a1658fa99d8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7233524805",
+        "https://github.com/threeswordz/cinder-grind/commit/8dec65f9eb562766efa9ac853c215a1658fa99d8"
+      ],
+      "newlyIdentifiedScopeHours": 0,
+      "additionalReworkHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261128-M6-03-274",
+      "packageId": "M6-03",
+      "kind": "SUPPLIER_SOURCE_TRANSPORT_TESTED",
+      "beforeHours": 1,
+      "afterHours": 0.75,
+      "basis": "6/6 actual local controlled HTTP transport tests; exact published source and test blobs. Distinct supplier evidence transport preparation only; 0.25h estimated retirement.",
+      "blocker": "Native source execution, actual row/file delta, unified entry and browser proof, independent review and Owner execution authority.",
+      "reductionHours": 0.25,
+      "verifiedCompletedScopeHours": 0.25
     }
   ],
   "unestimatedWork": [
@@ -7600,8 +7621,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1615.5,
-  "currentRollingTotalSemantics": "Events271–273: M6-02 3h, M6-03 1h, M6 5.5h, M7 50h, M8 65h, canonical prototype120.5h, ERP1615.5h; provisional ERP1325.5h/prototype69.5h. Tested controlled-response preparation, native proof pending; measured labor unknown.",
+  "currentRollingTotalAfterPricedGapsHours": 1615.25,
+  "currentRollingTotalSemantics": "Event274: M6-02 3h, M6-03 0.75h, M6 5.25h, M7 50h, M8 65h, canonical prototype120.25h, ERP1615.25h; provisional ERP1325.25h/prototype69.25h. Tested controlled HTTP supplier preparation transport, native proof pending; actual labor unknown.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
