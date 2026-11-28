@@ -310,7 +310,7 @@ function HrAttendanceReviewPeriod({user,companyId,projectId,period,language}:{us
         <TableCell>{r.workDate.slice(0,10)}</TableCell><TableCell>{clock(r.startMinute)}</TableCell><TableCell>{clock(r.endMinute)}</TableCell><TableCell>{r.workType}</TableCell>
         <TableCell>{r.allocation?r.allocation.targetCompanyId+' / '+r.allocation.targetProjectId:'—'}</TableCell></TableRow>)}</TableBody></Table></TableContainer></>}
     {error&&<Alert severity="warning">{t.error}</Alert>}{returned&&<Alert severity="success">{t.returned}</Alert>}
-    {version===null&&current.data.state==='SUBMITTED'&&<><TextField label={t.reason} value={reason} disabled={busy} inputProps={{maxLength:1000}} onChange={e=>{setReason(e.target.value);setReasonVersion(current.data.version);setRequestId(crypto.randomUUID());setError(false);}}/>
+    {version===null&&current.data.state==='SUBMITTED'&&<><TextField label={t.reason} value={reason} disabled={busy} inputProps={{maxLength:1000}} onChange={e=>{setReason(e.target.value);setReasonVersion(current.data?.version??null);setRequestId(crypto.randomUUID());setError(false);}}/>
       <Button variant="contained" disabled={busy||current.isFetching||reasonVersion!==current.data.version||!reason.trim()} onClick={()=>void submitReturn()}>{t.send}</Button></>}
   </Stack>;
 }
