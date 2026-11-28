@@ -1,5 +1,5 @@
 {
-  "status": "PREPARATION_ONLY_NOT_FREEZE_OR_ACCEPTANCE",
+  "status": "FINAL_MAIN_SOURCE_BOUND_FREEZE_IDENTITY_PENDING_NOT_ACCEPTANCE",
   "source": {
     "ref": "7e282fc0d75eda4f4ac86d83c6563bd2cf5fa9e2",
     "path": "docs/M4-2026-11-27-112-TECHNICAL-EXIT-CROSSWALK.csv",
@@ -84,7 +84,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -104,7 +104,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -124,7 +124,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -147,7 +147,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -167,7 +167,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -187,7 +187,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -207,7 +207,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -227,7 +227,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -247,7 +247,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -267,7 +267,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -287,7 +287,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -307,7 +307,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -327,7 +327,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -347,7 +347,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -367,7 +367,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -387,7 +387,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -407,7 +407,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -427,7 +427,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -447,7 +447,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -467,7 +467,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -487,7 +487,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -507,7 +507,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -527,7 +527,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -547,7 +547,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -567,7 +567,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -590,7 +590,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -610,7 +610,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -630,7 +630,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -650,7 +650,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -670,7 +670,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -690,7 +690,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -710,7 +710,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -730,7 +730,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -750,7 +750,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -770,7 +770,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -790,7 +790,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -812,7 +812,7 @@
           "ROLE-01"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -832,7 +832,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -852,7 +852,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -875,7 +875,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -895,7 +895,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -915,7 +915,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -938,7 +938,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -958,7 +958,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -981,7 +981,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1001,7 +1001,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1021,7 +1021,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1044,7 +1044,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1074,7 +1074,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1094,7 +1094,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1114,7 +1114,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1138,7 +1138,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1158,7 +1158,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1189,7 +1189,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1209,7 +1209,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1229,7 +1229,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1249,7 +1249,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1271,7 +1271,7 @@
           "ROLE-01"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1291,7 +1291,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1311,7 +1311,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1331,7 +1331,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1351,7 +1351,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1371,7 +1371,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1391,7 +1391,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1420,7 +1420,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1440,7 +1440,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1460,7 +1460,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1480,7 +1480,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1500,7 +1500,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1520,7 +1520,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1540,7 +1540,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1560,7 +1560,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1591,7 +1591,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1618,7 +1618,7 @@
           "HR-06"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1638,7 +1638,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1658,7 +1658,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1678,7 +1678,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1698,7 +1698,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1721,7 +1721,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1751,7 +1751,7 @@
           "ROLE-03"
         ],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1771,7 +1771,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1791,7 +1791,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1811,7 +1811,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -1831,7 +1831,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1851,7 +1851,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1871,7 +1871,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1891,7 +1891,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1911,7 +1911,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1931,7 +1931,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1951,7 +1951,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1971,7 +1971,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -1991,7 +1991,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2011,7 +2011,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2031,7 +2031,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2051,7 +2051,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2071,7 +2071,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2091,7 +2091,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2111,7 +2111,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2131,7 +2131,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2151,7 +2151,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2171,7 +2171,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2191,7 +2191,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -2211,7 +2211,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -2231,7 +2231,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -2251,7 +2251,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -2271,7 +2271,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": false,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "DEFERRED_DEC_042",
         "formalAcceptance": false
       }
@@ -2291,7 +2291,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2311,7 +2311,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2331,7 +2331,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2351,7 +2351,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2371,7 +2371,7 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
@@ -2391,10 +2391,24 @@
         "m6TechnicalCarryover": null,
         "explicitRemainingOwners": [],
         "futureOrBoundaryPreserved": true,
-        "finalIntegratedTreeBinding": "PENDING",
+        "finalIntegratedTreeBinding": "FINAL_SOURCE_BOUND_NOT_INDIVIDUAL_ACCEPTANCE",
         "humanUat": "FUTURE",
         "formalAcceptance": false
       }
     }
-  ]
+  ],
+  "finalSourceBinding": {
+    "main": "d517b88c9eff001fd829599eb638214896164f0f",
+    "tree": "a5677d8357d7363adc9cce89cdb3d93d9e4d0627",
+    "reviewedPrHead": "3e0d1ad540798115b082a885f4d1bdc53208e3b7",
+    "fullMainRun": 46180071206,
+    "fullMainAttempt": 2,
+    "fullMainJob": 141089111223,
+    "fullMainPassedSteps": 41,
+    "applicationSource": "3e35105edac7151aeca800c1175af736a99f6009",
+    "runtimeTrackedFilesCompared": 807,
+    "runtimePathModeBlobDifferences": 0,
+    "migrationSqlCount": 184,
+    "scopeMeaning": "Final source lineage only; not new per-ID functional execution, actual final-main Mac runtime SHA, configuration exit or formal human acceptance."
+  }
 }
