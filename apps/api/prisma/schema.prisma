@@ -4520,8 +4520,8 @@ model HrAttendanceRevision {
   actorUserId String @map("actor_user_id") @db.Uuid
   reason String? @db.VarChar(1000)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  batch HrAttendanceBatch @relation(fields: [companyId, batchId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
-  actor User @relation("HrAttendanceActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  batch HrAttendanceBatch @relation(fields: [companyId, batchId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_revisions_batch_fkey")
+  actor User @relation("HrAttendanceActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_revisions_actor_fkey")
   lines HrAttendanceLine[]
   @@unique([batchId, version])
   @@unique([companyId, id])
@@ -4538,10 +4538,10 @@ model HrAttendanceLine {
   startMinute Int @map("start_minute")
   endMinute Int @map("end_minute")
   workType String @map("work_type") @db.VarChar(100)
-  revision HrAttendanceRevision @relation(fields: [companyId, revisionId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
-  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
-  employmentRevision HrEmploymentRevision @relation(fields: [employmentRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  @@unique([revisionId, employeeId, workDate, startMinute, endMinute])
+  revision HrAttendanceRevision @relation(fields: [companyId, revisionId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_revision_fkey")
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_employee_fkey")
+  employmentRevision HrEmploymentRevision @relation(fields: [employmentRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "hr_attendance_lines_employment_fkey")
+  @@unique([revisionId, employeeId, workDate, startMinute, endMinute], map: "hr_attendance_lines_interval_key")
   @@index([companyId, employeeId, workDate])
   @@map("hr_attendance_lines")
 }

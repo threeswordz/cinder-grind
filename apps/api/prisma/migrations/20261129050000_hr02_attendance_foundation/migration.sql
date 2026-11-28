@@ -31,7 +31,7 @@ CREATE TABLE hr_attendance_lines (
  CONSTRAINT hr_attendance_lines_employment_fkey FOREIGN KEY(employment_revision_id) REFERENCES hr_employment_revisions(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_lines_values CHECK (start_minute>=0 AND end_minute<=1440 AND start_minute<end_minute AND length(btrim(work_type))>0)
 );
-CREATE UNIQUE INDEX hr_attendance_lines_revision_id_employee_id_work_date_start_m_key ON hr_attendance_lines(revision_id,employee_id,work_date,start_minute,end_minute);
+CREATE UNIQUE INDEX hr_attendance_lines_interval_key ON hr_attendance_lines(revision_id,employee_id,work_date,start_minute,end_minute);
 CREATE INDEX hr_attendance_lines_company_id_employee_id_work_date_idx ON hr_attendance_lines(company_id,employee_id,work_date);
 
 CREATE FUNCTION hr_attendance_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -93,9 +93,10 @@ BEGIN
  SELECT current_version INTO v FROM hr_attendance_batches WHERE id=bid;
  SELECT coalesce(max(version),0) INTO last_v FROM hr_attendance_revisions WHERE batch_id=bid;
  IF v<1 OR v<>last_v THEN RAISE EXCEPTION 'HR_ATTENDANCE_INCOMPLETE' USING ERRCODE='23514'; END IF;
- SELECT id,action INTO rid,act FROM hr_attendance_revisions WHERE batch_id=bid AND version=v;
+ IF TG_TABLE_NAME='hr_attendance_batches' THEN RETURN NULL; END IF;
+ rid:=NEW.id; act:=NEW.action;
  IF act IN ('SUBMIT','RETURN','RESUBMIT') THEN
-  SELECT id INTO prev_id FROM hr_attendance_revisions WHERE batch_id=bid AND version=v-1;
+  SELECT id INTO prev_id FROM hr_attendance_revisions WHERE batch_id=bid AND version=NEW.version-1;
   IF EXISTS (
    (SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=rid
     EXCEPT ALL SELECT employee_id,employment_revision_id,work_date,start_minute,end_minute,work_type FROM hr_attendance_lines WHERE revision_id=prev_id)
@@ -108,3 +109,12 @@ BEGIN
 END $$;
 CREATE CONSTRAINT TRIGGER hr_attendance_batch_complete AFTER INSERT OR UPDATE ON hr_attendance_batches DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION hr_attendance_complete_guard();
 CREATE CONSTRAINT TRIGGER hr_attendance_revision_complete AFTER INSERT ON hr_attendance_revisions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION hr_attendance_complete_guard();
+
+-- Definitions only: no role_permissions, HR Company access or live grants.
+INSERT INTO permissions(id,permission_code,module_code,description)
+SELECT ('b0295000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid, code, 'HR', description
+FROM (VALUES
+ (1,'hr.attendance.site.view','Read attendance within assigned site scope'),
+ (2,'hr.attendance.site.manage','Capture and submit attendance within assigned site scope'),
+ (3,'hr.attendance.review','Review or return attendance within explicitly authorized HR Company scope')
+) AS capability(n,code,description) ON CONFLICT(permission_code) DO NOTHING;
