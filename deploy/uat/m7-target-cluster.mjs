@@ -33,10 +33,21 @@ export async function createM7LoopbackRelay({port,openChild,maxConnections=12}){
  server.on('error',()=>{accepting=false;for(const x of active)x.socket.destroy();});
  return Object.freeze({enable(){need(!closed&&server.listening,'RELAY_CLOSED');accepting=true;},inspect(){return {listening:server.listening,address:server.address()?.address,port:server.address()?.port,connections:active.size};},async close(){if(closed)return;closed=true;accepting=false;for(const x of active){x.socket.destroy();if(x.child?.exitCode===null&&x.child?.signalCode===null)x.child.kill('SIGTERM');}const ended=new Promise((ok,no)=>server.close(e=>e?no(e):ok()));let timer;try{await Promise.race([Promise.all([ended,...[...active].map(x=>x.done)]),new Promise((_,no)=>{timer=setTimeout(()=>{for(const x of active)if(x.child?.exitCode===null&&x.child?.signalCode===null)x.child.kill('SIGKILL');no(Error('M7_CLUSTER_RELAY_CLEANUP'));},5000);})]);}finally{clearTimeout(timer);}need(active.size===0&&!server.listening,'RELAY_CLEANUP');}});
 }
+// Podman may represent --network=none as one empty named endpoint. It is
+// not an attached network; never admit any populated address or endpoint.
+export function m7NoNetworkAttachment(networks){
+ if(networks==null)return true;
+ if(typeof networks!=='object'||Array.isArray(networks))return false;
+ const names=Object.keys(networks);if(names.length===0)return true;
+ if(names.length!==1||names[0]!=='none')return false;
+ const n=networks.none;if(!n||typeof n!=='object'||Array.isArray(n))return false;
+ const fields=new Set(['EndpointID','Gateway','IPAddress','IPPrefixLen','IPv6Gateway','GlobalIPv6Address','GlobalIPv6PrefixLen','MacAddress','NetworkID','DriverOpts','IPAMConfig','Links','Aliases','DNSNames']);
+ return Object.entries(n).every(([k,v])=>fields.has(k)&&(v==null||v===''||v===0||Array.isArray(v)&&v.length===0||typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===0||k==='NetworkID'&&v==='none'));
+}
 // Inspect actual Podman state, not a provisioner's boolean success flag.
 export function verifyM7TargetContainer(c,p,{running=true}={}){
  need(c?.Id===p.id&&c.Id!==p.sourceId&&c.Name?.replace(/^\//,'')===p.name&&c.Image?.replace(/^sha256:/,'')===p.image&&c.Config?.User==='70:70'&&c.Config?.Labels?.['erp.m7.run']===p.runId&&c.Config?.Labels?.['erp.m7.scope']==='synthetic-recovery-only','CONTAINER_IDENTITY');
- need(c.State?.Running===running&&c.HostConfig?.NetworkMode==='none'&&c.HostConfig?.Privileged===false&&['','no'].includes(c.HostConfig?.RestartPolicy?.Name)&&Object.keys(c.HostConfig?.PortBindings??{}).length===0&&Object.keys(c.NetworkSettings?.Networks??{}).length===0&&Object.keys(c.NetworkSettings?.Ports??{}).every(k=>c.NetworkSettings.Ports[k]===null),'NETWORK');
+ need(c.State?.Running===running&&c.HostConfig?.NetworkMode==='none'&&c.HostConfig?.Privileged===false&&['','no'].includes(c.HostConfig?.RestartPolicy?.Name)&&Object.keys(c.HostConfig?.PortBindings??{}).length===0&&m7NoNetworkAttachment(c.NetworkSettings?.Networks)&&Object.keys(c.NetworkSettings?.Ports??{}).every(k=>c.NetworkSettings.Ports[k]===null),'NETWORK');
  need(Array.isArray(c.Mounts)&&c.Mounts.length===2&&c.Mounts.every(m=>m.Type==='bind'),'MOUNTS');
  const data=c.Mounts.find(m=>m.Destination==='/var/lib/postgresql/data'),credentials=c.Mounts.find(m=>m.Destination==='/run/m7-private');
  need(data?.Source===p.data&&data.RW===true&&credentials?.Source===p.credentials&&credentials.RW===false,'MOUNTS');
@@ -69,6 +80,6 @@ export function createM7TargetCluster({claim,sourceContainerId,sourceImageId,sou
      need(hex(id,64)&&id!==sourceContainerId,'NEW_CONTAINER');await inspect(false);await call(['start',id]);
      let ready=false;for(let i=0;i<60;i++){await inspect(true);try{await pod(['pg_isready','-h','127.0.0.1','-U',adminRole,'-d','postgres'],3000);ready=true;break;}catch{await wait(1000);}}need(ready,'NOT_READY');await verifyContainer();cluster=await identity();await verifyIsolation();need(await verifySource()===true,'SOURCE');relay.enable();
      return Object.freeze({containerId:id,sourceContainerId,cluster,adminRole,rolePassword,dbPort,verifyContainer,verifyIsolation,inspectRelay:()=>relay.inspect(),close:stop});
-   }catch(e){let cleanup=false;try{await relay?.close();if(hex(id,64)&&id!==sourceContainerId){const rows=JSON.parse(await call(['inspect',id]));need(Array.isArray(rows)&&rows.length===1&&typeof rows[0].State?.Running==='boolean','INSPECT');verifyM7TargetContainer(rows[0],pin(),{running:rows[0].State.Running});if(rows[0].State.Running){await call(['stop','--time','10',id],20000);await inspect(false);}}}catch{cleanup=true;}if(cleanup)throw Error('M7_CLUSTER_PARTIAL_CLEANUP');throw e;}
+   }catch(e){let cleanup=false;try{await relay?.close();}catch{cleanup=true;}try{if(hex(id,64)&&id!==sourceContainerId){const rows=JSON.parse(await call(['inspect',id]));need(Array.isArray(rows)&&rows.length===1&&rows[0].Id===id&&rows[0].Name?.replace(/^\//,'')===name&&rows[0].Config?.Labels?.['erp.m7.run']===runId&&rows[0].Config?.Labels?.['erp.m7.scope']==='synthetic-recovery-only'&&typeof rows[0].State?.Running==='boolean','INSPECT');if(rows[0].State.Running){verifyM7TargetContainer(rows[0],pin(),{running:true});await call(['stop','--time','10',id],20000);await inspect(false);}}}catch{cleanup=true;}if(cleanup)throw Object.assign(Error(/^M7_[A-Z0-9_]+$/.test(e?.message??'')?e.message:'M7_CLUSTER_PRIVATE_FAILURE'),{cleanupCode:'M7_CLUSTER_PARTIAL_CLEANUP'});throw e;}
  };
 }

@@ -40,13 +40,13 @@ export async function createM7RecoveryRunner({source,binding,manifestArgs,claimO
      need(await api.stopOwnedApi(p,handle)===true,'API_CLEANUP');stopped=true;const post=await ev.readSnapshot();need(post.sessions.length===148&&post.sessions.every(s=>s.revokedAt!==null||Date.parse(s.expiresAt)<=Date.parse(post.clock)),'SESSION_CLEANUP');const postSha=stateDigest(post);await ev.readPreservation();
      const verifyPreserved=async()=>{await executionClaim.verifyPaths();await observe();need(await d.m7ApiPortFree(p.port)===true&&stateDigest(await ev.readSnapshot())===postSha,'TARGET_PRESERVATION');await ev.readPreservation();return true;};
      await verifyPreserved();success=true;return {mode:spec.mode,identity:initial,keyInventorySha:variant.expectedKeySha,sessionProof:result.sessionProof,verifyPreserved,close:database.close};
-   }catch(e){primary=safe(e);}
-   finally{if(!success){if(launchAttempted&&!stopped)try{need(await api.stopOwnedApi(executionClaim.plan,handle)===true,'API_CLEANUP');}catch(e){cleanup=safe(e);}try{await database?.close();}catch(e){cleanup??=safe(e);}try{await observe();}catch(e){cleanup??=safe(e);}}}
-   throw Error(cleanup??primary??'M7_RUNNER_PRIVATE_FAILURE');
+   }catch(e){primary=safe(e);if(/^M7_[A-Z0-9_]+$/.test(e?.cleanupCode??''))cleanup=e.cleanupCode;}
+   finally{if(!success){if(launchAttempted&&!stopped)try{need(await api.stopOwnedApi(executionClaim.plan,handle)===true,'API_CLEANUP');}catch(e){cleanup??=safe(e);}try{await database?.close();}catch(e){cleanup??=safe(e);}try{await observe();}catch(e){cleanup??=safe(e);}}}
+   throw Object.assign(Error(primary??cleanup??'M7_RUNNER_PRIVATE_FAILURE'),{cleanupCode:cleanup});
  };
  return async function runOnce(){need(!attempted,'ALREADY_ATTEMPTED');attempted=true;const completed=[];let primary=null,cleanup=null;
    try{for(const spec of targets){for(const r of completed)need(await r.verifyPreserved()===true,'PREVIOUS_TARGET_DRIFT');const r=await runTarget(spec);completed.push(r);need(completed.every((a,i)=>completed.every((b,j)=>i===j||a.identity.cluster!==b.identity.cluster&&a.identity.database!==b.identity.database&&a.identity.role!==b.identity.role&&a.keyInventorySha!==b.keyInventorySha)),'TARGET_ALIAS');for(const r of completed)need(await r.verifyPreserved()===true,'PREVIOUS_TARGET_DRIFT');}await observe();}
-   catch(e){primary=safe(e);}finally{for(const r of completed.slice().reverse()){try{await r.close();}catch(e){cleanup??=safe(e);}}try{await observe();}catch(e){cleanup??=safe(e);}}
+   catch(e){primary=safe(e);if(/^M7_[A-Z0-9_]+$/.test(e?.cleanupCode??''))cleanup=e.cleanupCode;}finally{for(const r of completed.slice().reverse()){try{await r.close();}catch(e){cleanup??=safe(e);}}try{await observe();}catch(e){cleanup??=safe(e);}}
    return Object.freeze({status:primary||cleanup?'M7_RECOVERY_COMPOSITION_BLOCKED':'M7_RECOVERY_COMPOSITION_PASS',primary,cleanup,completedModes:completed.map(r=>r.mode),revokedNewSessions:completed.reduce((n,r)=>n+r.sessionProof.newRevokedSessions,0),newHrDownloadAudits:completed.reduce((n,r)=>n+r.sessionProof.newAudits,0),nativeRecoveryVerified:false,milestone7Accepted:false,productionAuthorized:false});
  };
 }
