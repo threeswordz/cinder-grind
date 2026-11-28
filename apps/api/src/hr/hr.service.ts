@@ -555,14 +555,14 @@ export class HrService {
     return date;
   }
 
-  private parseAttendanceLines(raw: unknown, projectId: string, periodStart: Date) {
+  private parseAttendanceLines(raw: unknown, projectId: string | null, periodStart: Date) {
     if (!Array.isArray(raw) || raw.length > 1000) input.invalid();
     const lines = raw.map(item => {
       const fields = input.object(item, ['employeeId','workDate','startMinute','endMinute','workType']);
       const employeeId = input.uuid(fields.employeeId), workDate = input.day(fields.workDate);
       const startMinute = input.integer(fields.startMinute), endMinute = input.integer(fields.endMinute);
       const day = workDate.toISOString().slice(0,10);
-      try { validateInterval({ employeeId, projectId, workDate: day, startMinute, endMinute }); }
+      try { validateInterval({ employeeId, projectId: projectId ?? 'OFFICE', workDate: day, startMinute, endMinute }); }
       catch { input.invalid(); }
       if (attendancePeriod(day).start !== periodStart.toISOString().slice(0,10)) input.invalid();
       return { employeeId, workDate, startMinute, endMinute, workType: input.text(fields.workType, 100) };
@@ -574,25 +574,25 @@ export class HrService {
     return lines;
   }
 
-  private async bindAttendanceLines(tx: Tx, companyId: string, projectId: string,
+  private async bindAttendanceLines(tx: Tx, companyId: string, projectId: string | null,
     lines: ReturnType<HrService['parseAttendanceLines']>) {
     const employees = await tx.employee.findMany({ where: { companyId, id: { in: [...new Set(lines.map(l => l.employeeId))] } }, select: {
-      id: true, projectMembers: { where: { projectId, isActive: true }, select: { startDate: true, endDate: true } },
+      id: true, projectMembers: { where: projectId===null ? { id: { in: [] } } : { projectId, isActive: true }, select: { startDate: true, endDate: true } },
       hrEmployment: { select: { currentVersion: true, revisions: { orderBy: { version: 'desc' }, take: 1,
         select: { id: true, version: true, siteKind: true, startDate: true, endDate: true } } } },
     } });
     const byId = new Map(employees.map(e => [e.id,e]));
     return lines.map(line => {
       const employee = byId.get(line.employeeId), employment = employee?.hrEmployment, revision = employment?.revisions[0];
-      if (!employee || !employment || !revision || revision.version !== employment.currentVersion || revision.siteKind !== 'SITE' ||
-        !employee.projectMembers.some(m => (!m.startDate || m.startDate <= line.workDate) && (!m.endDate || m.endDate >= line.workDate))) throw notFound();
+      if (!employee || !employment || !revision || revision.version !== employment.currentVersion || revision.siteKind !== (projectId===null?'OFFICE':'SITE') ||
+        (projectId!==null && !employee.projectMembers.some(m => (!m.startDate || m.startDate <= line.workDate) && (!m.endDate || m.endDate >= line.workDate)))) throw notFound();
       try { assertEmploymentDay(line.workDate.toISOString().slice(0,10), revision.startDate.toISOString().slice(0,10), revision.endDate?.toISOString().slice(0,10) ?? null); }
       catch { input.invalid(); }
       return { ...line, employmentRevisionId: revision.id };
     });
   }
 
-  private async assertAttendanceSubmission(tx: Tx, companyId: string, batchId: string, projectId: string,
+  private async assertAttendanceSubmission(tx: Tx, companyId: string, batchId: string, projectId: string | null,
     lines: (ReturnType<HrService['parseAttendanceLines']>[number] & { employmentRevisionId: string })[]) {
     if (!lines.length) input.invalid();
     const bound = await this.bindAttendanceLines(tx, companyId, projectId, lines);
@@ -628,7 +628,12 @@ export class HrService {
     const periodStart = this.attendancePeriodStart(periodRaw);
     return this.read(supplied, [], async (tx,auth) => {
       await this.attendanceScope(tx,auth,projectId,'view');
-      const batch = await tx.hrAttendanceBatch.findUnique({where:{companyId_projectId_periodStart:{companyId:auth.companyId,projectId,periodStart}}});
+      return this.attendanceSnapshot(tx,auth.companyId,projectId,periodStart);
+    });
+  }
+
+  private async attendanceSnapshot(tx: Tx, companyId: string, projectId: string | null, periodStart: Date) {
+      const batch = await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:projectId??'OFFICE',periodStart}}});
       if (!batch) return null;
       const revision = await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:batch.currentVersion}},select:{
         version:true,state:true,action:true,reason:true,createdAt:true,
@@ -637,7 +642,6 @@ export class HrService {
       }});
       if(!revision) throw conflict();
       return {id:batch.id,projectId:batch.projectId,periodStart:batch.periodStart,...revision};
-    });
   }
 
   attendanceWrite(supplied: AuthenticatedUserContext, projectId: string, periodRaw: unknown, raw: unknown) {
@@ -654,11 +658,11 @@ export class HrService {
     const companyId=supplied.companyId;
     return this.write(supplied,companyId,input.uuid(value.requestId),'ATTENDANCE_REVISION',
       {projectId,periodStart,action,expectedVersion,lines,reason},[],async(tx,auth)=>{
-        let batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_projectId_periodStart:{companyId,projectId,periodStart}}});
+        let batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:projectId,periodStart}}});
         if((batch?.currentVersion??0)!==expectedVersion) throw conflict();
         if(action==='CREATE') {
           if(batch) throw conflict();
-          batch=await tx.hrAttendanceBatch.create({data:{companyId,projectId,periodStart}});
+          batch=await tx.hrAttendanceBatch.create({data:{companyId,projectId,scopeKey:projectId,periodStart}});
         }
         if(!batch) throw notFound();
         const prior=expectedVersion===0?null:await tx.hrAttendanceRevision.findUnique({where:{batchId_version:{batchId:batch.id,version:expectedVersion}},
@@ -686,6 +690,45 @@ export class HrService {
         // before any replay receipt can be disclosed.
         if(action==='HR_CORRECT'&&!auth.permissions.includes('hr.attendance.correct')) throw notFound();
       });
+  }
+
+
+  private async officeAttendanceScope(tx: Tx, auth: AuthenticatedUserContext, companyId: string) {
+    if(!auth.permissions.includes('hr.attendance.office.manage')) throw notFound();
+    await this.require(tx,auth,{companyId,category:'employment',action:'view'});
+  }
+
+  officeAttendanceRead(supplied: AuthenticatedUserContext, companyId: string, periodRaw: unknown) {
+    input.uuid(companyId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    return this.read(supplied,[],async(tx,auth)=>{
+      await this.officeAttendanceScope(tx,auth,companyId);
+      return this.attendanceSnapshot(tx,companyId,null,periodStart);
+    });
+  }
+
+  /** HR records raw office input directly; no invented extra approval step.
+   * Every save is a new recorded input snapshot, never payroll approval. */
+  officeAttendanceWrite(supplied: AuthenticatedUserContext, companyId: string, periodRaw: unknown, raw: unknown) {
+    input.uuid(companyId);
+    const periodStart=this.attendancePeriodStart(periodRaw);
+    const value=input.object(raw,['requestId','expectedVersion','lines','reason']);
+    const expectedVersion=input.integer(value.expectedVersion);
+    const lines=this.parseAttendanceLines(value.lines,null,periodStart), reason=input.text(value.reason);
+    return this.write(supplied,companyId,input.uuid(value.requestId),'ATTENDANCE_OFFICE_SAVE',
+      {periodStart,expectedVersion,lines,reason},[],async(tx,auth)=>{
+        let batch=await tx.hrAttendanceBatch.findUnique({where:{companyId_scopeKey_periodStart:{companyId,scopeKey:'OFFICE',periodStart}}});
+        if((batch?.currentVersion??0)!==expectedVersion) throw conflict();
+        if(!batch) batch=await tx.hrAttendanceBatch.create({data:{companyId,scopeKey:'OFFICE',periodStart}});
+        const snapshot=await this.bindAttendanceLines(tx,companyId,null,lines);
+        await this.assertAttendanceSubmission(tx,companyId,batch.id,null,snapshot);
+        const version=expectedVersion+1;
+        const revision=await tx.hrAttendanceRevision.create({data:{companyId,batchId:batch.id,version,state:'SUBMITTED',action:'OFFICE_SAVE',actorUserId:auth.userId,reason}});
+        await tx.hrAttendanceLine.createMany({data:snapshot.map(l=>({...l,companyId,revisionId:revision.id}))});
+        await tx.hrAttendanceBatch.update({where:{id:batch.id},data:{currentVersion:version}});
+        await this.record(tx,auth,companyId,batch.id,'ATTENDANCE_OFFICE_SAVE',{attendanceScope:'OFFICE',revisionId:revision.id,version,state:'SUBMITTED',lineCount:snapshot.length,reasonRecorded:true});
+        return {id:batch.id,version};
+      },async(tx,auth)=>{await this.officeAttendanceScope(tx,auth,companyId);});
   }
 
   operational(supplied: AuthenticatedUserContext, projectId: string) {

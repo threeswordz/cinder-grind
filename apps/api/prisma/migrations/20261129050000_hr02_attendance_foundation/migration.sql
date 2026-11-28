@@ -1,13 +1,15 @@
 -- HR-02 additive site-period snapshots. No new role grants, payroll or Finance posting.
 CREATE TABLE hr_attendance_batches (
- id uuid PRIMARY KEY, company_id uuid NOT NULL, project_id uuid NOT NULL,
+ id uuid PRIMARY KEY, company_id uuid NOT NULL, project_id uuid, scope_key varchar(36) NOT NULL,
  period_start date NOT NULL, current_version integer NOT NULL DEFAULT 0,
  created_at timestamptz(6) NOT NULL DEFAULT now(),
  CONSTRAINT hr_attendance_batches_period CHECK (extract(day from period_start) IN (1,16)),
+ CONSTRAINT hr_attendance_batches_scope CHECK ((project_id IS NULL AND scope_key='OFFICE') OR (project_id IS NOT NULL AND scope_key=project_id::text)),
+ CONSTRAINT hr_attendance_batches_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_batches_version CHECK (current_version >= 0),
  CONSTRAINT hr_attendance_batches_company_id_project_id_fkey FOREIGN KEY (company_id,project_id) REFERENCES projects(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
-CREATE UNIQUE INDEX hr_attendance_batches_company_id_project_id_period_start_key ON hr_attendance_batches(company_id,project_id,period_start);
+CREATE UNIQUE INDEX hr_attendance_batches_company_id_scope_key_period_start_key ON hr_attendance_batches(company_id,scope_key,period_start);
 CREATE UNIQUE INDEX hr_attendance_batches_company_id_id_key ON hr_attendance_batches(company_id,id);
 CREATE TABLE hr_attendance_revisions (
  id uuid PRIMARY KEY, company_id uuid NOT NULL, batch_id uuid NOT NULL, version integer NOT NULL,
@@ -16,9 +18,9 @@ CREATE TABLE hr_attendance_revisions (
  CONSTRAINT hr_attendance_revisions_batch_fkey FOREIGN KEY(company_id,batch_id) REFERENCES hr_attendance_batches(company_id,id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_revisions_actor_fkey FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
  CONSTRAINT hr_attendance_revisions_values CHECK (version>0 AND state IN ('DRAFT','SUBMITTED','RETURNED')
- AND action IN ('CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT')
+ AND action IN ('CREATE','EDIT','SUBMIT','RETURN','RESUBMIT','HR_CORRECT','OFFICE_SAVE')
  AND (reason IS NULL OR length(btrim(reason))>0)
- AND (action NOT IN ('EDIT','RETURN','HR_CORRECT') OR reason IS NOT NULL))
+ AND (action NOT IN ('EDIT','RETURN','HR_CORRECT','OFFICE_SAVE') OR reason IS NOT NULL))
 );
 CREATE UNIQUE INDEX hr_attendance_revisions_batch_id_version_key ON hr_attendance_revisions(batch_id,version);
 CREATE UNIQUE INDEX hr_attendance_revisions_company_id_id_key ON hr_attendance_revisions(company_id,id);
@@ -35,10 +37,14 @@ CREATE UNIQUE INDEX hr_attendance_lines_interval_key ON hr_attendance_lines(revi
 CREATE INDEX hr_attendance_lines_company_id_employee_id_work_date_idx ON hr_attendance_lines(company_id,employee_id,work_date);
 
 CREATE FUNCTION hr_attendance_revision_guard() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE v integer; prev_state text;
+DECLARE v integer; prev_state text; scope text;
 BEGIN
- SELECT current_version INTO v FROM hr_attendance_batches WHERE id=NEW.batch_id AND company_id=NEW.company_id FOR UPDATE;
+ SELECT current_version,scope_key INTO v,scope FROM hr_attendance_batches WHERE id=NEW.batch_id AND company_id=NEW.company_id FOR UPDATE;
  IF NOT FOUND OR NEW.version<>v+1 THEN RAISE EXCEPTION 'HR_ATTENDANCE_VERSION' USING ERRCODE='23514'; END IF;
+ IF scope='OFFICE' THEN
+  IF NEW.action<>'OFFICE_SAVE' OR NEW.state<>'SUBMITTED' THEN RAISE EXCEPTION 'HR_ATTENDANCE_OFFICE_TRANSITION' USING ERRCODE='23514'; END IF;
+  RETURN NEW;
+ END IF;
  IF v=0 THEN
   IF NEW.action<>'CREATE' OR NEW.state<>'DRAFT' THEN RAISE EXCEPTION 'HR_ATTENDANCE_TRANSITION' USING ERRCODE='23514'; END IF;
  ELSE
@@ -58,9 +64,9 @@ CREATE TRIGGER hr_attendance_revision_immutable BEFORE UPDATE OR DELETE ON hr_at
 CREATE TRIGGER hr_attendance_line_immutable BEFORE UPDATE OR DELETE ON hr_attendance_lines FOR EACH ROW EXECUTE FUNCTION hr_history_immutable();
 
 CREATE FUNCTION hr_attendance_line_guard() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE v integer; rv integer; first_day date; last_day date;
+DECLARE v integer; rv integer; first_day date; last_day date; scope text;
 BEGIN
- SELECT b.current_version,r.version,b.period_start INTO v,rv,first_day
+ SELECT b.current_version,r.version,b.period_start,b.scope_key INTO v,rv,first_day,scope
  FROM hr_attendance_revisions r JOIN hr_attendance_batches b ON b.id=r.batch_id
  WHERE r.id=NEW.revision_id AND r.company_id=NEW.company_id FOR UPDATE OF b;
  IF NOT FOUND OR rv<>v+1 THEN RAISE EXCEPTION 'HR_ATTENDANCE_SNAPSHOT_SEALED' USING ERRCODE='23514'; END IF;
@@ -68,6 +74,7 @@ BEGIN
  IF NEW.work_date NOT BETWEEN first_day AND last_day OR NOT EXISTS (
  SELECT 1 FROM hr_employment_revisions er JOIN hr_employments e ON e.id=er.employment_id AND e.company_id=er.company_id
  WHERE er.id=NEW.employment_revision_id AND er.company_id=NEW.company_id AND e.employee_id=NEW.employee_id
+ AND er.site_kind=CASE WHEN scope='OFFICE' THEN 'OFFICE' ELSE 'SITE' END
  AND NEW.work_date>=er.start_date AND (er.end_date IS NULL OR NEW.work_date<=er.end_date)
  ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_EMPLOYMENT_PERIOD' USING ERRCODE='23514'; END IF;
  RETURN NEW;
@@ -78,7 +85,7 @@ CREATE FUNCTION hr_attendance_batch_guard() RETURNS trigger LANGUAGE plpgsql AS 
 BEGIN
  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'HR_HISTORY_IMMUTABLE' USING ERRCODE='23514'; END IF;
  IF NEW.id IS DISTINCT FROM OLD.id OR NEW.company_id IS DISTINCT FROM OLD.company_id OR NEW.project_id IS DISTINCT FROM OLD.project_id
- OR NEW.period_start IS DISTINCT FROM OLD.period_start OR NEW.created_at IS DISTINCT FROM OLD.created_at
+ OR NEW.scope_key IS DISTINCT FROM OLD.scope_key OR NEW.period_start IS DISTINCT FROM OLD.period_start OR NEW.created_at IS DISTINCT FROM OLD.created_at
  OR NEW.current_version<>OLD.current_version+1 OR NOT EXISTS (
  SELECT 1 FROM hr_attendance_revisions WHERE batch_id=OLD.id AND version=NEW.current_version
  ) THEN RAISE EXCEPTION 'HR_ATTENDANCE_VERSION' USING ERRCODE='23514'; END IF;
@@ -118,5 +125,6 @@ FROM (VALUES
  (1,'hr.attendance.site.view','Read attendance within assigned site scope'),
  (2,'hr.attendance.site.manage','Capture and submit attendance within assigned site scope'),
  (3,'hr.attendance.review','Review or return attendance within explicitly authorized HR Company scope'),
- (4,'hr.attendance.correct','Append reasoned HR corrections to submitted attendance in authorized Company scope')
+ (4,'hr.attendance.correct','Append reasoned HR corrections to submitted attendance in authorized Company scope'),
+ (5,'hr.attendance.office.manage','Record and correct raw office attendance within explicit HR Company scope')
 ) AS capability(n,code,description) ON CONFLICT(permission_code) DO NOTHING;

@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Company {
+  hrAttendanceBatches HrAttendanceBatch[]
   movementCorrectionRequests MovementCorrectionRequest[]
   poDispatchEvents PoDispatchEvent[]
   materialPlanPolicies MaterialPlanProjectPolicy[]
@@ -4499,13 +4500,15 @@ model MovementCorrectionRequest {
 model HrAttendanceBatch {
   id String @id @default(uuid()) @db.Uuid
   companyId String @map("company_id") @db.Uuid
-  projectId String @map("project_id") @db.Uuid
+  projectId String? @map("project_id") @db.Uuid
+  scopeKey String @map("scope_key") @db.VarChar(36)
   periodStart DateTime @map("period_start") @db.Date
   currentVersion Int @default(0) @map("current_version")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  project Project? @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
   revisions HrAttendanceRevision[]
-  @@unique([companyId, projectId, periodStart])
+  @@unique([companyId, scopeKey, periodStart])
   @@unique([companyId, id])
   @@map("hr_attendance_batches")
 }

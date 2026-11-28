@@ -128,6 +128,43 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       assert.equal((await call(a.store,second,200)).data.state,'SUBMITTED');
       assert.equal(await db.hrAttendanceRevision.count({where:{batchId}}),7);
     });
+    await t.test('office raw input reuses the ledger, with explicit HR-only Company scope and no Project impersonation',async()=>{
+      const officeRoute=(companyId:string)=>'/hr/companies/'+companyId+'/office-attendance/2026-11-16';
+      const officeEmployee=await db.employee.create({data:{companyId:f.company.id,employeeCode:'OFFICE-'+f.suffix,employeeName:'Synthetic office worker'}});
+      await call(a.hr,'/hr/companies/'+f.company.id+'/employees/'+officeEmployee.id+'/employment',201,
+        {requestId:randomUUID(),expectedVersion:0,facts:hrFacts({siteKind:'OFFICE',payBasis:'MONTHLY'})});
+      const officeRow={...row,employeeId:officeEmployee.id,workType:'Office work'};
+      const save={requestId:randomUUID(),expectedVersion:0,lines:[officeRow],reason:'Synthetic office clock record'};
+      const office=officeRoute(f.company.id);
+      await call(a.hr,office,404,save);
+      await grant(a.hr,'hr.attendance.office.manage');
+      await call(a.store,office,404,save);
+      await call(a.hr,officeRoute(f.hidden.id),404,save);
+      await call(a.hr,office,403,save,false);
+      await call(a.hr,office,404,{...save,lines:[row]});
+      await call(a.hr,office,422,{...save,lines:[]});
+      const saved=await call(a.hr,office,201,save);
+      assert.deepEqual((await call(a.hr,office,201,save)).data,saved.data);
+      const officeView=(await call(a.hr,office,200)).data;
+      assert.equal(officeView.projectId,null); assert.equal(officeView.state,'SUBMITTED'); assert.equal(officeView.action,'OFFICE_SAVE');
+      await call(a.hr,office,409,{...save,requestId:randomUUID()});
+      await call(a.hr,office,201,{...save,requestId:randomUUID(),expectedVersion:1,lines:[{...officeRow,endMinute:721}],reason:'Synthetic office correction'});
+      const old=await db.hrAttendanceRevision.findUniqueOrThrow({where:{batchId_version:{batchId:saved.data.id,version:1}},include:{lines:true}});
+      assert.equal(old.lines[0]!.endMinute,720);
+      assert.equal((await call(a.hr,office,200)).data.lines[0].endMinute,721);
+      const officeBatch=await db.hrAttendanceBatch.findUniqueOrThrow({where:{id:saved.data.id}});
+      assert.equal(officeBatch.scopeKey,'OFFICE'); assert.equal(officeBatch.projectId,null);
+      await call(a.store,root,409,command('EDIT',7,{reason:'Synthetic submitted lock',lines:[officeRow]}));
+      // The same HR identity may record office input in an explicitly granted
+      // other Company, without changing its session or granting site access.
+      const foreignEmployee=await db.employee.create({data:{companyId:f.other.id,employeeCode:'OFFICE-B-'+f.suffix,employeeName:'Synthetic office B'}});
+      await call(a.hr,'/hr/companies/'+f.other.id+'/employees/'+foreignEmployee.id+'/employment',201,
+        {requestId:randomUUID(),expectedVersion:0,facts:hrFacts({siteKind:'OFFICE',payBasis:'MONTHLY'})});
+      await call(a.hr,officeRoute(f.other.id),201,{...save,requestId:randomUUID(),lines:[{...officeRow,employeeId:foreignEmployee.id}]});
+      assert.equal((await f.sessions.resolve(a.hr.session.sessionToken))!.companyId,f.company.id);
+      await call(a.hr,route(f.foreignProject.id),404);
+      assert.equal(await db.hrAttendanceBatch.count({where:{companyId:f.hidden.id}}),0);
+    });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
       await db.rolePermission.deleteMany({where:{roleId:a.store.role.id,permissionId:permission.id}});

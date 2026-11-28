@@ -174,6 +174,17 @@ export class HrController {
     return { data: await this.hr.attendanceWrite(auth(request), projectId, periodStart, body) };
   }
 
+  @Get('companies/:companyId/office-attendance/:periodStart')
+  async officeAttendance(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('periodStart') periodStart: string) {
+    return { data: await this.hr.officeAttendanceRead(auth(request), companyId, periodStart) };
+  }
+
+  @Post('companies/:companyId/office-attendance/:periodStart')
+  @UseGuards(CsrfGuard)
+  async officeAttendanceWrite(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Param('periodStart') periodStart: string, @Body() body: unknown) {
+    return { data: await this.hr.officeAttendanceWrite(auth(request), companyId, periodStart, body) };
+  }
+
   @Get('projects/:projectId/employees')
   @RequirePermissions('hr.operational.view')
   async operational(@Req() request: AuthenticatedRequest, @Param('projectId') projectId: string) {
