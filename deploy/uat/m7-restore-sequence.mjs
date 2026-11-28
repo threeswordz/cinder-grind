@@ -1,3 +1,4 @@
+import {sourceProcessTuple,sameSourceProcess} from './m7-source-process.mjs';
 // M7-02 preparation contract. No native transport or executable entry point.
 import { verifyRestoreDatabase, verifyRestoredApi, restoreArguments } from './m7-isolated-restore.mjs';
 const need = (ok, code) => { if (!ok) throw new Error('M7_SEQUENCE_' + code); };
@@ -10,11 +11,12 @@ const sameDatabase = (a, b) => a?.cluster === b?.cluster && a?.oid === b?.oid &&
 export function createRestoreSequence(claim, capture, adapter) {
   const { plan, verifyPaths } = claim;
   need(capture?.sha === plan.sha && capture.tree === plan.tree && digest.test(capture.dumpSha ?? '') && sameContent(capture, capture) && capture.sourceDatabase && capture.sourceProcess, 'CAPTURE');
+  sourceProcessTuple(capture.sourceProcess);
   const expected = structuredClone(capture);
   let attempted = false;
   const verifySource = async () => {
     const s = await adapter.inspectCaptureAndSource();
-    need(s?.sha === expected.sha && s.tree === expected.tree && s.dumpSha === expected.dumpSha && sameContent(expected, s) && sameDatabase(expected.sourceDatabase, s.sourceDatabase), 'SOURCE_DRIFT');
+    need(s?.sha === expected.sha && s.tree === expected.tree && s.dumpSha === expected.dumpSha && sameContent(expected, s) && sameDatabase(expected.sourceDatabase, s.sourceDatabase) && sameSourceProcess(expected.sourceProcess,s.sourceProcess), 'SOURCE_DRIFT');
     await verifyPaths();
   };
   return async function restoreOnce() {

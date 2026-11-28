@@ -1,14 +1,15 @@
+import {quiescentSourceProcess} from './m7-source-process.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRestoreSequence } from './m7-restore-sequence.mjs';
-const plan = { sha: 'a'.repeat(40), tree: 'b'.repeat(40), database: 'm7_restore_abcdef012345', role: 'm7_restore_role_abcdef012345', port: 33072, storage: { documents: '/target/documents', uploads: '/target/uploads', hrkeys: '/target/hrkeys' } };
+const plan = { sha: 'a'.repeat(40), tree: 'b'.repeat(40), database: 'm7_restore_abcdef012345', role: 'm7_restore_role_abcdef012345', port: 33073, storage: { documents: '/target/documents', uploads: '/target/uploads', hrkeys: '/target/hrkeys' } };
 const sourceDatabase = { cluster: '123', oid: 1, database: 'proto_a_01', role: 'proto_runtime' };
-const capture = { sha: plan.sha, tree: plan.tree, dumpSha: 'c'.repeat(64), schemaSha: 'd'.repeat(64), rowsSha: 'e'.repeat(64), documentsSha: 'f'.repeat(64), uploadsSha: '1'.repeat(64), hrkeysSha: '2'.repeat(64), sourceDatabase, sourceProcess: { pid: 111 } };
+const capture = { sha: plan.sha, tree: plan.tree, dumpSha: 'c'.repeat(64), schemaSha: 'd'.repeat(64), rowsSha: 'e'.repeat(64), documentsSha: 'f'.repeat(64), uploadsSha: '1'.repeat(64), hrkeysSha: '2'.repeat(64), sourceDatabase, sourceProcess: quiescentSourceProcess({api:{port:33071,pid:111,born:'retained api'},web:{port:44171,pid:112,born:'retained web'}}) };
 function fixture(patch = {}) {
   const calls = []; const record = (k, result) => async () => { calls.push(k); return result; };
   const proc = { pid: 222, born: 'start', uid: process.getuid(), entry: '/pinned/main.js' };
   const db = { cluster: '123', oid: 2, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true };
-  const adapter = { inspectCaptureAndSource: record('source', capture), inspectTargetAbsence: record('absence', { databaseAbsent: true, roleAbsent: true, portFree: true, storageEmpty: true }), provisionFreshTarget: record('provision'), inspectDatabase: record('db', db), restoreDatabase: record('restore'), restoreStorageNoOverwrite: record('storage'), inspectRestoredContent: record('content', capture), isPortFree: record('port', true), launchPinnedApi: record('launch', proc), inspectApi: record('api', { ...proc, sha: plan.sha, tree: plan.tree, database: plan.database, role: plan.role, storage: plan.storage, listenerPids: [222], listenAddresses: ['127.0.0.1:33072'], health: 'ok' }), ...patch };
+  const adapter = { inspectCaptureAndSource: record('source', capture), inspectTargetAbsence: record('absence', { databaseAbsent: true, roleAbsent: true, portFree: true, storageEmpty: true }), provisionFreshTarget: record('provision'), inspectDatabase: record('db', db), restoreDatabase: record('restore'), restoreStorageNoOverwrite: record('storage'), inspectRestoredContent: record('content', capture), isPortFree: record('port', true), launchPinnedApi: record('launch', proc), inspectApi: record('api', { ...proc, sha: plan.sha, tree: plan.tree, database: plan.database, role: plan.role, storage: plan.storage, listenerPids: [222], listenAddresses: ['127.0.0.1:33073'], health: 'ok' }), ...patch };
   return { calls, run: createRestoreSequence({ plan, verifyPaths: record('paths') }, capture, adapter), db };
 }
 test('mocked sequence verifies content before launching API and never accepts milestone', async () => {
@@ -30,3 +31,4 @@ test('port race prevents launch; failed restore cannot be retried or continue to
   const p = fixture({ isPortFree: async () => false }); await assert.rejects(p.run(), /PORT_OCCUPIED/); assert.ok(!p.calls.includes('launch'));
   const f = fixture({ restoreDatabase: async () => { throw Error('restore failed'); } }); await assert.rejects(f.run(), /restore failed/); assert.ok(!f.calls.includes('storage')); await assert.rejects(f.run(), /ALREADY_ATTEMPTED/);
 });
+test('retained process custody drift blocks provisioning',async()=>{const f=fixture({inspectCaptureAndSource:async()=>({...capture,sourceProcess:{...capture.sourceProcess,retainedWeb:{...capture.sourceProcess.retainedWeb,pid:113}}})});await assert.rejects(f.run(),/SOURCE_DRIFT/);assert.ok(!f.calls.includes('provision'));});

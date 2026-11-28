@@ -1,3 +1,4 @@
+import {quiescentSourceProcess} from './m7-source-process.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile, readFile, symlink, rename, realpath } from 'node:fs/promises';
@@ -10,7 +11,7 @@ async function fixture(t) {
   const protectedRoots = {};
   for (const k of ['application', 'database', 'documents', 'uploads', 'hrkeys', 'capture']) { protectedRoots[k] = join(base, k); await mkdir(protectedRoots[k], { mode: 0o700 }); }
   const parent = join(base, 'target'); await mkdir(parent, { mode: 0o700 });
-  return { parent, protectedRoots, runId: 'abcdef012345', candidate: { sha: 'a'.repeat(40), tree: 'b'.repeat(40), clean: true }, sourcePort: 33071, port: 33072 };
+  return { parent, protectedRoots, runId: 'abcdef012345', candidate: { sha: 'a'.repeat(40), tree: 'b'.repeat(40), clean: true }, sourcePort: 33071, port: 33073 };
 }
 const source = { cluster: '12345', oid: 42, database: 'proto_a_01', role: 'proto_runtime' };
 const target = plan => ({ cluster: '12345', oid: 43, database: plan.database, role: plan.role, owner: plan.role, roleIsolated: true, canConnectSource: false, privileged: false, otherSessions: 0, emptyAtDatabaseScope: true });
@@ -46,6 +47,7 @@ test('restore flags use fixed target only, no clean/create/migrate', async t => 
 });
 test('loopback API must match process, app, role and all three private roots', async t => {
   const { plan } = await claimRestoreTarget(await fixture(t)); const e = { pid: 222, born: 'start', uid: process.getuid(), entry: '/isolated/main.js' }; const o = { ...e, sha: plan.sha, tree: plan.tree, database: plan.database, role: plan.role, listenerPids: [222], listenAddresses: ['127.0.0.1:' + plan.port], storage: plan.storage, health: 'ok' };
-  assert.equal(verifyRestoredApi(plan, e, o, { pid: 111 }), true);
-  for (const patch of [{ pid: 111 }, { born: 'changed' }, { sha: 'c'.repeat(40) }, { role: source.role }, { listenerPids: [222, 333] }, { listenAddresses: ['0.0.0.0:' + plan.port] }, { storage: { ...plan.storage, hrkeys: '/source/keys' } }, { health: 'bad' }]) assert.throws(() => verifyRestoredApi(plan, e, { ...o, ...patch }, { pid: 111 }), /M7_RESTORE_/);
+  assert.equal(verifyRestoredApi(plan, e, o, quiescentSourceProcess({api:{port:33071,pid:111,born:'retained api'},web:{port:44171,pid:112,born:'retained web'}})), true);
+  for (const patch of [{ pid: 111 }, { pid: 112 }, { born: 'changed' }, { sha: 'c'.repeat(40) }, { role: source.role }, { listenerPids: [222, 333] }, { listenAddresses: ['0.0.0.0:' + plan.port] }, { storage: { ...plan.storage, hrkeys: '/source/keys' } }, { health: 'bad' }]) assert.throws(() => verifyRestoredApi(plan, e, { ...o, ...patch }, quiescentSourceProcess({api:{port:33071,pid:111,born:'retained api'},web:{port:44171,pid:112,born:'retained web'}})), /M7_RESTORE_/);
 });
+test('all retained and offline source ports are reserved',async t=>{const f=await fixture(t);for(const port of [33071,33072,44171,44172])await assert.rejects(claimRestoreTarget({...f,port}),/M7_RESTORE_PORT/);});

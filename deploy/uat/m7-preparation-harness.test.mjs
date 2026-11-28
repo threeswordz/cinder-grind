@@ -1,8 +1,9 @@
+import {quiescentSourceProcess} from './m7-source-process.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createM7PreparationHarness} from './m7-preparation-harness.mjs';
 function setup(fault='') {
-  const calls=[], capture={sha:'a'.repeat(40),tree:'b'.repeat(40),sourceDatabase:{cluster:'1',oid:1,database:'source',role:'source'},sourceProcess:{pid:10}};
+  const calls=[], capture={sha:'a'.repeat(40),tree:'b'.repeat(40),sourceDatabase:{cluster:'1',oid:1,database:'source',role:'source'},sourceProcess:quiescentSourceProcess({api:{port:33071,pid:111,born:'retained api'},web:{port:44171,pid:112,born:'retained web'}})};
   const witness=Object.fromEntries(['databaseIdentitySha256','storageIdentitySha256','quiescenceReceiptSha256','stateSha256'].map(k=>[k,'a'.repeat(64)]));
   const plan={sha:capture.sha,tree:capture.tree,port:33072}, db={cluster:'1',oid:2,database:'target',role:'target'}, proc={pid:20,keyMode:fault==='key'?'wrong':'correct',manifestSha:'b'.repeat(64)};
   const mark=(k,v)=>async()=>{calls.push(k);return v;};
