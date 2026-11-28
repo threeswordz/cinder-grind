@@ -30,7 +30,7 @@ export async function probeResidualBrowser({protocol:p,roster,sessions,verifyRun
  need(results.length===5,'COVERAGE');return {status:'M6_RESIDUAL_BROWSER_PASS',browserVerified:true,actors:results.length,ss08SignedReceiptRendered:true,fm02WeightedProgressRendered:true,supplierReturnCustodyRendered:true,additionalLogins:0,businessMutationsPerformed:false,productionAuthorized:false};
 }
 export async function runResidualBrowser({ctx,selection,runtime,sessions,roster,ss08Ids,fm02Ids,supplierBinding}){
- const stage=join(ctx.parentStage,'event266-residual-runtime'),owned=await prepareBrowser(selection,stage);let browser;
+ const stage=join(ctx.parentStage,ctx.recoveryContinuation===true?'event294-residual-continuation-runtime':'event266-residual-runtime'),owned=await prepareBrowser(selection,stage);let browser;
  try{browser=await startBrowser(owned.executable,stage);return await probeResidualBrowser({protocol:browser.protocol,roster,sessions,verifyRuntime:runtime.verifyRuntime,projectId:ctx.fixture.projectId,ss08Ids,fm02Ids,supplierBinding});}
  catch(e){if(!browser&&e.browserProcessExited===true)await owned.cleanup();throw e;}
  finally{if(browser){await browser.stop();await owned.cleanup();}}
