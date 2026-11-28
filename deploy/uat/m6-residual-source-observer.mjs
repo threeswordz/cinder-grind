@@ -1,5 +1,6 @@
 // Native read-only source adapter. No sessions, writes, grants or CLI.
 import {createHash} from 'node:crypto';
+import {selectSupplierDenialTarget} from './m6-residual-denial-target.mjs';
 import {event284Specs} from './m6-residual-role-plan.mjs';
 import {calendarName} from './m6-event284-calendar.mjs';
 import {planResidualSiteFixture} from './m6-residual-site-fixture.mjs';
@@ -46,9 +47,9 @@ export async function observeResidualSourcePlans(ctx,{keys,issueDate,validTo,art
   need(rolePlan.needsPoEdit===!dispatchEvents.some(e=>e.kind==='ACKNOWLEDGMENT'),'PUR07_ROLE_DRIFT');
   const selected={...artifacts};if(dispatchEvents.some(e=>e.kind==='DISPATCH'))delete selected.dispatch;
   const supplierPlan=planResidualSupplierSources({binding:inv,order,delivery,lines:(delivery?.lines??[]).map(l=>({...l,observedQuantity:String(l.observedQuantity),goodQuantity:String(l.goodQuantity)})),evidence:delivery?.evidence??[],dispatchEvents,roster,documentType:historical.documentType,artifacts:selected});
-  const foreign=await tx.purchaseOrder.findFirst({where:{companyId:f.foreignCompanyId,projectId:f.foreignProjectId},orderBy:{id:'asc'},select:{id:true,companyId:true,projectId:true}});need(uuid(foreign?.id)&&foreign.companyId===f.foreignCompanyId&&foreign.projectId===f.foreignProjectId,'FOREIGN_ORDER');
+  const supplierDenialTarget=await selectSupplierDenialTarget(tx,f,inv.orderId);
   need(same(initial,await captureFixtureRows(tx)),'BASELINE_DRIFT');
-  return {sitePlan,supplierPlan,issuePolicyId:issuePolicy.id,foreignOrderId:foreign.id,documentTypeId:historical.documentTypeId,historicalDocumentId:historical.id,historicalDocumentSha256:historical.checksum,baselineSha256:digest(initial),expectedActors:['BEN','KHAIMOOK','FOREMAN','JAI','STORE_SITE'].map(k=>roster[k].userId).sort(),syntheticOnly:true,productionAuthorized:false};
+  return {sitePlan,supplierPlan,issuePolicyId:issuePolicy.id,supplierDenialTarget,documentTypeId:historical.documentTypeId,historicalDocumentId:historical.id,historicalDocumentSha256:historical.checksum,baselineSha256:digest(initial),expectedActors:['BEN','KHAIMOOK','FOREMAN','JAI','STORE_SITE'].map(k=>roster[k].userId).sort(),syntheticOnly:true,productionAuthorized:false};
  },{isolationLevel:'RepeatableRead',timeout:120000});
  await verifyBeforeMutation();await verifyCustody();return result;
 }
