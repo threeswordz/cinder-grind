@@ -1,7 +1,7 @@
 // Preparation composition only. No native adapter, CLI, or milestone admission.
 const need = (ok, code) => { if (!ok) throw new Error('M7_HARNESS_' + code); };
 const safe = e => /^M[67]_[A-Z0-9_]+$/.test(e?.message ?? '') ? e.message : 'M7_HARNESS_UNEXPECTED';
-const methods = ['inspectCaptureAndSource','inspectTargetAbsence','provisionFreshTarget','inspectDatabase','restoreDatabase','restoreStorageNoOverwrite','inspectRestoredContent','isPortFree','launchPinnedApi','inspectApi','stopOwnedApi'];
+const methods = ['inspectCaptureAndSource','inspectTargetAbsence','provisionFreshTarget','inspectDatabase','restoreDatabase','inspectRestoredContent','isPortFree','launchPinnedApi','inspectApi','stopOwnedApi'];
 const sameDb = (a,b) => ['cluster','oid','database','role'].every(k => a?.[k] === b?.[k]);
 
 // The default composition loads the actual lane implementations. Dependency
@@ -12,12 +12,12 @@ export async function createM7PreparationHarness(input, deps) {
   const d = deps ?? Object.assign({}, ...await Promise.all([
     import('./m7-capture-contract.mjs'), import('./m7-paired-backup.mjs'),
     import('./m7-isolated-restore.mjs'), import('./m7-restore-sequence.mjs'),
-    import('./m7-restored-verification.mjs')
+    import('./m7-restored-verification.mjs'), import('./m7-storage-restore.mjs')
   ]));
-  const sourceWitness = structuredClone(witness);
-  const binding = await d.bindM7Capture({manifestArgs,witness:sourceWitness,witnessSha256,verifyManifest:d.verifyM7PairedManifest});
+  const sourceWitness = structuredClone(witness), manifest = structuredClone(manifestArgs);
+  const binding = await d.bindM7Capture({manifestArgs:manifest,witness:sourceWitness,witnessSha256,verifyManifest:d.verifyM7PairedManifest});
   const capture = binding.capture();
-  need(claimOptions?.candidate?.sha === capture.sha && claimOptions.candidate.tree === capture.tree && claimOptions.protectedRoots?.capture === manifestArgs.root, 'CLAIM_BINDING');
+  need(claimOptions?.candidate?.sha === capture.sha && claimOptions.candidate.tree === capture.tree && claimOptions.protectedRoots?.capture === manifest.root, 'CLAIM_BINDING');
   const inputs = structuredClone(claimOptions);
   const fixture = structuredClone(verification.fixture), actors = structuredClone(verification.actors);
   let attempted = false;
@@ -38,6 +38,13 @@ export async function createM7PreparationHarness(input, deps) {
       const target = binding.verificationTarget(plan,'correct');
       const wrapped = Object.fromEntries(methods.map(k => [k,(...args) => adapter[k](...args)]));
       wrapped.inspectCaptureAndSource = inspectSource;
+      const restoreStorageOnce = d.createM7StorageRestore({claim,captureRoot:manifest.root,expectedInventories:manifest.expectedInventories,reverifyCapture:binding.reverify});
+      wrapped.restoreStorageNoOverwrite = async (p,expected) => {
+        need(p === plan && ['sha','tree','dumpSha','schemaSha','rowsSha','documentsSha','uploadsSha','hrkeysSha'].every(k => expected?.[k] === capture[k]),'STORAGE_BINDING');
+        const restored = await restoreStorageOnce();
+        need(restored.status === 'M7_STORAGE_RESTORE_BYTES_VERIFIED' && restored.rootsVerified === 3,'STORAGE_INCOMPLETE');
+        return restored;
+      };
       wrapped.inspectDatabase = async p => {
         const db = await adapter.inspectDatabase(p);
         if (!initialDb) initialDb = structuredClone(db);
