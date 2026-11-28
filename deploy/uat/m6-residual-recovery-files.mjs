@@ -1,6 +1,6 @@
 // Event294 recovery only: preserve the failed runtime and adopt its two files.
 // Never copy back to the source, overwrite, or silently accept unknown additions.
-import {cp,lstat,realpath,mkdir} from 'node:fs/promises';
+import {cp,lstat,realpath} from 'node:fs/promises';
 import {join,dirname,resolve} from 'node:path';
 import {hasEvent294Authority,recoveryAnchor,validateRecoveredDispatch} from './m6-residual-recovery-authority.mjs';
 import {verifyResidualDocumentDelta} from './m6-residual-document-delta.mjs';
@@ -22,6 +22,12 @@ export function createRecoveryFileRegistry({ctx,plan,roster,authorization,recove
  return {companyId:f.companyId,async registerUploaded(x){const p=planned.find(s=>s.key===x?.key);need(!sealed&&p&&fits(x,p,f.projectId)&&!registered.has(x.key)&&!expected().some(y=>y.id===x.id),'UPLOAD');registered.set(x.key,structuredClone(x));},seal(files){need(!sealed&&registered.size===4&&Array.isArray(files)&&files.length===5&&files.filter(x=>x.key==='dispatch'&&same(fields(x),initial[1])).length===1&&planned.every(p=>files.filter(x=>x.key===p.key&&same(fields(x),fields(registered.get(p.key)))).length===1),'COMPLETE');sealed=true;return {documentFilesAdded:4,recoveredFilesAdopted:2,totalResidualFiles:6};},async readDelta(){const wanted=expected();const result=await captureResidualNativeEvidence({db:ctx.db,captureFixtureRows:ctx.captureFixtureRows,verifyRuntime:ctx.verifyCustody,companyId:f.companyId,projectId:f.projectId,selection:{documents:wanted}});return {expected:structuredClone(wanted),documents:result.documents};}};
 }
 async function privateDir(path){const s=await lstat(path);need(s.isDirectory()&&!s.isSymbolicLink()&&s.uid===process.getuid()&&!(s.mode&0o077)&&await realpath(path)===path,'DIRECTORY');}
+async function requireAbsent(path){try{await lstat(path);need(false,'DESTINATION_EXISTS');}catch(e){if(e.code!=='ENOENT')throw e;}}
+async function copyPrivateRoots(stage,priorRuntime){
+ await privateDir(stage);
+ for(const k of kinds)await requireAbsent(join(stage,k));
+ for(const k of kinds){const source=join(priorRuntime,k),target=join(stage,k);await privateDir(source);await requireAbsent(target);await cp(source,target,{recursive:true,force:false,errorOnExist:true});await privateDir(target);}
+}
 export async function admitRecoveryRuntimeFiles({stage,recovery,priorRuntime,authorization,inventory,residualDocuments}){
  const parent=dirname(stage);
  need(hasEvent294Authority(authorization)&&typeof stage==='string'&&resolve(stage)===stage&&parent.endsWith('/m6-successor-'+recoveryAnchor.previousApplicationSha)&&stage===join(parent,'event294-residual-continuation-runtime')&&priorRuntime===join(parent,'event266-residual-runtime')&&recovery===join(parent,'recovery')&&typeof inventory==='function'&&typeof residualDocuments?.readDelta==='function'&&uuid(residualDocuments.companyId),'CONTEXT');
@@ -32,5 +38,5 @@ export async function admitRecoveryRuntimeFiles({stage,recovery,priorRuntime,aut
  verifyResidualDocumentDelta({before:baseline,after:prior,recovery:baseline,...delta,companyId:residualDocuments.companyId});
  const admitted=structuredClone(delta.expected);let copied=false;
  async function unchanged(){need(same(baseline,await read(recovery))&&same(prior,await read(priorRuntime)),'SOURCE_DRIFT');}
- return {async copy(){need(!copied,'NO_REPLAY');copied=true;await privateDir(stage);await unchanged();for(const k of kinds){const target=join(stage,k);await mkdir(target,{mode:0o700});await cp(join(priorRuntime,k),target,{recursive:true,force:false,errorOnExist:true});}need(same(prior,await read(stage)),'COPY');await unchanged();},async verify(){need(copied,'NOT_COPIED');await unchanged();const current=await read(stage),next=await residualDocuments.readDelta();need(next.expected.length>=2&&next.expected.length<=6&&same(next.expected.slice(0,2),admitted),'ADOPTED_DRIFT');verifyResidualDocumentDelta({before:baseline,after:current,recovery:baseline,...next,companyId:residualDocuments.companyId});await unchanged();return current;}};
+ return {async copy(){need(!copied,'NO_REPLAY');copied=true;await privateDir(stage);await unchanged();await copyPrivateRoots(stage,priorRuntime);need(same(prior,await read(stage)),'COPY');await unchanged();},async verify(){need(copied,'NOT_COPIED');await unchanged();const current=await read(stage),next=await residualDocuments.readDelta();need(next.expected.length>=2&&next.expected.length<=6&&same(next.expected.slice(0,2),admitted),'ADOPTED_DRIFT');verifyResidualDocumentDelta({before:baseline,after:current,recovery:baseline,...next,companyId:residualDocuments.companyId});await unchanged();return current;}};
 }
