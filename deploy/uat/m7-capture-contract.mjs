@@ -38,11 +38,11 @@ export async function bindM7Capture({manifestArgs,witness,witnessSha256,verifyMa
   need(hash(witnessTuple)===witnessSha256,'WITNESS_DIGEST');
   const reverify=async()=>{need(await verifyManifest(structuredClone(m))===true,'MANIFEST_RECHECK');};
   await reverify();
-  const capture={sha:w.applicationSha,tree:w.tree,dumpSha:w.dumpSha,schemaSha:w.schemaSha,rowsSha:w.rowsSha,...inventories,sourceDatabase:{cluster:db[0],oid:db[1],database:db[2],role:db[3]},sourceProcess:structuredClone(w.sourceProcess)};
+  const capture={sha:w.applicationSha,tree:w.tree,dumpSha:w.dumpSha,schemaSha:w.schemaSha,rowsSha:w.rowsSha,...inventories,sourceDatabase:{cluster:db[0],oid:db[1],database:db[2],role:db[3]},sourceProcess:structuredClone(w.sourceProcess),databaseIdentitySha256:w.databaseIdentitySha256,storageIdentitySha256:w.storageIdentitySha256,quiescenceReceiptSha256:w.quiescenceReceiptSha256,stateSha256:w.stateSha256};
   // Keep immutable expected state private. Restore's adapter must collect observations anew.
   return Object.freeze({capture:()=>structuredClone(capture),manifestSha:m.manifestSha256,reverify,
     assertObservation(observed){
-      need(observed?.sha===capture.sha&&observed.tree===capture.tree&&observed.dumpSha===capture.dumpSha&&observed.manifestSha===m.manifestSha256&&sameSourceProcess(observed.sourceProcess,capture.sourceProcess)&&fields.every(k=>observed[k]===capture[k])&&JSON.stringify(dbTuple(observed.sourceDatabase))===JSON.stringify(db),'OBSERVATION_DRIFT');
+      need(observed?.sha===capture.sha&&observed.tree===capture.tree&&observed.dumpSha===capture.dumpSha&&observed.manifestSha===m.manifestSha256&&sameSourceProcess(observed.sourceProcess,capture.sourceProcess)&&[...fields,'databaseIdentitySha256','storageIdentitySha256','quiescenceReceiptSha256','stateSha256'].every(k=>observed[k]===capture[k])&&JSON.stringify(dbTuple(observed.sourceDatabase))===JSON.stringify(db),'OBSERVATION_DRIFT');
       return true;
     },
     verificationTarget(plan,keyMode){
