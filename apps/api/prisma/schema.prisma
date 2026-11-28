@@ -223,6 +223,7 @@ model Material {
 }
 
 model Employee {
+  hrWorkRequests HrWorkRequest[]
   requestedMaterialRequests MaterialRequest[] @relation("MaterialRequestRequester")
   receivedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestRecipient")
   issuedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestIssuer")
@@ -254,6 +255,7 @@ model Employee {
 }
 
 model User {
+  hrWorkRequestMakers HrWorkRequestRevision[] @relation("HrWorkRequestMaker")
   movementCorrectionRequests MovementCorrectionRequest[] @relation("MovementCorrectionRequester")
   poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
@@ -545,6 +547,7 @@ model ApprovalStepRole {
 }
 
 model ApprovalInstance {
+  hrWorkRequestRevision HrWorkRequestRevision?
   movementCorrectionRequest MovementCorrectionRequest? @relation("MovementCorrectionDecision")
   sourceCancellationRequests MovementCorrectionRequest[] @relation("MovementCorrectionOriginalApproval")
   materialPlanIssueAuthorization MaterialPlanIssueAuthorization?
@@ -682,6 +685,7 @@ model SystemSetting {
 
 
 model Project {
+  hrWorkRequestRevisions HrWorkRequestRevision[]
   poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
   receivingDeliveries ReceivingDelivery[]
@@ -3399,6 +3403,7 @@ model HrEmployment {
 }
 
 model HrEmploymentRevision {
+  workRequestRevisions HrWorkRequestRevision[]
   id String @id @default(uuid()) @db.Uuid
   companyId String @map("company_id") @db.Uuid
   employmentId String @map("employment_id") @db.Uuid
@@ -4490,4 +4495,54 @@ model MovementCorrectionRequest {
   @@unique([companyId, sourceKind, sourceId, requestKey], map: "movement_correction_request_replay_key")
   @@index([companyId, sourceKind, sourceId], map: "movement_correction_source_idx")
   @@map("movement_correction_requests")
+}
+
+model HrWorkRequest {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  kind String @db.VarChar(10)
+  currentVersion Int @default(0) @map("current_version")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  employee Employee @relation(fields:[companyId,employeeId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict)
+  revisions HrWorkRequestRevision[]
+  @@unique([companyId,id])
+  @@index([companyId,employeeId])
+  @@map("hr_work_requests")
+}
+
+model HrWorkRequestRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  version Int
+  operation String @db.VarChar(12)
+  employmentRevisionId String @map("employment_revision_id") @db.Uuid
+  projectId String? @map("project_id") @db.Uuid
+  makerUserId String @map("maker_user_id") @db.Uuid
+  approvalInstanceId String @unique @map("approval_instance_id") @db.Uuid
+  leaveType String? @map("leave_type") @db.VarChar(50)
+  reason String @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  request HrWorkRequest @relation(fields:[companyId,requestId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"hr_work_request_revisions_request_fkey")
+  employmentRevision HrEmploymentRevision @relation(fields:[employmentRevisionId],references:[id],onDelete:Restrict,onUpdate:Restrict,map:"hr_work_request_revisions_employment_fkey")
+  project Project? @relation(fields:[companyId,projectId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"hr_work_request_revisions_project_fkey")
+  maker User @relation("HrWorkRequestMaker",fields:[companyId,makerUserId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"hr_work_request_revisions_maker_fkey")
+  approvalInstance ApprovalInstance @relation(fields:[approvalInstanceId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  days HrWorkRequestDay[]
+  @@unique([requestId,version])
+  @@unique([companyId,id])
+  @@map("hr_work_request_revisions")
+}
+
+model HrWorkRequestDay {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  revisionId String @map("revision_id") @db.Uuid
+  workDate DateTime @map("work_date") @db.Date
+  leavePortion String? @map("leave_portion") @db.VarChar(10)
+  requestedOvertimeMinutes Int? @map("requested_overtime_minutes")
+  revision HrWorkRequestRevision @relation(fields:[companyId,revisionId],references:[companyId,id],onDelete:Restrict,onUpdate:Restrict,map:"hr_work_request_days_revision_fkey")
+  @@unique([revisionId,workDate])
+  @@map("hr_work_request_days")
 }
