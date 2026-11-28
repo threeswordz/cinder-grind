@@ -231,7 +231,7 @@ export async function withResidualNativeAdmission(authority,consume){
       // prior mutation attempt, changed roster or expired proof as permission.
       need(binding.historicalSessionRowsPreserved===129&&rateBucketReady&&readiness.site.signedReceiptPresent===true&&readiness.site.boqAllocationPresent===true&&readiness.site.issueDimensionsPresent===false&&readiness.site.threeLevelWbsPresent===false&&readiness.site.activityTypePresent===false&&readiness.fm02.planCount===0&&readiness.fm02.confirmedPlanCount===0&&readiness.fm02.eligiblePairCount===0&&readiness.supplier.eventCount===0,'EVENT266_START');
       mark('RESIDUAL_ROLE_PLAN');
-      const roleContext={fixture,original:privateActors.actors,roster:binding.roster};
+      const roleContext={fixture,original:privateActors.actors,roster:binding.roster,inventoryBinding};
       const rolePlan=await successorRead(tx=>observeResidualRolePlan(tx,roleContext));
       await verifyBeforeSessions();await verifyPreserved();
       mark('RESIDUAL_CONSUMER');
