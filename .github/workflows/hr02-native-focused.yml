@@ -1,11 +1,26 @@
-name: HR02 focused native candidate
+name: Successor focused native persistence
 on:
   push:
     branches: ['work-hr02-native-focused-20261129']
 permissions:
   contents: read
 jobs:
-  hr02-native:
+  native-persistence:
+    name: ${{ matrix.lane }} native persistence
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: HR03
+            sha: c2a0e89d79d6c62973095e63ab4187be450f2f7a
+            tree: 028120683937edfda82c9022e37ebe2390339451
+            migration: apps/api/prisma/migrations/20261129070000_hr03_request_foundation/migration.sql
+            test: apps/api/dist/hr/requests/request-persistence.integration.spec.js
+          - lane: ACC01
+            sha: 43d87d990b8c459dada354244fb0d134f24208bd
+            tree: 37c7ee79777f6e086fe2ad1f8f0de4a27ac51adf
+            migration: apps/api/prisma/migrations/20261129060000_acc01_gl_foundation/migration.sql
+            test: apps/api/dist/accounting/ledger-persistence.integration.spec.js
     runs-on: ubuntu-latest
     timeout-minutes: 18
     services:
@@ -23,21 +38,25 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      EXACT_CANDIDATE: 69e4fd5303c87b115e924d5466a8748f3ac87340
+      EXACT_CANDIDATE: ${{ matrix.sha }}
+      EXPECTED_TREE: ${{ matrix.tree }}
+      EXPECTED_MIGRATION: ${{ matrix.migration }}
+      FOCUSED_TEST: ${{ matrix.test }}
+      LANE: ${{ matrix.lane }}
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       NODE_ENV: test
     steps:
-      - name: Checkout exact HR02 candidate (not driver)
+      - name: Checkout exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ env.EXACT_CANDIDATE }}
+          ref: ${{ matrix.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify candidate and unchanged historical migrations
+      - name: Verify candidate and 184 unchanged migrations
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          test "$(git rev-parse HEAD^{tree})" = "2ae6fae6bb32920240b984d88a68eec911e93c1e"
-          test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\tapps/api/prisma/migrations/20261129050000_hr02_attendance_foundation/migration.sql')"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          test "$(git diff --name-status d517b88c9eff001fd829599eb638214896164f0f HEAD -- apps/api/prisma/migrations/)" = "$(printf 'A\t%s' "$EXPECTED_MIGRATION")"
           test "$(find apps/api/prisma/migrations -name migration.sql | wc -l)" -eq 185
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -49,78 +68,20 @@ jobs:
         with:
           node-version: 24.21.0
           cache: pnpm
-      - name: Generate and validate exact schema
+      - name: Validate exact schema
         run: |
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Apply migrations on owned empty PostgreSQL only
+      - name: Apply migration to owned disposable PostgreSQL only
         run: |
           pnpm prisma:migrate:deploy
           pnpm --filter @construction-erp/api exec prisma migrate status
-      - name: Compile API and execute HR02 focused tests
+      - name: Compile and run changed native persistence test
         run: |
           pnpm --filter @construction-erp/api build
-          cp apps/api/src/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-contract.spec.cjs
-          cp apps/api/src/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs
-          node --test --test-concurrency=1 apps/api/dist/hr/attendance-contract.spec.cjs apps/api/dist/hr/attendance-import.spec.cjs apps/api/dist/hr/attendance.integration.spec.js
-      - name: Compile attendance web UI
-        run: pnpm --filter @construction-erp/web typecheck
+          node --test --test-concurrency=1 "$FOCUSED_TEST"
       - name: Record exact focused result
         run: |
           test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
-          printf '%s\n' "HR02_FOCUSED_NATIVE_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false"
-
-  independent-domain:
-    name: ${{ matrix.lane }} focused domain
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - lane: HR03
-            sha: a4b5ae3655ae99ada2bec4f27525a70550eddcfc
-            tree: 9d77dde0ab36791dd027d6f40f06021c04aeb8c3
-            source: apps/api/src/hr/requests/request-contract
-          - lane: ACC01
-            sha: 420d090e08aa0e77bc11e8021e748ea08eb6bf4d
-            tree: 95f720031e7664e7bf5dde5e8eac5eb210b15878
-            source: apps/api/src/accounting/ledger-contract
-    steps:
-      - name: Checkout exact independent candidate
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ matrix.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Verify identity
-        env:
-          EXPECTED_SHA: ${{ matrix.sha }}
-          EXPECTED_TREE: ${{ matrix.tree }}
-        run: |
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
-      - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
-        with:
-          version: 12.6.0
-          run_install: false
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: 24.21.0
-          cache: pnpm
-      - name: Compile and test exact independent domain
-        env:
-          SOURCE: ${{ matrix.source }}
-          LANE: ${{ matrix.lane }}
-        run: |
-          set -euo pipefail
-          pnpm install --frozen-lockfile
-          T=$(mktemp -d)
-          cp "$SOURCE.ts" "$SOURCE.spec.cjs" "$T/"
-          NAME=$(basename "$SOURCE")
-          pnpm --filter @construction-erp/api exec tsc --strict --skipLibCheck --target es2022 --module commonjs "$T/$NAME.ts"
-          node --test "$T/$NAME.spec.cjs"
-          printf '%s\n' "$LANE EXACT_DOMAIN_CONTRACT_PASS fullSuiteExecuted=false"
+          printf '%s\n' "$LANE NATIVE_PERSISTENCE_PASS candidate=$EXACT_CANDIDATE fullSuiteExecuted=false"
