@@ -8,7 +8,7 @@ async function bounded(r,max){const reader=r.body?.getReader();need(reader,'BODY
 export function createResidualJourneyTransport({binding,sessions,verifyRuntime,receiptBytes,fetchImpl=fetch,origin=API,webOrigin=WEB}){
  const b=structuredClone(binding),actors=['BEN','KHAIMOOK','FOREMAN','JAI','STORE_SITE'];
  need(origin===API&&webOrigin===WEB&&[verifyRuntime,fetchImpl].every(f=>typeof f==='function')&&sessions instanceof Map,'CONTEXT');
- need(b&&['projectId','foreignProjectId','orderId','foreignOrderId','quantityActivityId','milestoneActivityId','documentTypeId'].every(k=>uuid(b[k]))&&new Set(['projectId','foreignProjectId','orderId','foreignOrderId','quantityActivityId','milestoneActivityId','documentTypeId'].map(k=>b[k])).size===7,'BINDING');
+ need(b&&['projectId','foreignProjectId','orderId','denialOrderId','quantityActivityId','milestoneActivityId','documentTypeId'].every(k=>uuid(b[k]))&&new Set(['projectId','foreignProjectId','orderId','denialOrderId','quantityActivityId','milestoneActivityId','documentTypeId'].map(k=>b[k])).size===7,'BINDING');
  need(receiptBytes instanceof Uint8Array&&receiptBytes.length>0&&receiptBytes.length<=1048576&&hash(receiptBytes)===b.documentSha256,'RECEIPT');
  const file=Buffer.from(receiptBytes),local=new Map();for(const k of actors){const s=sessions.get(k);need(/^erp_session=[A-Za-z0-9_-]{20,256}$/.test(s?.cookie??'')&&/^[A-Za-z0-9_-]{20,256}$/.test(s?.csrf??''),'SESSION');local.set(k,{cookie:s.cookie,csrf:s.csrf});}need(new Set([...local.values()].map(s=>s.cookie)).size===actors.length,'SESSION_ALIAS');
  let requestId,issueId,planId,docId,closed=false;const seen=new Set();const mr='/inventory/material-requests',mi='/inventory/material-issues',mp='/inventory/material-plan-issues/issues/',fp='/project-progress-plans',sp='/procurement/purchase-orders/'+b.orderId+'/supplier-case',project='?projectId='+b.projectId,foreign='?projectId='+b.foreignProjectId;
@@ -28,7 +28,7 @@ export function createResidualJourneyTransport({binding,sessions,verifyRuntime,r
   if(['BEN','KHAIMOOK'].includes(actor)&&method==='POST'&&planId&&path===fp+'/'+planId+'/confirm')return {denial:actor==='KHAIMOOK'};
   if(actor==='FOREMAN'&&method==='POST'&&planId&&path===fp+'/activity/'+b.quantityActivityId+'/quantity'&&body?.expectedPlanId===planId)return {denial:body.expectedPlanVersion!==1};
   if(actor==='FOREMAN'&&method==='POST'&&path==='/activity-progress/'+b.milestoneActivityId)return {};
-  if(actor==='JAI'&&method==='GET'&&path==='/procurement/purchase-orders/'+b.foreignOrderId+'/supplier-case')return {denial:true};
+  if(actor==='JAI'&&method==='GET'&&path==='/procurement/purchase-orders/'+b.denialOrderId+'/supplier-case')return {denial:true};
   if(['JAI','STORE_SITE','FOREMAN'].includes(actor)&&method==='GET'&&path===sp)return {denial:actor==='FOREMAN'};
   const supplier={JAI:['ACKNOWLEDGE','CONFIRM_IN_TRANSIT','REPORT_DELAY','JAI_RECORD_CLAIM'],STORE_SITE:['REPORT_DISCREPANCY','STORE_RECORD_RETURN_DISPATCH'],KHAIMOOK:['PM_REVIEW_DISCREPANCY']};
   if(method==='POST'&&path===sp+'/events'&&supplier[actor]?.includes(body?.action))return {};
