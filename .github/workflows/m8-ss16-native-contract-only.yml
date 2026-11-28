@@ -29,7 +29,6 @@ jobs:
       EXACT_BASELINE: '9417f07c609dbc091b5bbe2e09071c5e2c316459'
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
       RC_ENVIRONMENT: ci
-      PG_CONTAINER: ${{ job.services.postgres.id }}
     steps:
       - name: Checkout exact repair source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -55,6 +54,8 @@ jobs:
           node deploy/release-candidate/ss16-release-contract.mjs "$EXACT_REPAIR" "$EXACT_BASELINE"
       - name: Exercise actual seven SS16 migrations and read-only witness on three owned disposable databases
         shell: bash
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
         run: |
           set -euo pipefail
           work="$(mktemp -d /tmp/construction-erp-v10e-migration.XXXXXX)"
