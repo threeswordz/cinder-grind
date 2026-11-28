@@ -270,9 +270,14 @@ test('HR-02 same-site attendance: actual HTTP, immutable snapshots and scoped re
       await call(a.hr,url,409,{...revoke,requestId:randomUUID()});
       assert.ok((await db.hrAttendanceAllocation.findUniqueOrThrow({where:{id:created.id}})).revokedAt);
       const scope=await db.hrCompanyAccess.findFirstOrThrow({where:{companyId:f.other.id,userId:a.hr.user.id,category:'employment'}});
-      await db.hrCompanyAccess.update({where:{id:scope.id},data:{isActive:false}});
+      // Exercise the existing governed versioned scope endpoint, not direct DB
+      // updates that bypass the HR1-A immutable/version guard.
+      const access='/hr/companies/'+f.other.id+'/access';
+      const change={userId:a.hr.user.id,category:'employment'};
+      await call(a.otherAdmin,access,201,{...change,requestId:randomUUID(),isActive:false,expectedVersion:scope.version,reasonCode:'ACCESS_REVOKED'});
       await call(a.hr,url,404,create);
-      await db.hrCompanyAccess.update({where:{id:scope.id},data:{isActive:true}});
+      await call(a.otherAdmin,access,201,{...change,requestId:randomUUID(),isActive:true,expectedVersion:scope.version+1,reasonCode:'SCOPE_CORRECTION'});
+      assert.deepEqual((await call(a.hr,url,201,create)).data,created);
     });
     await t.test('replay is reauthorized after capability revocation',async()=>{
       const permission=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.attendance.site.manage'}});
