@@ -1,5 +1,21 @@
 # Construction ERP — live countdown to 0 hours
 
+<!-- current-post-freeze-verified-native -->
+
+**29 Nov 2026 SGT — Proposed ERP 1,232h → 0h · conditional optimized target 1,181h.** Technical prototype frozen at unchanged d517b88c; GL3/10. [Machine-readable current execution overlay](./ERP-POST-FREEZE-EXECUTION-FORECAST.json). Historical canonical issue baseline1,495h not reconciled as current machine-ledger balance.
+
+| Forecast | Previous turn | New scope | Verified estimate retired | Revised |
+|---|---:|---:|---:|---:|
+| Proposed ERP | 1,251h | 0h | 19h | **1,232h** |
+| Conditional optimization | 1,200h | 0h | 19h | **1,181h** |
+| HR-02 | 25h | 0h | 4h | **21h** |
+| HR-03 | 50h | 0h | 7h | **43h** |
+| ACC-01 | 72h | 0h | 8h | **64h** |
+
+26 tests in previous three-lane focused run, plus 6 tests in [two new independent native jobs](https://github.com/threeswordz/cinder-grind/actions/runs/46189169149) PASS. Exact HR03 c2a0e89d request persistence: canonical ordered approval, immutable facts, rejected correction, approved cancellation; estimated 5h additional retired. Exact ACC01 43d87d99 journal persistence: atomic seal, balanced exact satang, Company and period checks, immutable reversal, trial balance; estimated 6h additional retired. These are low-confidence estimates of retired remaining scope, not measured labor. No credit for unimplemented scoped services, browser, integration or policy activation. All three candidate migrations remain isolated, distinct and unpublished; none applied to retained data. Shared Prisma schema reconciliation required before integrated review. Remaining combined128h → target121h (7h further retirement). No full CI or redundant HR02 rerun; no real grants, statutory rule activation, operational posting, Mac, Production, Codex or human acceptance. Earlier snapshots below historical.
+
+---
+
 <!-- current-post-freeze-execution -->
 
 **29 Nov 2026 SGT — Full ERP proposed 1,243h → 0h; conditional optimized target 1,192h.** Frozen prototype unchanged; GL3/10. Historical canonical issue baseline 1,495h (not reconciled as a current machine-ledger balance). Three authorized isolated lanes. [Execution forecast overlay](./ERP-POST-FREEZE-EXECUTION-FORECAST.json).

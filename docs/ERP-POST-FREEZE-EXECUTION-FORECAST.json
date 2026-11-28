@@ -10,9 +10,9 @@
   "previousConditionalOptimizedHours": 1200,
   "newlyIdentifiedScopeHours": 0,
   "reworkHours": "not measured; test fixture correction included in remaining-work estimates",
-  "estimatedRemainingWorkRetiredHours": 8,
-  "revisedProvisionalHours": 1243,
-  "revisedConditionalOptimizedHours": 1192,
+  "estimatedRemainingWorkRetiredHours": 19,
+  "revisedProvisionalHours": 1232,
+  "revisedConditionalOptimizedHours": 1181,
   "actualLaborHours": null,
   "events": [
     {
@@ -50,6 +50,24 @@
       "basis": "initial exact integer THB arithmetic, balanced journal, reversal, trial balance domain tests; persistence not yet validated",
       "source": "420d090e08aa0e77bc11e8021e748ea08eb6bf4d",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46188661389/job/141114204553"
+    },
+    {
+      "package": "HR-03",
+      "before": 48,
+      "retired": 5,
+      "after": 43,
+      "basis": "native additive request/revision/day schema plus actual canonical ApprovalService ordered decision, rejected correction, cancellation and immutable history proof; scoped service and browser remain",
+      "source": "c2a0e89d79d6c62973095e63ab4187be450f2f7a",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46189169149/job/141115814653"
+    },
+    {
+      "package": "ACC-01",
+      "before": 70,
+      "retired": 6,
+      "after": 64,
+      "basis": "native additive Company account/period/rule/journal schema, exact satang atomic seal, balance/reversal/closed-period/foreign/immutable denial and trial-balance proof; scoped synthetic service, configuration lifecycle and browser remain",
+      "source": "43d87d990b8c459dada354244fb0d134f24208bd",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/46189169149/job/141115814863"
     }
   ],
   "packages": [
@@ -61,19 +79,19 @@
     },
     {
       "id": "HR-03",
-      "remaining": 48,
+      "remaining": 43,
       "head": "c2a0e89d79d6c62973095e63ab4187be450f2f7a",
-      "next": "native persistence, scoped request and canonical approval service, actual time evidence, UI/browser, integration; statutory execution separately gated"
+      "next": "scoped request/approval service incl route and actor checks, actual-time evidence, UI/browser, upgrade/recovery and integration; statutory execution separately gated"
     },
     {
       "id": "ACC-01",
-      "remaining": 70,
+      "remaining": 64,
       "head": "43d87d990b8c459dada354244fb0d134f24208bd",
-      "next": "native journal persistence, scoped synthetic posting/draft and idempotency, rule/period/account controls, trial balance/UI, integration; real posting separately gated"
+      "next": "scoped synthetic draft and journal service, transactional replay/idempotency, account/rule lifecycle, period controls, trial balance/UI, upgrade/recovery and integration; live posting gated"
     }
   ],
-  "pendingNativeRun": "https://github.com/threeswordz/cinder-grind/actions/runs/46189169149",
   "confidence": "LOW_PROVISIONAL",
   "humanUatCompleted": false,
-  "productionAuthorized": false
+  "productionAuthorized": false,
+  "verifiedNativeRun": "https://github.com/threeswordz/cinder-grind/actions/runs/46189169149"
 }
